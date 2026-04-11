@@ -84,6 +84,31 @@ run.phase = 'result'
 - **상태이상 `apply_status`**: `targetMode: 'random'`인 경우 플레이어를 타겟으로 삼을 수 있음 (의도된 설계)
 - **드래프트**: 전투 승리 후 스킬/동료/아이템 중 3장 제시. 동료는 최대 4명
 
+### MP 관리 시스템
+
+MP 회복 경로는 3가지다:
+
+1. **킬 보너스**: 적 처치 시 MP +5 (`damage` / `damage_all` 스킬 모두 적용)
+2. **mana_regen 상태이상**: `arcane_focus` 스킬로 부여. `tickAllStatusEffects`에서 매 턴 `getStatusBonus`만큼 회복
+3. **mp_regen 아이템**: `mana_crystal` 등. `tickAllStatusEffects`에서 매 턴 `item.effect.amount`만큼 회복
+
+**아이템 연결 흐름**: `RunState.acquiredItemIds` → `startBattle`에서 `ItemDef[]`로 매핑 → `BattleState.items` → `battleReducer`가 `useSkill` / `processEnemyTurn` / `tickAllStatusEffects` 호출 시 전달
+
+**0MP 기본 공격** (MP 고갈 시 항상 사용 가능):
+- `fire_mage` → `basic_ember` (화염 원소 기본기)
+- `holy_paladin` → `basic_glimmer` (신성 원소 기본기)
+- `tide_dancer` → `basic_splash` (수계 원소 기본기)
+- `dark_knight`, `berserker` → `slash` (물리 기본기, 원래부터 0MP)
+
+### 주요 함수 시그니처
+
+```typescript
+createBattleCharacter(defId: string, skillIds: readonly string[], itemIds: readonly string[]): BattleCharacter
+createBattleAlly(allyDefId: string, index: number): BattleAlly
+createBattleEnemy(enemyDefId: string, round: number, index: number): BattleEnemy
+battleReducer(state: BattleState, action: BattleAction): BattleState
+```
+
 ### 스타일 시스템 (`src/styles/`)
 
 - `tokens.css` — OKLCH 색상, 타이포그래피 (`clamp`), 간격, 반경 등 CSS 변수 정의
