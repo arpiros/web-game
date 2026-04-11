@@ -70,8 +70,8 @@ export const ALLIES: readonly AllyDef[] = [
     description: '매 턴 전체 적에게 화염 브레스를 내뿜는다. 매우 강력.',
     element: 'fire',
     rarity: 'legendary',
-    baseStats: { maxHp: 1500, attack: 280, defense: 100, speed: 55 },
-    action: { type: 'attack', element: 'fire', multiplier: 2.0 },
+    baseStats: { maxHp: 1100, attack: 200, defense: 100, speed: 55 },
+    action: { type: 'attack', element: 'fire', multiplier: 1.3 },
   },
 ]
 

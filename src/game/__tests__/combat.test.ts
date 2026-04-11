@@ -384,14 +384,14 @@ describe('getItemElementMultiplier', () => {
       name: '화염 파편',
       description: '',
       rarity: 'rare',
-      effect: { type: 'elemental_damage', element: 'fire', multiplier: 1.25 },
+      effects: [{ type: 'elemental_damage', element: 'fire', multiplier: 1.25 }],
     },
     {
       id: 'shadow_gem',
       name: '어둠의 보석',
       description: '',
       rarity: 'rare',
-      effect: { type: 'elemental_damage', element: 'dark', multiplier: 1.25 },
+      effects: [{ type: 'elemental_damage', element: 'dark', multiplier: 1.25 }],
     },
   ]
 
@@ -407,7 +407,7 @@ describe('getItemElementMultiplier', () => {
         name: '화염 파편2',
         description: '',
         rarity: 'rare',
-        effect: { type: 'elemental_damage', element: 'fire', multiplier: 1.25 },
+        effects: [{ type: 'elemental_damage', element: 'fire', multiplier: 1.25 }],
       },
     ]
     expect(getItemElementMultiplier(twoFireItems, 'fire')).toBeCloseTo(1.5625)

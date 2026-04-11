@@ -121,10 +121,10 @@ export const ENEMIES: readonly EnemyDef[] = [
     baseStats: { maxHp: 4000, attack: 300, defense: 150, speed: 70 },
     actions: [
       { type: 'attack_all', element: 'fire', multiplier: 1.5 },
-      { type: 'attack', element: 'physical', multiplier: 3.0, targetMode: 'highest_attack' },
+      { type: 'attack', element: 'physical', multiplier: 2.2, targetMode: 'highest_attack' },
       { type: 'apply_status', status: 'burn', duration: 3, value: 25, targetMode: 'all' },
       { type: 'buff_self', status: 'powerup', duration: 3, value: 80 },
-      { type: 'heal_self', multiplier: 1.0 },
+      { type: 'heal_self', multiplier: 0.6 },
     ],
     lore: '세계를 불태운다는 전설의 용.',
   },

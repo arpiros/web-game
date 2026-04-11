@@ -23,6 +23,7 @@ export type StatusEffectKind =
   | 'powerup'     // 공격력 버프
   | 'defdown'     // 방어력 디버프
   | 'mana_regen'  // 매 턴 MP 회복
+  | 'cc_immune'   // CC 면역 (보스 전용)
 
 // ---------------------------------------------------------------------------
 // Stats
@@ -63,7 +64,7 @@ export type SkillEffect =
   | { readonly type: 'heal_mp';      readonly amount: number }
   | { readonly type: 'apply_status'; readonly status: StatusEffectKind; readonly duration: number; readonly value: number }
   | { readonly type: 'remove_status';readonly status: StatusEffectKind }
-  | { readonly type: 'shield';       readonly amount: number }
+  | { readonly type: 'shield';       readonly amount: number; readonly flat?: true }
   | { readonly type: 'charge';       readonly multiplier: number }    // 다음 공격 강화
   | { readonly type: 'summon_ally';  readonly allyId: EntityId }      // 동료 소환
 
@@ -133,7 +134,7 @@ export interface ItemDef {
   readonly id: EntityId
   readonly name: string
   readonly description: string
-  readonly effect: ItemEffect
+  readonly effects: readonly ItemEffect[]
   readonly rarity: Rarity
 }
 

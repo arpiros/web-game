@@ -40,13 +40,13 @@ export const CHARACTERS: readonly CharacterDef[] = [
     element: 'light',
     baseStats: {
       maxHp: 1500,
-      attack: 140,
+      attack: 165,
       defense: 130,
       speed: 50,
       maxMp: 120,
     },
     innateSkillId: 'holy_strike',
-    startingSkillIds: ['divine_heal', 'barrier', 'basic_glimmer'],
+    startingSkillIds: ['divine_heal', 'barrier', 'basic_glimmer', 'smite'],
     lore: '신의 가호를 받은 성기사. 굳건한 방어와 회복 능력으로 파티를 지킨다.',
   },
   {
@@ -72,10 +72,10 @@ export const CHARACTERS: readonly CharacterDef[] = [
     element: 'physical',
     baseStats: {
       maxHp: 1100,
-      attack: 260,
+      attack: 230,
       defense: 40,
       speed: 70,
-      maxMp: 80,
+      maxMp: 100,
     },
     innateSkillId: 'heavy_blow',
     startingSkillIds: ['slash', 'cleave'],

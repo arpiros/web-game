@@ -124,7 +124,7 @@ function removeStatus(
 
 function tickStatuses(effects: readonly StatusEffect[]): readonly StatusEffect[] {
   return effects
-    .map(e => ({ ...e, duration: e.duration - 1 }))
+    .map(e => e.kind === 'cc_immune' ? e : { ...e, duration: e.duration - 1 })
     .filter(e => e.duration > 0)
 }
 
@@ -245,14 +245,15 @@ function applyHealToCharacter(
 // ---------------------------------------------------------------------------
 
 export function getItemElementMultiplier(items: readonly ItemDef[], element: Element): number {
-  return items
-    .filter(item => item.effect.type === 'elemental_damage' && item.effect.element === element)
-    .reduce((acc, item) => {
-      if (item.effect.type === 'elemental_damage') {
-        return acc * item.effect.multiplier
+  let mult = 1.0
+  for (const item of items) {
+    for (const eff of item.effects) {
+      if (eff.type === 'elemental_damage' && eff.element === element) {
+        mult *= eff.multiplier
       }
-      return acc
-    }, 1.0)
+    }
+  }
+  return mult
 }
 
 // ---------------------------------------------------------------------------
@@ -331,6 +332,15 @@ function applySkillEffect(
               stats: { ...c.stats, mp: newMp },
             }))
             newLogs.push(log('system', '적 처치! MP +5', { sourceId: actorId }))
+            // heal_on_kill 아이템 처리
+            for (const item of items) {
+              for (const eff of item.effects) {
+                if (eff.type === 'heal_on_kill') {
+                  nextState = applyHealToCharacter(nextState, actorId, eff.amount)
+                  newLogs.push(log('heal', `처치 보너스: HP ${eff.amount} 회복`, { value: eff.amount, sourceId: actorId }))
+                }
+              }
+            }
           }
         }
       }
@@ -370,6 +380,15 @@ function applySkillEffect(
               stats: { ...c.stats, mp: newMp },
             }))
             newLogs.push(log('system', '적 처치! MP +5', { sourceId: actorId }))
+            // heal_on_kill 아이템 처리
+            for (const item of items) {
+              for (const eff of item.effects) {
+                if (eff.type === 'heal_on_kill') {
+                  current = applyHealToCharacter(current, actorId, eff.amount)
+                  newLogs.push(log('heal', `처치 보너스: HP ${eff.amount} 회복`, { value: eff.amount, sourceId: actorId }))
+                }
+              }
+            }
           }
         }
       }
@@ -441,7 +460,7 @@ function applySkillEffect(
     }
 
     case 'shield': {
-      const shieldAmount = Math.round(actorAttack * effect.amount)
+      const shieldAmount = effect.flat ? effect.amount : Math.round(actorAttack * effect.amount)
       const newStatus: StatusEffect = {
         kind: 'shield',
         duration: 1,
@@ -558,7 +577,8 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
 
   for (const enemy of current.enemies) {
     if (!enemy.isAlive) continue
-    if (hasStatus(enemy.statusEffects, 'freeze') || hasStatus(enemy.statusEffects, 'stun')) {
+    if (!hasStatus(enemy.statusEffects, 'cc_immune') &&
+        (hasStatus(enemy.statusEffects, 'freeze') || hasStatus(enemy.statusEffects, 'stun'))) {
       current = {
         ...current,
         log: [...current.log, log('system', `${enemy.name}은(는) 행동 불능 상태다.`, { targetId: enemy.id })],
@@ -732,7 +752,7 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
       case 'attack': {
         const aliveEnemies = current.enemies.filter(e => e.isAlive)
         if (aliveEnemies.length === 0) break
-        const target = aliveEnemies[0]
+        const target = [...aliveEnemies].sort((a, b) => a.stats.hp - b.stats.hp)[0]
         const dmg = calcDamage({
           attack: ally.stats.attack,
           defense: target.stats.defense,
@@ -866,15 +886,39 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
       newLogs.push(log('system', `${char.name}의 MP가 ${regenAmount} 회복됐다.`, { sourceId: char.id }))
     }
 
-    // 아이템 MP 회복 (mp_regen 아이템 효과)
+    // 아이템 MP 회복 및 기타 패시브 효과 처리
     for (const item of current.items) {
-      if (item.effect.type === 'mp_regen') {
-        const newMp = Math.min(char.stats.maxMp, char.stats.mp + item.effect.amount)
-        current = updateCharacter(current, char.id, c => ({
-          ...c,
-          stats: { ...c.stats, mp: newMp },
-        }))
-        newLogs.push(log('system', `${item.name}으로 MP가 ${item.effect.amount} 회복됐다.`, { sourceId: char.id }))
+      for (const eff of item.effects) {
+        if (eff.type === 'mp_regen') {
+          const newMp = Math.min(char.stats.maxMp, char.stats.mp + eff.amount)
+          current = updateCharacter(current, char.id, c => ({
+            ...c,
+            stats: { ...c.stats, mp: newMp },
+          }))
+          newLogs.push(log('system', `${item.name}으로 MP가 ${eff.amount} 회복됐다.`, { sourceId: char.id }))
+        }
+        if (eff.type === 'on_low_hp') {
+          const hpRatio = char.stats.hp / char.stats.maxHp
+          if (hpRatio < eff.threshold) {
+            const innerEff = eff.effect
+            if (innerEff.type === 'apply_status') {
+              const alreadyHas = hasStatus(char.statusEffects, innerEff.status)
+              if (!alreadyHas) {
+                const newSt: StatusEffect = {
+                  kind: innerEff.status,
+                  duration: innerEff.duration,
+                  value: innerEff.value,
+                  sourceId: char.id,
+                }
+                current = updateCharacter(current, char.id, c => ({
+                  ...c,
+                  statusEffects: addStatus(c.statusEffects, newSt),
+                }))
+                newLogs.push(log('status_apply', `위기 발동! ${item.name}: ${innerEff.status} 부여.`, { sourceId: char.id }))
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -911,6 +955,14 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
     }
   }
 
+  // skill_cooldown_reduce 아이템 추가 감소량 계산
+  const extraCdReduction = current.items.reduce((acc, item) => {
+    for (const eff of item.effects) {
+      if (eff.type === 'skill_cooldown_reduce') return acc + eff.amount
+    }
+    return acc
+  }, 0)
+
   // 상태이상 턴 감소
   current = {
     ...current,
@@ -918,7 +970,7 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
       ...c,
       statusEffects: tickStatuses(c.statusEffects),
       skillCooldowns: Object.fromEntries(
-        Object.entries(c.skillCooldowns).map(([id, cd]) => [id, Math.max(0, cd - 1)])
+        Object.entries(c.skillCooldowns).map(([id, cd]) => [id, Math.max(0, cd - 1 - extraCdReduction)])
       ),
     })),
     enemies: current.enemies.map(e => ({

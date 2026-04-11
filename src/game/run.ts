@@ -34,7 +34,7 @@ const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
   3: 2,
   4: 3,
   5: 3,
-  6: 3,
+  6: 2,
   7: 1, // 보스전
 }
 
@@ -69,12 +69,14 @@ export function createBattleCharacter(
   for (const itemId of itemIds) {
     const item = getItemById(itemId)
     if (!item) continue
-    if (item.effect.type === 'stat_boost') {
-      switch (item.effect.stat) {
-        case 'attack':  attack  += item.effect.amount; break
-        case 'defense': defense += item.effect.amount; break
-        case 'speed':   speed   += item.effect.amount; break
-        case 'maxHp':   maxHp   += item.effect.amount; break
+    for (const eff of item.effects) {
+      if (eff.type === 'stat_boost') {
+        switch (eff.stat) {
+          case 'attack':  attack  += eff.amount; break
+          case 'defense': defense += eff.amount; break
+          case 'speed':   speed   += eff.amount; break
+          case 'maxHp':   maxHp   += eff.amount; break
+        }
       }
     }
   }
@@ -153,10 +155,10 @@ export function createBattleEnemy(
     defId: def.id,
     name: def.name,
     stats: {
-      maxHp:   Math.floor(def.baseStats.maxHp   * scale),
-      hp:      Math.floor(def.baseStats.maxHp   * scale),
-      attack:  Math.floor(def.baseStats.attack  * scale),
-      defense: Math.floor(def.baseStats.defense * scale),
+      maxHp:   Math.floor(def.baseStats.maxHp  * scale),
+      hp:      Math.floor(def.baseStats.maxHp  * scale),
+      attack:  Math.floor(def.baseStats.attack * scale),
+      defense: def.baseStats.defense,
       speed:   def.baseStats.speed,
       maxMp:   0,
       mp:      0,
@@ -165,7 +167,9 @@ export function createBattleEnemy(
     actionIndex: 0,
     element: def.element,
     isAlive: true,
-    statusEffects: [],
+    statusEffects: def.id === 'dragon_lord'
+      ? [{ kind: 'cc_immune' as const, duration: 999, value: 0, sourceId: 'system' }]
+      : [],
   }
 }
 
@@ -311,21 +315,27 @@ export function applyDraftChoice(runState: RunState, choiceIndex: number): RunSt
       acquiredItemIds = [...acquiredItemIds, choice.itemId]
       // stat_boost 아이템은 즉시 캐릭터 스탯에 반영
       const item = getItemById(choice.itemId)
-      if (item && item.effect.type === 'stat_boost') {
-        const { stat, amount } = item.effect
+      if (item) {
         const stats = { ...character.stats }
-        switch (stat) {
-          case 'attack':  stats.attack  = stats.attack  + amount; break
-          case 'defense': stats.defense = stats.defense + amount; break
-          case 'speed':   stats.speed   = stats.speed   + amount; break
-          case 'maxHp': {
-            stats.maxHp = stats.maxHp + amount
-            stats.hp    = Math.min(stats.hp + amount, stats.maxHp)
-            break
+        let changed = false
+        for (const eff of item.effects) {
+          if (eff.type === 'stat_boost') {
+            changed = true
+            switch (eff.stat) {
+              case 'attack':  stats.attack  = stats.attack  + eff.amount; break
+              case 'defense': stats.defense = stats.defense + eff.amount; break
+              case 'speed':   stats.speed   = stats.speed   + eff.amount; break
+              case 'maxHp': {
+                stats.maxHp = stats.maxHp + eff.amount
+                stats.hp    = Math.min(stats.hp + eff.amount, stats.maxHp)
+                break
+              }
+            }
           }
         }
-        // Stats는 readonly이므로 새 객체 생성
-        character = { ...character, stats: stats as typeof character.stats }
+        if (changed) {
+          character = { ...character, stats: stats as typeof character.stats }
+        }
       }
       break
     }

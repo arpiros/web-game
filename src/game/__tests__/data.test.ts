@@ -94,7 +94,7 @@ describe('getItemById', () => {
     const item = getItemById('iron_ring')
     expect(item).toBeDefined()
     expect(item?.id).toBe('iron_ring')
-    expect(item?.effect.type).toBe('stat_boost')
+    expect(item?.effects[0].type).toBe('stat_boost')
   })
 
   it('존재하지 않는 ID는 undefined를 반환한다', () => {
@@ -102,7 +102,7 @@ describe('getItemById', () => {
   })
 
   it('모든 아이템 효과 타입을 커버한다', () => {
-    const types = new Set(ITEMS.map(i => i.effect.type))
+    const types = new Set(ITEMS.flatMap(i => i.effects).map(e => e.type))
     expect(types.has('stat_boost')).toBe(true)
     expect(types.has('mp_regen')).toBe(true)
     expect(types.has('heal_on_kill')).toBe(true)
