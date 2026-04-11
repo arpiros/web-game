@@ -1,0 +1,135 @@
+/* ==========================================================================
+   Dark Fantasy Roguelike — Design Tokens
+   OKLCH 기반 팔레트. 색상만으로 정보 전달하지 않음 (접근성).
+   ========================================================================== */
+
+:root {
+  /* ---------- 색상 팔레트 ---------- */
+  /* 배경 계열 — 깊은 어둠 */
+  --color-bg-base: oklch(8% 0.01 270);          /* 최외곽 배경 */
+  --color-bg-surface: oklch(12% 0.015 268);      /* 카드/패널 바닥 */
+  --color-bg-elevated: oklch(16% 0.02 265);      /* 모달, 드래프트 카드 */
+  --color-bg-overlay: oklch(9% 0.01 270 / 0.85);/* 모달 오버레이 */
+
+  /* 테두리 계열 */
+  --color-border-subtle: oklch(25% 0.03 270);
+  --color-border-default: oklch(35% 0.04 265);
+  --color-border-strong: oklch(50% 0.06 265);
+
+  /* 텍스트 계열 */
+  --color-text-primary: oklch(92% 0.01 65);     /* 따뜻한 흰색 */
+  --color-text-secondary: oklch(68% 0.015 65);  /* 보조 텍스트 */
+  --color-text-muted: oklch(45% 0.01 65);       /* 비활성/설명 */
+
+  /* 포인트 컬러 — 황금/앰버 (다크 판타지 핵심 색조) */
+  --color-accent: oklch(72% 0.17 72);           /* 황금색 포인트 */
+  --color-accent-dim: oklch(55% 0.12 72);       /* 어두운 황금 */
+  --color-accent-glow: oklch(80% 0.20 75 / 0.3);/* 황금 발광 */
+
+  /* 상태 색상 — HP */
+  --color-hp-high: oklch(62% 0.18 145);         /* 녹색 (60%+) */
+  --color-hp-mid: oklch(72% 0.19 82);           /* 주황 (30~60%) */
+  --color-hp-low: oklch(62% 0.22 25);           /* 빨강 (30% 미만) */
+
+  /* MP / 기력 */
+  --color-mp: oklch(62% 0.18 255);              /* 파란 보라 */
+  --color-mp-dim: oklch(40% 0.12 255);
+
+  /* 속성 색상 */
+  --color-element-fire: oklch(65% 0.22 32);
+  --color-element-water: oklch(62% 0.18 240);
+  --color-element-dark: oklch(45% 0.15 295);
+  --color-element-light: oklch(85% 0.12 95);
+  --color-element-physical: oklch(60% 0.08 65);
+
+  /* 레어리티 */
+  --color-rarity-common: oklch(65% 0.04 65);
+  --color-rarity-rare: oklch(65% 0.18 255);
+  --color-rarity-epic: oklch(65% 0.22 295);
+  --color-rarity-legendary: oklch(72% 0.17 72); /* 황금 */
+
+  /* 상태이상 */
+  --color-status-poison: oklch(58% 0.20 145);
+  --color-status-burn: oklch(65% 0.22 32);
+  --color-status-freeze: oklch(70% 0.15 220);
+  --color-status-stun: oklch(72% 0.19 82);
+  --color-status-buff: oklch(70% 0.18 145);
+  --color-status-debuff: oklch(62% 0.22 25);
+
+  /* ---------- 타이포그래피 ---------- */
+  --font-heading: 'Cinzel', 'Georgia', serif;   /* 판타지 느낌 세리프 */
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs: clamp(0.625rem, 0.5rem + 0.3vw, 0.75rem);
+  --text-sm: clamp(0.75rem, 0.65rem + 0.3vw, 0.875rem);
+  --text-base: clamp(0.875rem, 0.8rem + 0.3vw, 1rem);
+  --text-md: clamp(1rem, 0.9rem + 0.4vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  --text-xl: clamp(1.375rem, 1.2rem + 0.8vw, 1.875rem);
+  --text-2xl: clamp(1.875rem, 1.5rem + 1.5vw, 2.5rem);
+  --text-hero: clamp(2.5rem, 2rem + 3vw, 4rem);
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  /* ---------- 간격 ---------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ---------- 테두리 반지름 ---------- */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ---------- 그림자 ---------- */
+  --shadow-sm: 0 1px 3px oklch(0% 0 0 / 0.5);
+  --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.6);
+  --shadow-lg: 0 8px 24px oklch(0% 0 0 / 0.7);
+  --shadow-accent: 0 0 16px var(--color-accent-glow);
+  --shadow-inset: inset 0 1px 0 oklch(100% 0 0 / 0.06);
+
+  /* ---------- 애니메이션 ---------- */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-enter: 350ms;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-expo: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------- 레이아웃 ---------- */
+  --battle-max-width: 1280px;
+  --panel-width-side: 320px;    /* 파티/적 패널 너비 */
+  --skill-bar-height: 120px;
+  --hud-height: 52px;
+}
+
+/* 리듀스드 모션 존중 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+    --duration-enter: 0ms;
+  }
+}

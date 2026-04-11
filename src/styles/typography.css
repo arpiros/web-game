@@ -1,0 +1,46 @@
+/* ==========================================================================
+   Typography — Cinzel (heading) + Inter (body)
+   Google Fonts는 빌드 시 자체 호스팅으로 대체 예정.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
+  letter-spacing: 0.03em;
+}
+
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+h4 { font-size: var(--text-md); }
+
+p, span, div {
+  font-family: var(--font-body);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+}
+
+/* 전투 로그 전용 */
+.battle-log-entry {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.battle-log-entry--damage { color: var(--color-hp-low); }
+.battle-log-entry--heal { color: var(--color-hp-high); }
+.battle-log-entry--crit { color: var(--color-accent); font-weight: var(--weight-semibold); }
+.battle-log-entry--system { color: var(--color-text-muted); font-style: italic; }
+
+/* 수치 강조 */
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+}
