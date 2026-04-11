@@ -14,14 +14,15 @@ export type Element = 'physical' | 'fire' | 'water' | 'dark' | 'light'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 
 export type StatusEffectKind =
-  | 'poison'    // 매 턴 최대 HP% 피해
-  | 'burn'      // 매 턴 고정 피해
-  | 'freeze'    // 행동 불능 (1턴)
-  | 'stun'      // 행동 불능 (1턴, freeze와 동일 구현)
-  | 'shield'    // 피해 흡수
-  | 'regen'     // 매 턴 HP 회복
-  | 'powerup'   // 공격력 버프
-  | 'defdown'   // 방어력 디버프
+  | 'poison'      // 매 턴 최대 HP% 피해
+  | 'burn'        // 매 턴 고정 피해
+  | 'freeze'      // 행동 불능 (1턴)
+  | 'stun'        // 행동 불능 (1턴, freeze와 동일 구현)
+  | 'shield'      // 피해 흡수
+  | 'regen'       // 매 턴 HP 회복
+  | 'powerup'     // 공격력 버프
+  | 'defdown'     // 방어력 디버프
+  | 'mana_regen'  // 매 턴 MP 회복
 
 // ---------------------------------------------------------------------------
 // Stats
@@ -249,6 +250,7 @@ export interface BattleState {
   readonly totalDamageDealt: number
   readonly selectedSkillId: EntityId | null
   readonly selectedTargetId: EntityId | null
+  readonly items: readonly ItemDef[]
 }
 
 // ---------------------------------------------------------------------------

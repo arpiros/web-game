@@ -30,7 +30,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
       maxMp: 160,
     },
     innateSkillId: 'flame_strike',
-    startingSkillIds: ['fireball', 'ignite'],
+    startingSkillIds: ['fireball', 'ignite', 'basic_ember'],
     lore: '고대 화염 마법을 연구한 마법사. 폭발적인 마력을 지녔지만 방어는 취약하다.',
   },
   {
@@ -46,7 +46,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
       maxMp: 120,
     },
     innateSkillId: 'holy_strike',
-    startingSkillIds: ['divine_heal', 'barrier'],
+    startingSkillIds: ['divine_heal', 'barrier', 'basic_glimmer'],
     lore: '신의 가호를 받은 성기사. 굳건한 방어와 회복 능력으로 파티를 지킨다.',
   },
   {
@@ -62,7 +62,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
       maxMp: 140,
     },
     innateSkillId: 'water_lance',
-    startingSkillIds: ['heal_water', 'cleanse'],
+    startingSkillIds: ['heal_water', 'cleanse', 'basic_splash'],
     lore: '바다의 정령과 계약한 무희. 빠른 속도와 유연한 기술로 전장을 누빈다.',
   },
   {

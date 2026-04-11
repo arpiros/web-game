@@ -322,6 +322,17 @@ function applySkillEffect(
         : nextState.party.find(c => c.id === targetId)
       if (!deadTarget?.isAlive) {
         newLogs.push(log('death', `${target.name}이(가) 쓰러졌다!`, { targetId }))
+        if (isEnemy) {
+          const actor = findCharacter(nextState, actorId)
+          if (actor) {
+            const newMp = Math.min(actor.stats.maxMp, actor.stats.mp + 5)
+            nextState = updateCharacter(nextState, actorId, c => ({
+              ...c,
+              stats: { ...c.stats, mp: newMp },
+            }))
+            newLogs.push(log('system', '적 처치! MP +5', { sourceId: actorId }))
+          }
+        }
       }
 
       return { state: nextState, newLogs, totalDamage }
@@ -351,6 +362,15 @@ function applySkillEffect(
         const updatedEnemy = current.enemies.find(e => e.id === enemy.id)
         if (!updatedEnemy?.isAlive) {
           newLogs.push(log('death', `${enemy.name}이(가) 쓰러졌다!`, { targetId: enemy.id }))
+          const actor = findCharacter(current, actorId)
+          if (actor) {
+            const newMp = Math.min(actor.stats.maxMp, actor.stats.mp + 5)
+            current = updateCharacter(current, actorId, c => ({
+              ...c,
+              stats: { ...c.stats, mp: newMp },
+            }))
+            newLogs.push(log('system', '적 처치! MP +5', { sourceId: actorId }))
+          }
         }
       }
       return { state: current, newLogs, totalDamage }
@@ -835,7 +855,28 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
       }))
     }
 
-    // MP 회복 (regen은 현재 items로 처리하므로 생략)
+    // mana_regen 상태이상 처리
+    if (hasStatus(char.statusEffects, 'mana_regen')) {
+      const regenAmount = getStatusBonus(char.statusEffects, 'mana_regen')
+      const newMp = Math.min(char.stats.maxMp, char.stats.mp + regenAmount)
+      current = updateCharacter(current, char.id, c => ({
+        ...c,
+        stats: { ...c.stats, mp: newMp },
+      }))
+      newLogs.push(log('system', `${char.name}의 MP가 ${regenAmount} 회복됐다.`, { sourceId: char.id }))
+    }
+
+    // 아이템 MP 회복 (mp_regen 아이템 효과)
+    for (const item of current.items) {
+      if (item.effect.type === 'mp_regen') {
+        const newMp = Math.min(char.stats.maxMp, char.stats.mp + item.effect.amount)
+        current = updateCharacter(current, char.id, c => ({
+          ...c,
+          stats: { ...c.stats, mp: newMp },
+        }))
+        newLogs.push(log('system', `${item.name}으로 MP가 ${item.effect.amount} 회복됐다.`, { sourceId: char.id }))
+      }
+    }
   }
 
   // 적 상태이상 처리 (독, 화상)
@@ -942,7 +983,7 @@ export function battleReducer(state: BattleState, action: BattleAction): BattleS
 
     case 'USE_SKILL': {
       if (state.phase !== 'player_turn') return state
-      const nextState = useSkill(state, state.party[0]?.id ?? '', action.targetId, action.skillId, [])
+      const nextState = useSkill(state, state.party[0]?.id ?? '', action.targetId, action.skillId, state.items)
       if (nextState.phase === 'player_turn') {
         return { ...nextState, phase: 'enemy_turn', selectedSkillId: null, selectedTargetId: null }
       }
@@ -956,7 +997,7 @@ export function battleReducer(state: BattleState, action: BattleAction): BattleS
 
     case 'PROCESS_ENEMY_TURN': {
       if (state.phase !== 'enemy_turn') return state
-      const afterEnemyTurn = processEnemyTurn(state, [])
+      const afterEnemyTurn = processEnemyTurn(state, state.items)
       if (afterEnemyTurn.phase === 'enemy_turn') {
         return { ...afterEnemyTurn, phase: 'player_turn', turnCount: afterEnemyTurn.turnCount + 1 }
       }

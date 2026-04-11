@@ -107,6 +107,7 @@ function makeBattleState(overrides: Partial<BattleState> = {}): BattleState {
     totalDamageDealt: 0,
     selectedSkillId: null,
     selectedTargetId: null,
+    items: [],
     ...overrides,
   }
 }

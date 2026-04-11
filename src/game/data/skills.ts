@@ -64,6 +64,16 @@ export const SKILLS: readonly SkillDef[] = [
   // 화염 계열
   // -------------------------------------------------------------------------
   {
+    id: 'basic_ember',
+    name: '기본 불꽃',
+    description: '단일 적에게 공격력의 65% 화염 피해를 준다. MP 없이 사용 가능.',
+    mpCost: 0,
+    cooldown: 0,
+    effects: [{ type: 'damage', element: 'fire', multiplier: 0.65 }],
+    element: 'fire',
+    rarity: 'common',
+  },
+  {
     id: 'flame_strike',
     name: '화염 타격',
     description: '단일 적에게 공격력의 130% 화염 피해를 준다.',
@@ -128,6 +138,16 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   // 물 계열
   // -------------------------------------------------------------------------
+  {
+    id: 'basic_splash',
+    name: '기본 물방울',
+    description: '단일 적에게 공격력의 65% 수속 피해를 준다. MP 없이 사용 가능.',
+    mpCost: 0,
+    cooldown: 0,
+    effects: [{ type: 'damage', element: 'water', multiplier: 0.65 }],
+    element: 'water',
+    rarity: 'common',
+  },
   {
     id: 'water_lance',
     name: '수류창',
@@ -254,6 +274,16 @@ export const SKILLS: readonly SkillDef[] = [
   // 빛 계열
   // -------------------------------------------------------------------------
   {
+    id: 'basic_glimmer',
+    name: '기본 성광',
+    description: '단일 적에게 공격력의 65% 빛 피해를 준다. MP 없이 사용 가능.',
+    mpCost: 0,
+    cooldown: 0,
+    effects: [{ type: 'damage', element: 'light', multiplier: 0.65 }],
+    element: 'light',
+    rarity: 'common',
+  },
+  {
     id: 'holy_strike',
     name: '성광 타격',
     description: '단일 적에게 공격력의 130% 빛 피해.',
@@ -306,6 +336,26 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   // 유틸
   // -------------------------------------------------------------------------
+  {
+    id: 'meditate',
+    name: '명상',
+    description: 'MP를 25 회복한다. 쿨다운 2턴.',
+    mpCost: 0,
+    cooldown: 2,
+    effects: [{ type: 'heal_mp', amount: 25 }],
+    element: 'physical',
+    rarity: 'common',
+  },
+  {
+    id: 'arcane_focus',
+    name: '마나 집중',
+    description: '3턴간 매 턴 8 MP를 회복하는 마나 재생 상태가 된다.',
+    mpCost: 0,
+    cooldown: 4,
+    effects: [{ type: 'apply_status', status: 'mana_regen', duration: 3, value: 8 }],
+    element: 'physical',
+    rarity: 'rare',
+  },
   {
     id: 'mp_restore',
     name: 'MP 회복',

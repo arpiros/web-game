@@ -28,17 +28,20 @@ function makeRun(characterId = 'dark_knight'): RunState {
 }
 
 function makeCompletedBattleState(overrides: Partial<BattleState> = {}): BattleState {
+  const defaultParty = overrides.party ?? [createBattleCharacter('dark_knight', ['slash', 'shield_bash'], [])]
   return {
     phase: 'victory',
     turnCount: 5,
-    party: [],
+    party: defaultParty,
     allies: [],
     enemies: [],
     log: [],
     totalDamageDealt: 500,
     selectedSkillId: null,
     selectedTargetId: null,
+    items: [],
     ...overrides,
+    party: overrides.party ?? defaultParty,
   }
 }
 

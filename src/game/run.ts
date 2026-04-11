@@ -216,6 +216,10 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
     enemies = picked.map((def, i) => createBattleEnemy(def.id, round, i))
   }
 
+  const acquiredItems = runState.acquiredItemIds
+    .map(id => getItemById(id))
+    .filter((item): item is NonNullable<typeof item> => item !== undefined)
+
   const battleState: BattleState = {
     phase: 'player_turn',
     turnCount: 0,
@@ -232,6 +236,7 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
     totalDamageDealt: 0,
     selectedSkillId: null,
     selectedTargetId: null,
+    items: acquiredItems,
   }
 
   return [battleState, currentRng]
