@@ -77,6 +77,7 @@ function TitleScreen({ onStart }: { onStart: () => void }) {
       justifyContent: 'center',
       flex: 1,
       gap: 'var(--space-8)',
+      position: 'relative',
     }}>
       <div style={{ textAlign: 'center' }}>
         <h1 style={{
@@ -124,6 +125,18 @@ function TitleScreen({ onStart }: { onStart: () => void }) {
       >
         시작하기
       </button>
+
+      <span style={{
+        position: 'absolute',
+        bottom: 'var(--space-4)',
+        right: 'var(--space-5)',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--color-text-muted)',
+        letterSpacing: '0.04em',
+        opacity: 0.6,
+      }}>
+        v{__APP_VERSION__}
+      </span>
     </div>
   )
 }

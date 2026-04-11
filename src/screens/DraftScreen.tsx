@@ -1,4 +1,5 @@
-import type { DraftOption, SkillDef, AllyDef, ItemDef, Rarity, Element } from '../game/types'
+import type React from 'react'
+import type { DraftOption, SkillDef, AllyDef, ItemDef, Rarity, Element, AllyAction } from '../game/types'
 import { getSkillById } from '../game/data/skills'
 import { getAllyById } from '../game/data/allies'
 import { getItemById } from '../game/data/items'
@@ -101,7 +102,14 @@ export function DraftScreen() {
         justifyContent: 'center',
       }}>
         {run.draftOptions.map((opt, i) => (
-          <DraftCard key={i} option={opt} index={i} onSelect={handleSelect} />
+          <DraftCard
+            key={i}
+            option={opt}
+            index={i}
+            onSelect={handleSelect}
+            ownedSkillIds={run.character.skillIds}
+            ownedItemIds={run.acquiredItemIds}
+          />
         ))}
       </div>
     </div>
@@ -116,13 +124,16 @@ interface DraftCardProps {
   option: DraftOption
   index: number
   onSelect: (index: number) => void
+  ownedSkillIds: readonly string[]
+  ownedItemIds: readonly string[]
 }
 
-function DraftCard({ option, index, onSelect }: DraftCardProps) {
+function DraftCard({ option, index, onSelect, ownedSkillIds, ownedItemIds }: DraftCardProps) {
   if (option.type === 'skill') {
     const skill = getSkillById(option.skillId)
     if (!skill) return null
-    return <SkillCard skill={skill} onSelect={() => onSelect(index)} />
+    const isOwned = ownedSkillIds.includes(option.skillId)
+    return <SkillCard skill={skill} onSelect={() => onSelect(index)} isOwned={isOwned} />
   }
   if (option.type === 'ally') {
     const ally = getAllyById(option.allyId)
@@ -131,7 +142,8 @@ function DraftCard({ option, index, onSelect }: DraftCardProps) {
   }
   const item = getItemById(option.itemId)
   if (!item) return null
-  return <ItemCard item={item} onSelect={() => onSelect(index)} />
+  const isOwned = ownedItemIds.includes(option.itemId)
+  return <ItemCard item={item} onSelect={() => onSelect(index)} isOwned={isOwned} />
 }
 
 // ---------------------------------------------------------------------------
@@ -217,12 +229,25 @@ function CardWrapper({ rarity, element, typeLabel, onSelect, children }: CardWra
 // SkillCard
 // ---------------------------------------------------------------------------
 
-function SkillCard({ skill, onSelect }: { skill: SkillDef; onSelect: () => void }) {
+const OWNED_BADGE: React.CSSProperties = {
+  position: 'absolute',
+  top: 'var(--space-2)',
+  right: 'var(--space-2)',
+  fontSize: 'var(--text-xs)',
+  padding: '2px 6px',
+  background: 'color-mix(in oklch, var(--color-text-muted) 20%, transparent)',
+  color: 'var(--color-text-muted)',
+  borderRadius: 'var(--radius-sm)',
+  pointerEvents: 'none',
+}
+
+function SkillCard({ skill, onSelect, isOwned }: { skill: SkillDef; onSelect: () => void; isOwned?: boolean }) {
   const elColor = ELEMENT_COLORS[skill.element]
   const elLabel = ELEMENT_LABELS[skill.element]
 
   return (
     <CardWrapper rarity={skill.rarity} element={skill.element} typeLabel="스킬" onSelect={onSelect}>
+      {isOwned && <span style={OWNED_BADGE}>보유중</span>}
       {/* 속성 + 이름 */}
       <div>
         <span style={{
@@ -276,6 +301,15 @@ function SkillCard({ skill, onSelect }: { skill: SkillDef; onSelect: () => void 
 // AllyCard
 // ---------------------------------------------------------------------------
 
+function allyActionLabel(action: AllyAction): string {
+  switch (action.type) {
+    case 'attack':       return `공격력의 ${Math.round(action.multiplier * 100)}% 피해`
+    case 'heal_party':   return `전체 치유 ${Math.round(action.multiplier * 100)}%`
+    case 'apply_status': return `${action.status} 부여 ${action.duration}턴`
+    case 'shield_party': return `방막 ${action.amount}`
+  }
+}
+
 function AllyCard({ ally, onSelect }: { ally: AllyDef; onSelect: () => void }) {
   const elColor = ELEMENT_COLORS[ally.element]
   const elLabel = ELEMENT_LABELS[ally.element]
@@ -324,6 +358,18 @@ function AllyCard({ ally, onSelect }: { ally: AllyDef; onSelect: () => void }) {
       }}>
         <MiniStat label="HP"  value={ally.baseStats.maxHp} />
         <MiniStat label="공격" value={ally.baseStats.attack} />
+        <div style={{
+          gridColumn: '1 / -1',
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 'var(--space-1)',
+          marginTop: '2px',
+        }}>
+          <span style={{ color: 'var(--color-text-muted)' }}>행동</span>
+          <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--weight-medium)', textAlign: 'right' }}>
+            {allyActionLabel(ally.action)}
+          </span>
+        </div>
       </div>
     </CardWrapper>
   )
@@ -333,9 +379,10 @@ function AllyCard({ ally, onSelect }: { ally: AllyDef; onSelect: () => void }) {
 // ItemCard
 // ---------------------------------------------------------------------------
 
-function ItemCard({ item, onSelect }: { item: ItemDef; onSelect: () => void }) {
+function ItemCard({ item, onSelect, isOwned }: { item: ItemDef; onSelect: () => void; isOwned?: boolean }) {
   return (
     <CardWrapper rarity={item.rarity} typeLabel="아이템" onSelect={onSelect}>
+      {isOwned && <span style={OWNED_BADGE}>보유중</span>}
       {/* 이름 */}
       <div style={{
         fontSize: 'var(--text-md)',

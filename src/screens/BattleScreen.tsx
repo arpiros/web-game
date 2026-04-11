@@ -5,9 +5,12 @@ import type {
   BattleEnemy,
   BattleLogEntry,
   StatusEffect,
+  ItemDef,
+  SkillDef,
 } from '../game/types'
 import { getSkillById } from '../game/data/skills'
 import { MAX_ROUNDS } from '../game/run'
+import { calcDamage, getItemElementMultiplier, getStatusBonus } from '../game/combat'
 import { useRunStore } from '../state/runStore'
 
 // ---------------------------------------------------------------------------
@@ -154,6 +157,21 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         <PhaseLabel phase={bs.phase} />
       </div>
 
+      {/* ── Skill bar ── */}
+      <SkillBar
+        character={character}
+        isPlayerTurn={isPlayerTurn}
+        selectedSkillId={selectedSkillId}
+        onSkillClick={handleSkillClick}
+        enemies={bs.enemies.filter(e => e.isAlive)}
+        items={bs.items}
+        onEndTurn={() => {
+          if (!isPlayerTurn) return
+          setSelectedSkillId(null)
+          dispatchBattle({ type: 'END_PLAYER_TURN' })
+        }}
+      />
+
       {/* ── Main ── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
@@ -205,21 +223,25 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
           {bs.allies.map(ally => (
             <PartyMemberCard key={ally.id} entity={ally} isAlly />
           ))}
+
+          {bs.items.length > 0 && (
+            <>
+              <div style={{
+                fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)',
+                letterSpacing: '0.08em',
+                marginTop: 'var(--space-2)',
+                paddingTop: 'var(--space-2)',
+                borderTop: '1px solid var(--color-border-subtle)',
+              }}>
+                ITEMS
+              </div>
+              {bs.items.map(item => (
+                <ItemCard key={item.id} item={item} />
+              ))}
+            </>
+          )}
         </div>
       </div>
-
-      {/* ── Skill bar ── */}
-      <SkillBar
-        character={character}
-        isPlayerTurn={isPlayerTurn}
-        selectedSkillId={selectedSkillId}
-        onSkillClick={handleSkillClick}
-        onEndTurn={() => {
-          if (!isPlayerTurn) return
-          setSelectedSkillId(null)
-          dispatchBattle({ type: 'END_PLAYER_TURN' })
-        }}
-      />
     </div>
   )
 }
@@ -400,6 +422,45 @@ function PartyMemberCard({ entity, isAlly }: { entity: PartyEntity; isAlly?: boo
 }
 
 // ---------------------------------------------------------------------------
+// ItemCard
+// ---------------------------------------------------------------------------
+
+const RARITY_COLOR: Record<string, string> = {
+  common:    'var(--color-rarity-common)',
+  rare:      'var(--color-rarity-rare)',
+  epic:      'var(--color-rarity-epic)',
+  legendary: 'var(--color-rarity-legendary)',
+}
+
+function ItemCard({ item }: { item: ItemDef }) {
+  const rarityColor = RARITY_COLOR[item.rarity] ?? 'var(--color-text-muted)'
+  return (
+    <div style={{
+      background: 'var(--color-bg-elevated)',
+      border: '1px solid var(--color-border-subtle)',
+      borderLeft: `3px solid ${rarityColor}`,
+      borderRadius: 'var(--radius-md)',
+      padding: 'var(--space-2) var(--space-3)',
+    }}>
+      <div style={{
+        fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
+        color: 'var(--color-text-primary)',
+        marginBottom: '2px',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {item.name}
+      </div>
+      <div style={{
+        fontSize: '0.6rem', color: 'var(--color-text-muted)',
+        lineHeight: 'var(--leading-relaxed)',
+      }}>
+        {item.description}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // ResourceBar
 // ---------------------------------------------------------------------------
 
@@ -458,7 +519,7 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
 
   useEffect(() => {
     if (ref.current) {
-      ref.current.scrollTop = ref.current.scrollHeight
+      ref.current.scrollTop = 0
     }
   }, [entries.length])
 
@@ -487,7 +548,7 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
         scrollBehavior: 'smooth',
       }}
     >
-      {entries.slice(-30).map(entry => (
+      {[...entries].slice(-30).reverse().map(entry => (
         <div
           key={entry.id}
           style={{
@@ -507,22 +568,123 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
 // SkillBar
 // ---------------------------------------------------------------------------
 
-function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, onEndTurn }: {
+function estimateDamage(
+  skill: SkillDef,
+  character: BattleCharacter,
+  enemies: readonly BattleEnemy[],
+  items: readonly ItemDef[],
+): number | null {
+  const dmgEffect = skill.effects.find(
+    e => e.type === 'damage' || e.type === 'damage_all',
+  )
+  if (!dmgEffect || (dmgEffect.type !== 'damage' && dmgEffect.type !== 'damage_all')) return null
+  const target = enemies[0]
+  if (!target) return null
+  const itemElemMult = getItemElementMultiplier(items, dmgEffect.element)
+  const powerupBonus = getStatusBonus(character.statusEffects, 'powerup')
+  return calcDamage({
+    attack: character.stats.attack,
+    defense: target.stats.defense,
+    multiplier: dmgEffect.multiplier,
+    attackElement: dmgEffect.element,
+    defenderElement: target.element,
+    itemElementMultiplier: itemElemMult,
+    powerupBonus,
+  })
+}
+
+function SkillTooltip({ skill, character, enemies, items, x, y }: {
+  skill: SkillDef
+  character: BattleCharacter
+  enemies: readonly BattleEnemy[]
+  items: readonly ItemDef[]
+  x: number
+  y: number
+}) {
+  const elColor   = ELEMENT_COLOR[skill.element] ?? 'var(--color-accent)'
+  const elLabel   = ELEMENT_LABEL[skill.element] ?? skill.element
+  const hasDmgAll = skill.effects.some(e => e.type === 'damage_all')
+  const dmg       = estimateDamage(skill, character, enemies, items)
+
+  return (
+    <div style={{
+      position: 'fixed', top: y, left: x,
+      width: '240px', padding: 'var(--space-3)',
+      background: 'var(--color-bg-elevated)',
+      border: '1px solid var(--color-border-default)',
+      borderRadius: 'var(--radius-md)',
+      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.5)',
+      zIndex: 100, pointerEvents: 'none',
+      fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)',
+    }}>
+      <div style={{ marginBottom: 'var(--space-1)' }}>
+        <span style={{ color: elColor, fontSize: '0.6rem', fontWeight: 'var(--weight-bold)' }}>
+          [{elLabel}]
+        </span>
+        {' '}
+        <span style={{ color: 'var(--color-text-primary)', fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>
+          {skill.name}
+        </span>
+      </div>
+      <p style={{ margin: '0 0 var(--space-2)', lineHeight: 'var(--leading-relaxed)' }}>
+        {skill.description}
+      </p>
+      <div style={{
+        borderTop: '1px solid var(--color-border-subtle)',
+        paddingTop: 'var(--space-2)',
+        display: 'flex', flexDirection: 'column', gap: '2px',
+      }}>
+        {skill.mpCost > 0 && (
+          <span>MP <strong style={{ color: 'var(--color-mp)' }}>{skill.mpCost}</strong></span>
+        )}
+        {skill.cooldown > 0 && (
+          <span>쿨다운 <strong style={{ color: 'var(--color-text-secondary)' }}>{skill.cooldown}턴</strong></span>
+        )}
+        {dmg !== null && (
+          <span style={{ color: 'var(--color-accent)', marginTop: '2px' }}>
+            예상 데미지: ~{dmg.toLocaleString()}
+            {hasDmgAll ? ' (전체)' : ' (첫 번째 적)'}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enemies, items, onEndTurn }: {
   character: BattleCharacter
   isPlayerTurn: boolean
   selectedSkillId: string | null
   onSkillClick: (skillId: string) => void
+  enemies: readonly BattleEnemy[]
+  items: readonly ItemDef[]
   onEndTurn: () => void
 }) {
+  const [tooltip, setTooltip] = useState<{ skillId: string; x: number; y: number } | null>(null)
+
   return (
     <div style={{
       height: 'var(--skill-bar-height)', flexShrink: 0,
-      borderTop: '1px solid var(--color-border-subtle)',
+      borderBottom: '1px solid var(--color-border-subtle)',
       background: 'var(--color-bg-surface)',
       display: 'flex', alignItems: 'center',
       padding: '0 var(--space-4)', gap: 'var(--space-2)',
       overflowX: 'auto', overflowY: 'hidden',
     }}>
+      {tooltip && (() => {
+        const skill = getSkillById(tooltip.skillId)
+        if (!skill) return null
+        return (
+          <SkillTooltip
+            skill={skill}
+            character={character}
+            enemies={enemies}
+            items={items}
+            x={tooltip.x}
+            y={tooltip.y}
+          />
+        )
+      })()}
       {character.skillIds.map(skillId => {
         const skill     = getSkillById(skillId)
         if (!skill) return null
@@ -540,7 +702,11 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, onEn
             key={skillId}
             onClick={() => onSkillClick(skillId)}
             disabled={isDisabled}
-            title={`${skill.name}\n${skill.description}${skill.mpCost > 0 ? `\nMP: ${skill.mpCost}` : ''}${skill.cooldown > 0 ? `\nCD: ${skill.cooldown}턴` : ''}`}
+            onMouseEnter={e => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              setTooltip({ skillId, x: rect.left, y: rect.bottom + 4 })
+            }}
+            onMouseLeave={() => setTooltip(null)}
             style={{
               minWidth: '88px', height: '88px', flexShrink: 0,
               display: 'flex', flexDirection: 'column',
