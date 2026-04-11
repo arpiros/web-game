@@ -214,6 +214,11 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         isPlayerTurn={isPlayerTurn}
         selectedSkillId={selectedSkillId}
         onSkillClick={handleSkillClick}
+        onEndTurn={() => {
+          if (!isPlayerTurn) return
+          setSelectedSkillId(null)
+          dispatchBattle({ type: 'END_PLAYER_TURN' })
+        }}
       />
     </div>
   )
@@ -502,11 +507,12 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
 // SkillBar
 // ---------------------------------------------------------------------------
 
-function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick }: {
+function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, onEndTurn }: {
   character: BattleCharacter
   isPlayerTurn: boolean
   selectedSkillId: string | null
   onSkillClick: (skillId: string) => void
+  onEndTurn: () => void
 }) {
   return (
     <div style={{
@@ -601,6 +607,35 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick }: {
           </button>
         )
       })}
+
+      {/* End Turn button — always available on player turn */}
+      <button
+        onClick={onEndTurn}
+        disabled={!isPlayerTurn}
+        title="턴을 종료하고 적 차례로 넘어갑니다"
+        style={{
+          minWidth: '72px', height: '88px', flexShrink: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: '4px', padding: 'var(--space-2)',
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border-default)',
+          borderRadius: 'var(--radius-md)',
+          cursor: isPlayerTurn ? 'pointer' : 'not-allowed',
+          opacity: isPlayerTurn ? 1 : 0.35,
+          transition: 'all var(--duration-fast)',
+          marginLeft: 'var(--space-2)',
+        }}
+      >
+        <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>⏭</span>
+        <span style={{
+          fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
+          color: 'var(--color-text-secondary)', textAlign: 'center',
+          lineHeight: 1.2,
+        }}>
+          턴 종료
+        </span>
+      </button>
     </div>
   )
 }
