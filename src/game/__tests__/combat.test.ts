@@ -741,4 +741,80 @@ describe('battleReducer', () => {
       expect(result.party[0].stats.hp).toBeLessThan(1000)
     })
   })
+
+  describe('USE_SKILL — victory path', () => {
+    it('마지막 적을 처치하면 phase가 victory로 전환된다', () => {
+      // HP 1인 적 — slash 한 방에 처치 가능
+      const dyingEnemy = makeEnemy({ stats: { maxHp: 400, hp: 1, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+      const state = makeBattleState({ enemies: [dyingEnemy] })
+      const result = battleReducer(state, { type: 'USE_SKILL', skillId: 'slash', targetId: dyingEnemy.id })
+      expect(result.phase).toBe('victory')
+      expect(result.selectedSkillId).toBeNull()
+      expect(result.selectedTargetId).toBeNull()
+    })
+  })
+
+  describe('PROCESS_ENEMY_TURN — defeat path', () => {
+    it('파티 전원이 사망하면 phase가 defeat로 전환된다', () => {
+      // HP 1인 캐릭터 — 적 공격 한 방에 사망
+      const dyingChar = makeCharacter({ stats: { maxHp: 1000, hp: 1, attack: 200, defense: 0, speed: 70, maxMp: 100, mp: 100 } })
+      const state = makeBattleState({ phase: 'enemy_turn', party: [dyingChar] })
+      const result = battleReducer(state, { type: 'PROCESS_ENEMY_TURN' })
+      expect(result.phase).toBe('defeat')
+    })
+  })
+
+  describe('default case', () => {
+    it('알 수 없는 액션 타입은 상태를 변경하지 않는다', () => {
+      const state = makeBattleState()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = battleReducer(state, { type: 'UNKNOWN_ACTION' } as any)
+      expect(result).toBe(state)
+    })
+  })
+
+  describe('PROCESS_ENEMY_TURN — targetMode 분기', () => {
+    it('lowest_hp 타겟 모드로 파티 중 HP가 가장 낮은 멤버를 공격한다', () => {
+      const weakChar = makeCharacter({ id: 'char-weak', stats: { maxHp: 1000, hp: 50, attack: 200, defense: 0, speed: 70, maxMp: 100, mp: 100 } })
+      const strongChar = makeCharacter({ id: 'char-strong', stats: { maxHp: 1000, hp: 900, attack: 100, defense: 0, speed: 70, maxMp: 100, mp: 100 } })
+      const enemy = makeEnemy({
+        actions: [{ type: 'attack', element: 'physical', multiplier: 0.1, targetMode: 'lowest_hp' }],
+      })
+      const state = makeBattleState({ phase: 'enemy_turn', party: [weakChar, strongChar], enemies: [enemy] })
+      const result = battleReducer(state, { type: 'PROCESS_ENEMY_TURN' })
+      // lowest_hp인 weakChar가 공격받았으므로 HP가 줄어야 한다
+      const updatedWeak = result.party.find(c => c.id === 'char-weak')
+      const updatedStrong = result.party.find(c => c.id === 'char-strong')
+      expect(updatedWeak!.stats.hp).toBeLessThan(50)
+      expect(updatedStrong!.stats.hp).toBe(900)
+    })
+
+    it('highest_attack 타겟 모드로 파티 중 공격력이 가장 높은 멤버를 공격한다', () => {
+      const highAtkChar = makeCharacter({ id: 'char-atk', stats: { maxHp: 1000, hp: 1000, attack: 500, defense: 0, speed: 70, maxMp: 100, mp: 100 } })
+      const lowAtkChar = makeCharacter({ id: 'char-low', stats: { maxHp: 1000, hp: 1000, attack: 50, defense: 0, speed: 70, maxMp: 100, mp: 100 } })
+      const enemy = makeEnemy({
+        actions: [{ type: 'attack', element: 'physical', multiplier: 0.1, targetMode: 'highest_attack' }],
+      })
+      const state = makeBattleState({ phase: 'enemy_turn', party: [highAtkChar, lowAtkChar], enemies: [enemy] })
+      const result = battleReducer(state, { type: 'PROCESS_ENEMY_TURN' })
+      // highest_attack인 highAtkChar가 공격받았으므로 HP가 줄어야 한다
+      const updatedHigh = result.party.find(c => c.id === 'char-atk')
+      const updatedLow = result.party.find(c => c.id === 'char-low')
+      expect(updatedHigh!.stats.hp).toBeLessThan(1000)
+      expect(updatedLow!.stats.hp).toBe(1000)
+    })
+  })
+
+  describe('PROCESS_ENEMY_TURN — shield_party 동료 액션', () => {
+    it('shield_party 동료가 파티 전체에 방어막을 부여한다', () => {
+      const shieldAlly = makeAlly({
+        action: { type: 'shield_party', amount: 200 },
+      })
+      const state = makeBattleState({ phase: 'enemy_turn', allies: [shieldAlly] })
+      const result = battleReducer(state, { type: 'PROCESS_ENEMY_TURN' })
+      // 방어막 적용 로그가 남아있어야 한다 (tick 후 소멸되더라도 로그는 유지됨)
+      const hasShieldLog = result.log.some(entry => entry.text.includes('방어막 부여'))
+      expect(hasShieldLog).toBe(true)
+    })
+  })
 })
