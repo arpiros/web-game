@@ -10,12 +10,12 @@ npm run build        # tsc -b && vite build
 npm run lint         # ESLint
 npm run test         # Vitest (single run)
 npm run test:watch   # Vitest (watch mode)
-npm run test:coverage # Vitest with coverage report
+npm run test:coverage # Vitest with coverage report (80% threshold on src/game/**)
 npm run test:e2e     # Playwright E2E tests
 npm run preview      # Preview production build
 ```
 
-단일 테스트 실행:
+단일 테스트 파일 실행:
 ```bash
 npx vitest run src/game/__tests__/combat.test.ts
 ```
@@ -35,10 +35,10 @@ src/styles/      ← CSS 디자인 토큰 (OKLCH 기반)
 
 게임 로직은 React와 완전히 분리된 순수 함수로 구성된다.
 
-- **`types.ts`** — 전체 도메인 타입 정의. `RunState`, `BattleState`, `BattleAction`, `SkillEffect` 등 모든 타입의 단일 진실 공급원
-- **`combat.ts`** — `battleReducer(state, action) → state` 패턴의 순수 함수. 스킬 사용, 적 턴, 상태이상 틱 처리
+- **`types.ts`** — 전체 도메인 타입 정의. `RunState`, `BattleState`, `BattleAction`, `SkillEffect`, `AllyAction`, `ItemEffect` 등 모든 타입의 단일 진실 공급원
+- **`combat.ts`** — `battleReducer(state, action) → state` 패턴의 순수 함수. 스킬 사용, 적 턴, 상태이상 틱 처리. `calcDamage`, `rollCombat`, `getItemElementMultiplier`, `getStatusBonus` export
 - **`run.ts`** — 런 생명주기 순수 함수: `createRun`, `startBattle`, `completeBattle`, `applyDraftChoice`, `handleDefeat`
-- **`rng.ts`** — 시드 기반 결정론적 RNG (`RngState` 불변 값 타입)
+- **`rng.ts`** — 시드 기반 결정론적 RNG (`RngState` 불변 값 타입). `roll(rng, chancePercent)`, `pickN(rng, pool, n)`
 - **`data/`** — 정적 데이터 정의 (skills, characters, allies, items, enemies)
 
 ### State Machine (런 흐름)
@@ -78,11 +78,12 @@ run.phase = 'result'
 
 ### 전투 시스템 핵심 규칙
 
-- **라운드 스케일링**: 적 스탯은 `1 + (round - 1) * 0.1` 배율로 강화
-- **라운드 7**: 항상 보스 (`dragon_lord`) 단독 등장
+- **라운드 스케일링**: 적 HP/공격력은 `1 + (round - 1) * 0.1` 배율로 강화 (방어력은 고정)
+- **라운드 7**: 항상 보스 (`dragon_lord`) 단독 등장. 보스는 `cc_immune` 상태로 스폰
 - **적 행동 패턴**: `EnemyDef.actions` 배열을 순환 (`actionIndex`)
 - **상태이상 `apply_status`**: `targetMode: 'random'`인 경우 플레이어를 타겟으로 삼을 수 있음 (의도된 설계)
 - **드래프트**: 전투 승리 후 스킬/동료/아이템 중 3장 제시. 동료는 최대 4명
+- **데미지 공식**: `rawAttack * elementMult * (100 / (100 + defense))`, 최소 1
 
 ### MP 관리 시스템
 
@@ -94,23 +95,69 @@ MP 회복 경로는 5가지다:
 4. **mana_regen 상태이상**: `arcane_focus` 스킬로 부여. `tickAllStatusEffects`에서 매 턴 `getStatusBonus`만큼 회복
 5. **mp_regen 아이템**: `mana_crystal` 등. `tickAllStatusEffects`에서 매 턴 `item.effect.amount`만큼 회복
 
-**`regenPartyMp(state, amount, logMessage)`**: 생존한 파티원 전체에 amount 회복. maxMp 초과 불가. 실제 회복이 발생한 경우에만 'system' 로그 추가 (MP가 이미 가득 찬 경우 조용히 no-op)
+**`regenPartyMp(state, amount, logMessage)`**: 생존한 파티원 전체에 amount 회복. maxMp 초과 불가. 실제 회복이 발생한 경우에만 'system' 로그 추가
 
 **아이템 연결 흐름**: `RunState.acquiredItemIds` → `startBattle`에서 `ItemDef[]`로 매핑 → `BattleState.items` → `battleReducer`가 `useSkill` / `processEnemyTurn` / `tickAllStatusEffects` 호출 시 전달
 
 **0MP 기본 공격** (MP 고갈 시 항상 사용 가능):
-- `fire_mage` → `basic_ember` (화염 원소 기본기)
-- `holy_paladin` → `basic_glimmer` (신성 원소 기본기)
-- `tide_dancer` → `basic_splash` (수계 원소 기본기)
-- `dark_knight`, `berserker` → `slash` (물리 기본기, 원래부터 0MP)
+- `fire_mage` → `basic_ember` (화염 원소)
+- `holy_paladin` → `basic_glimmer` (신성 원소)
+- `tide_dancer` → `basic_splash` (수계 원소)
+- `dark_knight`, `berserker` → `slash` (물리, 원래부터 0MP)
+
+### SkillEffect 종류
+
+`damage_hp_scale`: 시전자의 **현재 HP가 낮을수록** 배율이 높아짐 (`scaledMultiplier = base * (1 + missingHpRatio)`).
+
+`execute`: 대상 HP가 `threshold` 이하이면 즉사, 초과이면 공격력의 80% 피해.
+
+`apply_status_party`: 파티 전원에게 상태이상 부여.
+
+`charge`: 다음 공격의 배율을 적립해 두고, 다음 `damage`/`damage_all` 스킬 사용 시 배율에 합산.
+
+### AllyAction 종류
+
+`AllyAction`은 7가지 variant로 구성된다. **switch 문에서 모든 케이스를 처리하지 않으면 TypeScript 빌드가 실패**한다.
+
+```
+attack | heal_party | apply_status | apply_status_all
+shield_party | buff_party | revive_party
+```
+
+`revive_party`: 첫 번째 사망한 파티원을 `healPercent * maxHp`로 부활. `processAllyActions`에서 `aliveParty.length === 0` 가드가 이 케이스를 막지 않도록 예외 처리되어 있음.
+
+### startBattle 특수 처리
+
+`death_prevention` 아이템 보유 시: `startBattle`이 파티 전원에게 `undying` 상태(HP 1 유지)를 부여한 뒤 전투를 시작한다. 아이템 효과가 런타임 상태에 직접 반영되는 유일한 케이스.
 
 ### 주요 함수 시그니처
 
 ```typescript
-createBattleCharacter(defId: string, skillIds: readonly string[], itemIds: readonly string[]): BattleCharacter
-createBattleAlly(allyDefId: string, index: number): BattleAlly
-createBattleEnemy(enemyDefId: string, round: number, index: number): BattleEnemy
-battleReducer(state: BattleState, action: BattleAction): BattleState
+// combat.ts exports
+export function calcDamage(params: DamageParams): number
+export function rollCombat(rng, attackerSpeed, defenderDefense, extraCritChance?, missImmune?): CombatRollResult
+export function getItemElementMultiplier(items: readonly ItemDef[], element: Element): number
+export function getStatusBonus(effects: readonly StatusEffect[], kind: StatusEffectKind): number
+export function battleReducer(state: BattleState, action: BattleAction): BattleState
+
+// run.ts exports
+export function createBattleCharacter(defId, skillIds, itemIds): BattleCharacter
+export function createBattleAlly(allyDefId, index): BattleAlly
+export function createBattleEnemy(enemyDefId, round, index): BattleEnemy
+export function startBattle(run, rng): [BattleState, RngState]
+export function completeBattle(run, battleState, rng): [RunState, RngState]
+export function applyDraftChoice(run, optionIndex): RunState
+```
+
+### 테스트 구조 (`src/game/__tests__/`)
+
+`combat.test.ts`에 헬퍼 팩토리 함수가 정의되어 있다:
+
+```typescript
+makeCharacter(overrides?)   // 기본: id='char-1', defId='dark_knight', skillIds=['slash','shadow_strike'], mp=100
+makeEnemy(overrides?)       // 기본: id='enemy-1', defId='goblin'
+makeAlly(overrides?)        // 기본: id='ally-1', action={type:'attack',element:'physical',multiplier:1.0}
+makeBattleState(overrides?) // 기본: phase='player_turn', party=[makeCharacter()], enemies=[makeEnemy()]
 ```
 
 ### 스타일 시스템 (`src/styles/`)
