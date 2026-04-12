@@ -924,7 +924,8 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
     for (const item of current.items) {
       for (const eff of item.effects) {
         if (eff.type === 'mp_regen') {
-          const newMp = Math.min(char.stats.maxMp, char.stats.mp + eff.amount)
+          const currentChar = current.party.find(c => c.id === char.id) ?? char
+          const newMp = Math.min(currentChar.stats.maxMp, currentChar.stats.mp + eff.amount)
           current = updateCharacter(current, char.id, c => ({
             ...c,
             stats: { ...c.stats, mp: newMp },

@@ -74,7 +74,7 @@ export function DraftScreen() {
           textTransform: 'uppercase',
           marginBottom: 'var(--space-2)',
         }}>
-          라운드 {run.round} 클리어
+          라운드 {run.round - 1} 클리어
         </div>
         <h2 style={{
           fontFamily: 'var(--font-heading)',
