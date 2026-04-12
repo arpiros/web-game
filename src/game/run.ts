@@ -9,6 +9,7 @@ import type {
   BattleCharacter,
   BattleAlly,
   BattleEnemy,
+  BattleLogEntry,
   DraftOption,
   Stats,
 } from './types'
@@ -154,6 +155,7 @@ export function createBattleEnemy(
     id: `enemy-${index}`,
     defId: def.id,
     name: def.name,
+    isBoss: def.isBoss,
     stats: {
       maxHp:   Math.floor(def.baseStats.maxHp  * scale),
       hp:      Math.floor(def.baseStats.maxHp  * scale),
@@ -224,19 +226,60 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
     .map(id => getItemById(id))
     .filter((item): item is NonNullable<typeof item> => item !== undefined)
 
+  const hasDeathPrevention = acquiredItems.some(item =>
+    item.effects.some(eff => eff.type === 'death_prevention')
+  )
+
+  const partyWithBuffs = hasDeathPrevention
+    ? [runState.character].map(c =>
+        c.isAlive
+          ? {
+              ...c,
+              statusEffects: [
+                ...c.statusEffects,
+                { kind: 'undying' as const, duration: 999, value: 0, sourceId: 'system' },
+              ],
+            }
+          : c
+      )
+    : [runState.character]
+
+  const alliesWithBuffs = hasDeathPrevention
+    ? runState.allies.map(a =>
+        a.isAlive
+          ? {
+              ...a,
+              statusEffects: [
+                ...a.statusEffects,
+                { kind: 'undying' as const, duration: 999, value: 0, sourceId: 'system' },
+              ],
+            }
+          : a
+      )
+    : runState.allies
+
+  const startLog: BattleLogEntry[] = [
+    {
+      id: `log-start-${round}`,
+      kind: 'system',
+      text: `라운드 ${round} 시작!`,
+    },
+  ]
+  if (hasDeathPrevention) {
+    startLog.push({
+      id: `log-undying-${round}`,
+      kind: 'system',
+      text: '수호의 부적: 파티 전원이 불사 상태가 됩니다!',
+    })
+  }
+
   const battleState: BattleState = {
     phase: 'player_turn',
     turnCount: 0,
-    party: [runState.character],
-    allies: runState.allies,
+    party: partyWithBuffs,
+    allies: alliesWithBuffs,
     enemies,
-    log: [
-      {
-        id: `log-start-${round}`,
-        kind: 'system',
-        text: `라운드 ${round} 시작!`,
-      },
-    ],
+    log: startLog,
     totalDamageDealt: 0,
     selectedSkillId: null,
     selectedTargetId: null,

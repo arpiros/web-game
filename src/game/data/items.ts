@@ -132,6 +132,86 @@ export const ITEMS: readonly ItemDef[] = [
     rarity: 'legendary',
     effects: [{ type: 'stat_boost', stat: 'attack', amount: 100 }],
   },
+  // ── 신규 아이템 (Phase 2-2) ──────────────────────────────────────────────
+  {
+    id: 'vampire_ring',
+    name: '흡혈 반지',
+    description: '물리 공격으로 가한 피해의 10%를 HP로 흡수한다.',
+    rarity: 'rare',
+    effects: [{ type: 'lifesteal', element: 'physical', percent: 0.10 }],
+  },
+  {
+    id: 'ancient_scroll',
+    name: '고대의 두루마리',
+    description: '스킬 사용 시 5% 확률로 MP 소비가 무료가 된다.',
+    rarity: 'rare',
+    effects: [{ type: 'free_skill_chance', chance: 0.05 }],
+  },
+  {
+    id: 'elemental_core',
+    name: '원소의 핵',
+    description: '캐릭터 고유 원소와 같은 속성 스킬의 피해가 20% 증가한다.',
+    rarity: 'rare',
+    effects: [{ type: 'elemental_match_damage', multiplier: 1.20 }],
+  },
+  {
+    id: 'storm_cloak',
+    name: '폭풍의 망토',
+    description: '속도가 40 증가하고 치명타 확률이 5% 증가한다.',
+    rarity: 'rare',
+    effects: [
+      { type: 'stat_boost', stat: 'speed', amount: 40 },
+      { type: 'crit_chance_bonus', amount: 0.05 },
+    ],
+  },
+  {
+    id: 'cursed_necklace',
+    name: '저주의 목걸이',
+    description: '공격력이 80 증가하지만 매 턴 HP가 15 감소한다.',
+    rarity: 'epic',
+    effects: [
+      { type: 'stat_boost', stat: 'attack', amount: 80 },
+      { type: 'hp_drain_per_turn', amount: 15 },
+    ],
+  },
+  {
+    id: 'revival_potion',
+    name: '불사의 묘약',
+    description: '전투 중 처음 사망 시 HP 1로 버티고 살아남는다.',
+    rarity: 'epic',
+    effects: [{ type: 'death_prevention' }],
+  },
+  {
+    id: 'magic_antidote',
+    name: '마법 해독제',
+    description: '독, 화상, 빙결 상태이상에 면역이 된다.',
+    rarity: 'rare',
+    effects: [{ type: 'status_immunity', statuses: ['poison', 'burn', 'freeze'] }],
+  },
+  {
+    id: 'time_sand',
+    name: '시간의 모래',
+    description: '모든 스킬의 쿨다운이 2턴 감소한다.',
+    rarity: 'epic',
+    effects: [{ type: 'skill_cooldown_reduce', amount: 2 }],
+  },
+  {
+    id: 'heroes_crest',
+    name: '용사의 문장',
+    description: '보스에게 가하는 피해가 25% 증가한다.',
+    rarity: 'epic',
+    effects: [{ type: 'boss_damage_bonus', multiplier: 1.25 }],
+  },
+  {
+    id: 'twin_wings',
+    name: '쌍둥이 날개',
+    description: '치명타 확률이 10% 증가하고 미스가 발생하지 않는다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'crit_chance_bonus', amount: 0.10 },
+      { type: 'miss_immunity' },
+    ],
+  },
 ]
 
 export function getItemById(id: string): ItemDef | undefined {

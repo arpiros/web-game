@@ -25,6 +25,7 @@ export type StatusEffectKind =
   | 'mana_regen'  // 매 턴 MP 회복
   | 'cc_immune'   // CC 면역 (보스 전용)
   | 'revive'      // 사망 시 HP 30%로 부활 (1회)
+  | 'undying'     // 사망 시 HP 1로 버팀 (1회)
 
 // ---------------------------------------------------------------------------
 // Stats
@@ -134,6 +135,15 @@ export type ItemEffect =
   | { readonly type: 'skill_cooldown_reduce'; readonly amount: number }
   | { readonly type: 'elemental_damage'; readonly element: Element; readonly multiplier: number }
   | { readonly type: 'on_low_hp'; readonly threshold: number; readonly effect: SkillEffect }
+  | { readonly type: 'lifesteal'; readonly element: Element; readonly percent: number }           // 피해의 일부를 HP 회복
+  | { readonly type: 'free_skill_chance'; readonly chance: number }                               // 스킬 MP 무료 확률
+  | { readonly type: 'elemental_match_damage'; readonly multiplier: number }                      // 캐릭터 속성 = 스킬 속성 시 추가 피해
+  | { readonly type: 'crit_chance_bonus'; readonly amount: number }                               // 추가 치명타 확률
+  | { readonly type: 'hp_drain_per_turn'; readonly amount: number }                               // 매 턴 HP 감소
+  | { readonly type: 'death_prevention' }                                                         // 첫 사망 방지 (HP 1 유지)
+  | { readonly type: 'status_immunity'; readonly statuses: readonly StatusEffectKind[] }          // 특정 상태이상 면역
+  | { readonly type: 'boss_damage_bonus'; readonly multiplier: number }                           // 보스 대상 추가 피해
+  | { readonly type: 'miss_immunity' }                                                            // 미스 면역
 
 export interface ItemDef {
   readonly id: EntityId
@@ -162,6 +172,7 @@ export interface EnemyDef {
   readonly actions: readonly EnemyActionPattern[]  // 순환하여 사용
   readonly element: Element
   readonly lore: string
+  readonly isBoss?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +221,7 @@ export interface BattleEnemy {
   readonly element: Element
   readonly isAlive: boolean
   readonly statusEffects: readonly StatusEffect[]
+  readonly isBoss?: boolean
 }
 
 // ---------------------------------------------------------------------------

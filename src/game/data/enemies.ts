@@ -127,6 +127,7 @@ export const ENEMIES: readonly EnemyDef[] = [
       { type: 'heal_self', multiplier: 0.6 },
     ],
     lore: '세계를 불태운다는 전설의 용.',
+    isBoss: true,
   },
   {
     id: 'skeleton_archer',
@@ -207,6 +208,7 @@ export const ENEMIES: readonly EnemyDef[] = [
       { type: 'heal_self', multiplier: 0.5 },
     ],
     lore: '세계의 끝에서 온 공허의 군주. 존재 자체가 재앙이다.',
+    isBoss: true,
   },
 ]
 

@@ -106,18 +106,31 @@ interface CombatRollResult {
 
 /**
  * 공격자 speed와 방어자 defense 기반으로 크리티컬/미스를 결정한다.
- * critChance  = min(25, 10 + (speed / 500) * 15) %
+ * critChance  = min(25, 10 + (speed / 500) * 15) % + extraCritChance
  * missChance  = min(15,  5 + (defense / 1000) * 10) %
+ * @param extraCritChance 추가 치명타 확률 (0.0~1.0). 기본값 0
+ * @param missImmune 미스 면역 여부. 기본값 false
  */
-export function rollCombat(rng: RngState, attackerSpeed: number, defenderDefense: number): CombatRollResult {
-  const critChance = Math.min(25, 10 + (attackerSpeed / 500) * 15)
+export function rollCombat(
+  rng: RngState,
+  attackerSpeed: number,
+  defenderDefense: number,
+  extraCritChance = 0,
+  missImmune = false,
+): CombatRollResult {
+  const baseCritChance = Math.min(25, 10 + (attackerSpeed / 500) * 15)
+  const critChance = Math.min(100, baseCritChance + extraCritChance * 100)
   const missChance = Math.min(15, 5 + (defenderDefense / 1000) * 10)
 
-  const [isMiss, rng1] = roll(rng, missChance)
-  if (isMiss) return { isCrit: false, isMiss: true, nextRng: rng1 }
+  if (!missImmune) {
+    const [isMiss, rng1] = roll(rng, missChance)
+    if (isMiss) return { isCrit: false, isMiss: true, nextRng: rng1 }
+    const [isCrit, rng2] = roll(rng1, critChance)
+    return { isCrit, isMiss: false, nextRng: rng2 }
+  }
 
-  const [isCrit, rng2] = roll(rng1, critChance)
-  return { isCrit, isMiss: false, nextRng: rng2 }
+  const [isCrit, rng1] = roll(rng, critChance)
+  return { isCrit, isMiss: false, nextRng: rng1 }
 }
 
 // ---------------------------------------------------------------------------
@@ -258,10 +271,19 @@ function applyDamageToCharacter(
   const actualDamage = remaining + absorbed
 
   const wouldDie = newHp <= 0
+  const hasUndying = hasStatus(target.statusEffects, 'undying')
   const hasRevive = hasStatus(target.statusEffects, 'revive')
 
   const next = updateCharacter(state, targetId, c => {
     const afterShield = absorbed > 0 ? removeStatus(c.statusEffects, 'shield') : c.statusEffects
+    if (wouldDie && hasUndying) {
+      return {
+        ...c,
+        stats: { ...c.stats, hp: 1 },
+        statusEffects: removeStatus(afterShield, 'undying'),
+        isAlive: true,
+      }
+    }
     if (wouldDie && hasRevive) {
       return {
         ...c,
@@ -278,7 +300,7 @@ function applyDamageToCharacter(
     }
   })
 
-  return { state: next, actualDamage, revived: wouldDie && hasRevive }
+  return { state: next, actualDamage, revived: wouldDie && (hasUndying || hasRevive) }
 }
 
 function applyDamageToEnemy(
@@ -318,11 +340,19 @@ function applyHealToCharacter(
 // Compute item bonuses for a character
 // ---------------------------------------------------------------------------
 
-export function getItemElementMultiplier(items: readonly ItemDef[], element: Element): number {
+export function getItemElementMultiplier(
+  items: readonly ItemDef[],
+  element: Element,
+  attackerElement?: Element,
+): number {
   let mult = 1.0
   for (const item of items) {
     for (const eff of item.effects) {
       if (eff.type === 'elemental_damage' && eff.element === element) {
+        mult *= eff.multiplier
+      }
+      // 캐릭터 고유 원소와 스킬 원소가 일치할 때 추가 배율
+      if (eff.type === 'elemental_match_damage' && attackerElement !== undefined && attackerElement === element) {
         mult *= eff.multiplier
       }
     }
@@ -363,8 +393,17 @@ function applySkillEffect(
       const target = findEnemy(state, targetId) ?? findCharacter(state, targetId)
       if (!target?.isAlive) break
 
+      // 아이템 보너스 계산
+      const extraCritChance = items.reduce((acc, item) => {
+        for (const eff of item.effects) {
+          if (eff.type === 'crit_chance_bonus') return acc + eff.bonus
+        }
+        return acc
+      }, 0)
+      const missImmune = items.some(item => item.effects.some(eff => eff.type === 'miss_immunity'))
+
       // 크리티컬/미스 판정
-      const combatRoll = rollCombat(state.rng, actorSpeed, target.stats.defense)
+      const combatRoll = rollCombat(state.rng, actorSpeed, target.stats.defense, extraCritChance, missImmune)
       let currentState = { ...state, rng: combatRoll.nextRng }
 
       if (combatRoll.isMiss) {
@@ -372,7 +411,7 @@ function applySkillEffect(
         return { state: currentState, newLogs, totalDamage }
       }
 
-      const itemMult = getItemElementMultiplier(items, effect.element)
+      const itemMult = getItemElementMultiplier(items, effect.element, ctx.actorElement)
       let baseDmg = calcDamage({
         attack: actorAttack,
         defense: target.stats.defense,
@@ -385,7 +424,21 @@ function applySkillEffect(
       const isCrit = combatRoll.isCrit
       if (isCrit) baseDmg = Math.round(baseDmg * 1.5)
 
+      // 보스 대미지 보너스
       const isEnemy = !!findEnemy(currentState, targetId)
+      if (isEnemy) {
+        const enemyTarget = findEnemy(currentState, targetId)
+        if (enemyTarget?.isBoss) {
+          const bossMult = items.reduce((acc, item) => {
+            for (const eff of item.effects) {
+              if (eff.type === 'boss_damage_bonus') return acc * eff.multiplier
+            }
+            return acc
+          }, 1)
+          baseDmg = Math.round(baseDmg * bossMult)
+        }
+      }
+
       let nextState: BattleState
       let actualDmg: number
 
@@ -397,6 +450,21 @@ function applySkillEffect(
         const res = applyDamageToCharacter(currentState, targetId, baseDmg)
         nextState = res.state
         actualDmg = res.actualDamage
+      }
+
+      // 흡혈 처리
+      if (isEnemy && actualDmg > 0) {
+        for (const item of items) {
+          for (const eff of item.effects) {
+            if (eff.type === 'lifesteal') {
+              const healAmt = Math.round(actualDmg * eff.percent)
+              if (healAmt > 0) {
+                nextState = applyHealToCharacter(nextState, actorId, healAmt)
+                newLogs.push(log('heal', `흡혈: HP ${healAmt} 회복.`, { value: healAmt, sourceId: actorId }))
+              }
+            }
+          }
+        }
       }
 
       totalDamage += isEnemy ? actualDmg : 0
@@ -443,9 +511,24 @@ function applySkillEffect(
       let current = state
       const targets = current.enemies.filter(e => e.isAlive)
 
+      // 아이템 보너스 (전체 공격에 공통 적용)
+      const extraCritChanceAll = items.reduce((acc, item) => {
+        for (const eff of item.effects) {
+          if (eff.type === 'crit_chance_bonus') return acc + eff.bonus
+        }
+        return acc
+      }, 0)
+      const missImmuneAll = items.some(item => item.effects.some(eff => eff.type === 'miss_immunity'))
+      const bossMult = items.reduce((acc, item) => {
+        for (const eff of item.effects) {
+          if (eff.type === 'boss_damage_bonus') return acc * eff.multiplier
+        }
+        return acc
+      }, 1)
+
       for (const enemy of targets) {
         // 크리티컬/미스 판정
-        const combatRoll = rollCombat(current.rng, actorSpeed, enemy.stats.defense)
+        const combatRoll = rollCombat(current.rng, actorSpeed, enemy.stats.defense, extraCritChanceAll, missImmuneAll)
         current = { ...current, rng: combatRoll.nextRng }
 
         if (combatRoll.isMiss) {
@@ -453,7 +536,7 @@ function applySkillEffect(
           continue
         }
 
-        const itemMult = getItemElementMultiplier(items, effect.element)
+        const itemMult = getItemElementMultiplier(items, effect.element, ctx.actorElement)
         let baseDmg = calcDamage({
           attack: actorAttack,
           defense: enemy.stats.defense,
@@ -466,9 +549,27 @@ function applySkillEffect(
         const isCrit = combatRoll.isCrit
         if (isCrit) baseDmg = Math.round(baseDmg * 1.5)
 
+        // 보스 대미지 보너스
+        if (enemy.isBoss) baseDmg = Math.round(baseDmg * bossMult)
+
         const res = applyDamageToEnemy(current, enemy.id, baseDmg)
         current = res.state
         totalDamage += res.actualDamage
+
+        // 흡혈 처리
+        if (res.actualDamage > 0) {
+          for (const item of items) {
+            for (const eff of item.effects) {
+              if (eff.type === 'lifesteal') {
+                const healAmt = Math.round(res.actualDamage * eff.percent)
+                if (healAmt > 0) {
+                  current = applyHealToCharacter(current, actorId, healAmt)
+                  newLogs.push(log('heal', `흡혈: HP ${healAmt} 회복.`, { value: healAmt, sourceId: actorId }))
+                }
+              }
+            }
+          }
+        }
 
         if (isCrit) {
           newLogs.push(log('crit', `크리티컬! ${enemy.name}에게 ${res.actualDamage} 피해!`, {
@@ -730,22 +831,33 @@ export function useSkill(
   const cooldown = actor.skillCooldowns[skillId] ?? 0
   if (cooldown > 0) return state
 
+  // free_skill_chance: MP 무료 시전 판정
+  const freeChance = items.reduce((acc, item) => {
+    for (const eff of item.effects) {
+      if (eff.type === 'free_skill_chance') return acc + eff.chance
+    }
+    return acc
+  }, 0)
+  let [isFree, rngAfterFree] = freeChance > 0 ? roll(state.rng, freeChance * 100) : [false, state.rng]
+  let stateWithRng = freeChance > 0 ? { ...state, rng: rngAfterFree } : state
+
   // MP 소비
-  let current = updateCharacter(state, actorId, c => ({
+  let current = updateCharacter(stateWithRng, actorId, c => ({
     ...c,
-    stats: { ...c.stats, mp: c.stats.mp - skill.mpCost },
+    stats: { ...c.stats, mp: isFree ? c.stats.mp : c.stats.mp - skill.mpCost },
     skillCooldowns: {
       ...c.skillCooldowns,
       [skillId]: skill.cooldown,
     },
   }))
 
+  const useLog = isFree
+    ? log('system', `${actor.name}이(가) ${skill.name}을(를) 사용! (MP 무료!)`, { sourceId: actorId })
+    : log('system', `${actor.name}이(가) ${skill.name}을(를) 사용!`, { sourceId: actorId })
+
   current = {
     ...current,
-    log: [
-      ...current.log,
-      log('system', `${actor.name}이(가) ${skill.name}을(를) 사용!`, { sourceId: actorId }),
-    ],
+    log: [...current.log, useLog],
   }
 
   const target = findEnemy(current, targetId) ?? findCharacter(current, targetId)
@@ -910,7 +1022,17 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
 
       case 'apply_status': {
         const targets = action.targetMode === 'all' ? alivePary : [selectPartyTarget(alivePary, 'random')].filter(Boolean) as BattleCharacter[]
+        const isStatusImmune = items.some(item =>
+          item.effects.some(eff => eff.type === 'status_immunity' && eff.statuses.includes(action.status))
+        )
         for (const t of targets) {
+          if (isStatusImmune) {
+            current = {
+              ...current,
+              log: [...current.log, log('system', `${t.name}의 면역으로 ${action.status} 부여 차단!`, { targetId: t.id })],
+            }
+            continue
+          }
           const newStatus: StatusEffect = {
             kind: action.status,
             duration: action.duration,
@@ -1154,6 +1276,16 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
             stats: { ...c.stats, mp: newMp },
           }))
           newLogs.push(log('system', `${item.name}으로 MP가 ${eff.amount} 회복됐다.`, { sourceId: char.id }))
+        }
+        if (eff.type === 'hp_drain_per_turn') {
+          const res = applyDamageToCharacter(current, char.id, eff.amount)
+          current = res.state
+          newLogs.push(log('damage', `${item.name}의 저주: HP ${eff.amount} 감소.`, {
+            value: eff.amount, targetId: char.id,
+          }))
+          if (res.revived) {
+            newLogs.push(log('system', `${char.name}이(가) 불사조처럼 부활했다!`, { targetId: char.id }))
+          }
         }
         if (eff.type === 'on_low_hp') {
           const hpRatio = char.stats.hp / char.stats.maxHp
