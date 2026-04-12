@@ -64,6 +64,48 @@ function hpColor(ratio: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Damage Popup
+// ---------------------------------------------------------------------------
+
+interface PopupEntry {
+  id: string
+  text: string
+  kind: 'damage' | 'crit' | 'miss' | 'heal'
+  xPct: number
+}
+
+function DamagePopup({ popup }: { popup: PopupEntry }) {
+  const isCrit = popup.kind === 'crit'
+  const isMiss = popup.kind === 'miss'
+  const isHeal = popup.kind === 'heal'
+
+  const color =
+    isCrit  ? 'var(--color-element-fire)' :
+    isMiss  ? 'var(--color-text-muted)'   :
+    isHeal  ? 'var(--color-hp-high)'      :
+    'var(--color-hp-low)'
+
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: '30%',
+      left: `${popup.xPct}%`,
+      color,
+      fontFamily: 'var(--font-heading)',
+      fontWeight: 'var(--weight-bold)',
+      fontSize: isCrit ? 'var(--text-lg)' : 'var(--text-sm)',
+      pointerEvents: 'none',
+      animation: 'popup-float 1s ease-out forwards',
+      textShadow: '0 1px 4px oklch(0% 0 0 / 0.8)',
+      whiteSpace: 'nowrap',
+      zIndex: 10,
+    }}>
+      {popup.text}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main screen
 // ---------------------------------------------------------------------------
 
@@ -76,10 +118,68 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   const run            = useRunStore(s => s.run)
   const dispatchBattle = useRunStore(s => s.dispatchBattle)
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
+  const [popups, setPopups] = useState<PopupEntry[]>([])
+  const prevLogLen = useRef<number | null>(null)
+  const popupTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
 
   const bs           = run?.battleState
   const isPlayerTurn = bs?.phase === 'player_turn'
   const isEnding     = bs?.phase === 'victory' || bs?.phase === 'defeat'
+
+  // Spawn floating popups for new damage/heal/miss/crit log entries
+  useEffect(() => {
+    if (!bs) return
+    if (prevLogLen.current === null) {
+      prevLogLen.current = bs.log.length
+      return
+    }
+    const newEntries = bs.log.slice(prevLogLen.current)
+    prevLogLen.current = bs.log.length
+
+    for (const entry of newEntries) {
+      if (entry.kind !== 'damage' && entry.kind !== 'crit' &&
+          entry.kind !== 'miss'   && entry.kind !== 'heal') continue
+
+      // Horizontal position: map targetId to enemy slot, or right side for party
+      let xPct = 50
+      if (entry.targetId) {
+        const idx = bs.enemies.findIndex(e => e.id === entry.targetId)
+        if (idx >= 0) {
+          const count = bs.enemies.length
+          xPct = count === 1 ? 50 : 20 + (idx / (count - 1)) * 60
+        } else {
+          xPct = 82  // party member target (heal, etc.)
+        }
+      }
+
+      const text =
+        entry.kind === 'miss' ? 'MISS' :
+        entry.kind === 'heal' ? `+${entry.value ?? ''}` :
+        `${entry.value ?? ''}`
+
+      const popup: PopupEntry = {
+        id: entry.id,
+        text,
+        kind: entry.kind,
+        xPct,
+      }
+
+      setPopups(prev => [...prev, popup])
+      const timer = setTimeout(() => {
+        setPopups(prev => prev.filter(p => p.id !== popup.id))
+        popupTimers.current.delete(popup.id)
+      }, 1100)
+      popupTimers.current.set(popup.id, timer)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bs?.log.length])
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      popupTimers.current.forEach(t => clearTimeout(t))
+    }
+  }, [])
 
   useEffect(() => {
     if (!bs) return
@@ -182,7 +282,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         }}>
           {/* Enemy zone */}
           <div style={{
-            flex: '0 0 auto',
+            flex: '0 0 auto', position: 'relative',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
             gap: 'var(--space-5)',
             padding: 'var(--space-6) var(--space-4) var(--space-4)',
@@ -198,6 +298,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
                 onClick={() => handleEnemyClick(enemy.id)}
               />
             ))}
+            {popups.map(p => <DamagePopup key={p.id} popup={p} />)}
           </div>
 
           {/* Battle log */}
