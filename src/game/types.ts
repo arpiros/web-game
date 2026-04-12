@@ -112,7 +112,10 @@ export type AllyAction =
   | { readonly type: 'attack'; readonly element: Element; readonly multiplier: number }
   | { readonly type: 'heal_party'; readonly multiplier: number }
   | { readonly type: 'apply_status'; readonly status: StatusEffectKind; readonly duration: number; readonly value: number }
+  | { readonly type: 'apply_status_all'; readonly status: StatusEffectKind; readonly duration: number; readonly value: number }
   | { readonly type: 'shield_party'; readonly amount: number }
+  | { readonly type: 'buff_party'; readonly status: StatusEffectKind; readonly duration: number; readonly value: number }
+  | { readonly type: 'revive_party'; readonly healPercent: number }
 
 export interface AllyDef {
   readonly id: EntityId

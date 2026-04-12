@@ -73,6 +73,42 @@ export const ALLIES: readonly AllyDef[] = [
     baseStats: { maxHp: 1100, attack: 200, defense: 100, speed: 55 },
     action: { type: 'attack', element: 'fire', multiplier: 1.3 },
   },
+  {
+    id: 'storm_mage',
+    name: '폭풍 마법사',
+    description: '매 턴 번개 에너지를 방출하여 가장 강한 적을 공격한다.',
+    element: 'light',
+    rarity: 'epic',
+    baseStats: { maxHp: 650, attack: 175, defense: 30, speed: 95 },
+    action: { type: 'attack', element: 'light', multiplier: 1.2 },
+  },
+  {
+    id: 'guardian_angel',
+    name: '빛의 수호천사',
+    description: '전사한 아군을 감지하면 최대 HP의 50%로 부활시킨다.',
+    element: 'light',
+    rarity: 'legendary',
+    baseStats: { maxHp: 900, attack: 110, defense: 80, speed: 60 },
+    action: { type: 'revive_party', healPercent: 0.5 },
+  },
+  {
+    id: 'poison_witch',
+    name: '독 마녀',
+    description: '매 턴 강력한 독을 전체 적에게 주입한다.',
+    element: 'dark',
+    rarity: 'rare',
+    baseStats: { maxHp: 580, attack: 145, defense: 25, speed: 80 },
+    action: { type: 'apply_status_all', status: 'poison', duration: 3, value: 12 },
+  },
+  {
+    id: 'battle_bard',
+    name: '전투 음유시인',
+    description: '매 턴 전장의 노래로 파티 전원의 공격력을 높인다.',
+    element: 'light',
+    rarity: 'rare',
+    baseStats: { maxHp: 680, attack: 100, defense: 50, speed: 75 },
+    action: { type: 'buff_party', status: 'powerup', duration: 2, value: 30 },
+  },
 ]
 
 export function getAllyById(id: string): AllyDef | undefined {

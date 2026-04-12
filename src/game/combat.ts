@@ -1209,6 +1209,67 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
         }
         break
       }
+
+      case 'apply_status_all': {
+        const aliveEnemies = current.enemies.filter(e => e.isAlive)
+        if (aliveEnemies.length === 0) break
+        for (const enemy of aliveEnemies) {
+          const newStatus: StatusEffect = {
+            kind: action.status,
+            duration: action.duration,
+            value: action.value,
+            sourceId: ally.id,
+          }
+          current = updateEnemy(current, enemy.id, e => ({
+            ...e,
+            statusEffects: addStatus(e.statusEffects, newStatus),
+          }))
+        }
+        current = {
+          ...current,
+          log: [...current.log, log('status_apply', `${ally.name}이(가) 전체 적에게 ${action.status} 부여!`, { sourceId: ally.id })],
+        }
+        break
+      }
+
+      case 'buff_party': {
+        for (const member of aliveParty) {
+          const newStatus: StatusEffect = {
+            kind: action.status,
+            duration: action.duration,
+            value: action.value,
+            sourceId: ally.id,
+          }
+          current = updateCharacter(current, member.id, c => ({
+            ...c,
+            statusEffects: addStatus(c.statusEffects, newStatus),
+          }))
+        }
+        current = {
+          ...current,
+          log: [...current.log, log('status_apply', `${ally.name}이(가) 파티 전체에 ${action.status} 부여!`, { sourceId: ally.id })],
+        }
+        break
+      }
+
+      case 'revive_party': {
+        const deadMembers = current.party.filter(c => !c.isAlive)
+        if (deadMembers.length === 0) break
+        const target = deadMembers[0]
+        const reviveHp = Math.round(target.stats.maxHp * action.healPercent)
+        current = updateCharacter(current, target.id, c => ({
+          ...c,
+          stats: { ...c.stats, hp: reviveHp },
+          isAlive: true,
+        }))
+        current = {
+          ...current,
+          log: [...current.log, log('heal', `${ally.name}이(가) ${target.name}을(를) HP ${reviveHp}으로 부활!`, {
+            value: reviveHp, sourceId: ally.id, targetId: target.id,
+          })],
+        }
+        break
+      }
     }
   }
 
