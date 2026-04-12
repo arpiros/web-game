@@ -396,7 +396,7 @@ function applySkillEffect(
       // 아이템 보너스 계산
       const extraCritChance = items.reduce((acc, item) => {
         for (const eff of item.effects) {
-          if (eff.type === 'crit_chance_bonus') return acc + eff.bonus
+          if (eff.type === 'crit_chance_bonus') return acc + eff.amount
         }
         return acc
       }, 0)
@@ -514,7 +514,7 @@ function applySkillEffect(
       // 아이템 보너스 (전체 공격에 공통 적용)
       const extraCritChanceAll = items.reduce((acc, item) => {
         for (const eff of item.effects) {
-          if (eff.type === 'crit_chance_bonus') return acc + eff.bonus
+          if (eff.type === 'crit_chance_bonus') return acc + eff.amount
         }
         return acc
       }, 0)
@@ -1115,7 +1115,8 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
 
     const action = ally.action
     const aliveParty = current.party.filter(c => c.isAlive)
-    if (aliveParty.length === 0) break
+    // revive_party는 파티 전원 사망 상태에서도 동작해야 함
+    if (aliveParty.length === 0 && action.type !== 'revive_party') break
 
     switch (action.type) {
       case 'attack': {

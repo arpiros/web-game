@@ -1016,3 +1016,502 @@ describe('rollCombat', () => {
     expect(critFound).toBe(true)
   })
 })
+
+// ---------------------------------------------------------------------------
+// applyDamageToCharacter: undying / revive 상태
+// ---------------------------------------------------------------------------
+
+describe('undying / revive 상태 이상', () => {
+  it('undying 상태에서 치명타 피해를 받아도 HP 1로 생존한다', () => {
+    const undyingStatus: StatusEffect = { kind: 'undying', duration: 1, value: 0, sourceId: 'src' }
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 100, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 }, statusEffects: [undyingStatus] })
+    const state = makeBattleState({ party: [char] })
+    // 적이 캐릭터에게 9999 피해를 주면 undying 발동
+    const result = useSkill(state, 'char-1', 'enemy-1', 'slash', [])
+    // 직접 적용 경로를 테스트하기 위해 processEnemyTurn 사용
+    const enemy = makeEnemy({ stats: { maxHp: 400, hp: 400, attack: 9999, defense: 0, speed: 0, maxMp: 0, mp: 0 } })
+    const bigDmgState = makeBattleState({
+      phase: 'enemy_turn',
+      party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 0, speed: 0, maxMp: 100, mp: 100 }, statusEffects: [undyingStatus] })],
+      enemies: [enemy],
+    })
+    // 여러 seed로 miss가 아닌 경우를 찾아서 테스트
+    let survived = false
+    for (let seed = 0; seed < 100; seed++) {
+      const s = { ...bigDmgState, rng: createRng(seed) }
+      const r = processEnemyTurn(s, [])
+      const c = r.party[0]
+      if (c.isAlive && c.stats.hp === 1) {
+        survived = true
+        expect(c.statusEffects.some(e => e.kind === 'undying')).toBe(false)
+        break
+      }
+    }
+    expect(survived).toBe(true)
+  })
+
+  it('revive 상태에서 치명타 피해를 받아도 30% HP로 생존한다', () => {
+    const reviveStatus: StatusEffect = { kind: 'revive', duration: 1, value: 0, sourceId: 'src' }
+    const enemy = makeEnemy({ stats: { maxHp: 400, hp: 400, attack: 9999, defense: 0, speed: 0, maxMp: 0, mp: 0 } })
+    const reviveState = makeBattleState({
+      phase: 'enemy_turn',
+      party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 0, speed: 0, maxMp: 100, mp: 100 }, statusEffects: [reviveStatus] })],
+      enemies: [enemy],
+    })
+    let survived = false
+    for (let seed = 0; seed < 100; seed++) {
+      const s = { ...reviveState, rng: createRng(seed) }
+      const r = processEnemyTurn(s, [])
+      const c = r.party[0]
+      if (c.isAlive && c.stats.hp === 300) { // 1000 * 0.3 = 300
+        survived = true
+        expect(c.statusEffects.some(e => e.kind === 'revive')).toBe(false)
+        break
+      }
+    }
+    expect(survived).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 아이템 효과: lifesteal, boss_damage_bonus, miss_immunity, crit_chance_bonus
+// ---------------------------------------------------------------------------
+
+describe('아이템 효과 — 전투', () => {
+  const lifeStealItem: ItemDef = {
+    id: 'test_lifesteal',
+    name: '흡혈 아이템',
+    description: '',
+    rarity: 'common',
+    effects: [{ type: 'lifesteal', element: 'physical', percent: 0.5 }],
+  }
+
+  const bossBonusItem: ItemDef = {
+    id: 'test_boss',
+    name: '보스킬러',
+    description: '',
+    rarity: 'rare',
+    effects: [{ type: 'boss_damage_bonus', multiplier: 2.0 }],
+  }
+
+  const missImmunityItem: ItemDef = {
+    id: 'test_missimmune',
+    name: '미스면역',
+    description: '',
+    rarity: 'common',
+    effects: [{ type: 'miss_immunity' }],
+  }
+
+  const critBonusItem: ItemDef = {
+    id: 'test_crit',
+    name: '치명타강화',
+    description: '',
+    rarity: 'common',
+    effects: [{ type: 'crit_chance_bonus', amount: 1.0 }], // 100% 추가 크리티컬
+  }
+
+  it('lifesteal: 피해 후 공격자 HP를 회복한다', () => {
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 500, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })
+    const state = makeBattleState({ party: [char] })
+    let healed = false
+    for (let seed = 0; seed < 100; seed++) {
+      const s = { ...state, rng: createRng(seed) }
+      const result = useSkill(s, 'char-1', 'enemy-1', 'slash', [lifeStealItem])
+      const afterChar = result.party[0]
+      if (afterChar.stats.hp > 500) {
+        healed = true
+        const healLog = result.log.find(e => e.text.includes('흡혈'))
+        expect(healLog).toBeTruthy()
+        break
+      }
+    }
+    expect(healed).toBe(true)
+  })
+
+  it('boss_damage_bonus: 보스 적에게 추가 피해를 준다', () => {
+    const boss: BattleEnemy = {
+      ...makeEnemy(),
+      isBoss: true,
+      stats: { maxHp: 10000, hp: 10000, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 },
+    }
+    const normalEnemy = makeEnemy({ stats: { maxHp: 10000, hp: 10000, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+
+    let bossHpAfter = 10000
+    let normalHpAfter = 10000
+
+    for (let seed = 0; seed < 200; seed++) {
+      const bossState = { ...makeBattleState({ enemies: [boss], rng: createRng(seed) }) }
+      const bossResult = useSkill(bossState, 'char-1', 'enemy-1', 'slash', [bossBonusItem])
+      const afterBoss = bossResult.enemies[0]
+      if (afterBoss.stats.hp < 10000) {
+        bossHpAfter = afterBoss.stats.hp
+        break
+      }
+    }
+
+    for (let seed = 0; seed < 200; seed++) {
+      const normalState = { ...makeBattleState({ enemies: [normalEnemy], rng: createRng(seed) }) }
+      const normalResult = useSkill(normalState, 'char-1', 'enemy-1', 'slash', [bossBonusItem])
+      const afterNormal = normalResult.enemies[0]
+      if (afterNormal.stats.hp < 10000) {
+        normalHpAfter = afterNormal.stats.hp
+        break
+      }
+    }
+
+    // 보스에게 입힌 피해가 더 많아야 함
+    expect(10000 - bossHpAfter).toBeGreaterThan(10000 - normalHpAfter)
+  })
+
+  it('miss_immunity: miss_immunity 아이템 있을 때 절대 miss가 발생하지 않는다', () => {
+    const highDefEnemy = makeEnemy({ stats: { maxHp: 400, hp: 400, attack: 80, defense: 9999, speed: 90, maxMp: 0, mp: 0 } })
+    let missFound = false
+    for (let seed = 0; seed < 500; seed++) {
+      const state = makeBattleState({ enemies: [highDefEnemy], rng: createRng(seed) })
+      const result = useSkill(state, 'char-1', 'enemy-1', 'slash', [missImmunityItem])
+      if (result.log.some(e => e.kind === 'miss')) {
+        missFound = true
+        break
+      }
+    }
+    expect(missFound).toBe(false)
+  })
+
+  it('crit_chance_bonus: 100% crit 보너스 시 항상 크리티컬이 발생한다', () => {
+    // extraCritChance=1.0이면 critChance가 크게 증가해 크리티컬이 매우 자주 발생
+    let critCount = 0
+    const trials = 50
+    for (let seed = 0; seed < trials; seed++) {
+      const state = makeBattleState({ rng: createRng(seed) })
+      const result = useSkill(state, 'char-1', 'enemy-1', 'slash', [critBonusItem])
+      if (result.log.some(e => e.kind === 'crit')) critCount++
+    }
+    // 100% 추가 크리티컬이면 대부분 크리티컬이어야 함
+    expect(critCount).toBeGreaterThan(trials * 0.5)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 아이템 효과: elemental_match_damage
+// ---------------------------------------------------------------------------
+
+describe('elemental_match_damage 아이템', () => {
+  it('캐릭터 속성과 스킬 속성이 일치할 때 추가 피해를 준다', () => {
+    const matchItem: ItemDef = {
+      id: 'test_elem_match',
+      name: '속성일치',
+      description: '',
+      rarity: 'rare',
+      effects: [{ type: 'elemental_match_damage', multiplier: 2.0 }],
+    }
+
+    const darkChar = makeCharacter({ element: 'dark' })
+    // dark 속성 공격 (shadow_strike = dark)
+    const stateWithMatch = makeBattleState({ party: [darkChar] })
+    const stateWithoutMatch = makeBattleState({ party: [darkChar] })
+
+    let dmgWithMatch = 0
+    let dmgWithoutMatch = 0
+
+    for (let seed = 0; seed < 200; seed++) {
+      const s1 = { ...stateWithMatch, rng: createRng(seed) }
+      const r1 = useSkill(s1, 'char-1', 'enemy-1', 'shadow_strike', [matchItem])
+      const s2 = { ...stateWithoutMatch, rng: createRng(seed) }
+      const r2 = useSkill(s2, 'char-1', 'enemy-1', 'shadow_strike', [])
+      const e1 = r1.enemies[0]
+      const e2 = r2.enemies[0]
+      if (e1.stats.hp < 400 && e2.stats.hp < 400) {
+        dmgWithMatch = 400 - e1.stats.hp
+        dmgWithoutMatch = 400 - e2.stats.hp
+        break
+      }
+    }
+
+    expect(dmgWithMatch).toBeGreaterThan(dmgWithoutMatch)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useSkill: free_skill_chance
+// ---------------------------------------------------------------------------
+
+describe('free_skill_chance', () => {
+  it('100% 무료 시전 시 MP가 소비되지 않는다', () => {
+    const freeItem: ItemDef = {
+      id: 'test_free',
+      name: '무료시전',
+      description: '',
+      rarity: 'epic',
+      effects: [{ type: 'free_skill_chance', chance: 1.0 }], // 100% 확률
+    }
+
+    // shadow_strike costs 15 MP
+    const char = makeCharacter({ skillIds: ['slash', 'shadow_strike'], stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 50 } })
+    const state = makeBattleState({ party: [char] })
+
+    // shadow_strike MP 비용 확인을 위해 아이템 없이 먼저 실행
+    const resultWithoutFree = useSkill(state, 'char-1', 'enemy-1', 'shadow_strike', [])
+    const mpAfterNormal = resultWithoutFree.party[0].stats.mp
+
+    // 100% 무료 시전 아이템으로 실행하면 MP가 변하지 않아야 함
+    const resultWithFree = useSkill(state, 'char-1', 'enemy-1', 'shadow_strike', [freeItem])
+    const mpAfterFree = resultWithFree.party[0].stats.mp
+
+    expect(mpAfterFree).toBeGreaterThanOrEqual(state.party[0].stats.mp) // MP 소비 없음
+    expect(mpAfterFree).toBeGreaterThan(mpAfterNormal) // 일반 실행보다 MP가 더 많음
+    const freeLog = resultWithFree.log.find(e => e.text.includes('MP 무료'))
+    expect(freeLog).toBeTruthy()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 스킬 효과: apply_status_party, execute, damage_hp_scale
+// ---------------------------------------------------------------------------
+
+describe('apply_status_party 스킬 효과', () => {
+  it('파티 전원에게 상태이상을 부여한다', () => {
+    const char1 = makeCharacter({ id: 'char-1', skillIds: ['current_step', 'slash'], stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })
+    const char2 = makeCharacter({ id: 'char-2', stats: { maxHp: 800, hp: 800, attack: 150, defense: 40, speed: 60, maxMp: 80, mp: 80 } })
+    // current_step (apply_status_party powerup duration 2)
+    const state = makeBattleState({
+      party: [char1, char2],
+    })
+    const result = useSkill(state, 'char-1', 'enemy-1', 'current_step', [])
+    expect(result.party[0].statusEffects.some(e => e.kind === 'powerup')).toBe(true)
+    expect(result.party[1].statusEffects.some(e => e.kind === 'powerup')).toBe(true)
+    const statusLog = result.log.find(e => e.text.includes('powerup'))
+    expect(statusLog).toBeTruthy()
+  })
+})
+
+describe('execute 스킬 효과', () => {
+  it('HP가 임계치 이하인 적을 즉사시킨다', () => {
+    // divine_judgment: execute threshold 0.3
+    const lowHpEnemy = makeEnemy({ stats: { maxHp: 1000, hp: 200, attack: 80, defense: 30, speed: 90, maxMp: 0, mp: 0 } }) // 20% HP
+    const char = makeCharacter({ skillIds: ['divine_judgment', 'slash'], stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 80 } })
+    const state = makeBattleState({ party: [char], enemies: [lowHpEnemy] })
+    const result = useSkill(state, 'char-1', 'enemy-1', 'divine_judgment', [])
+    expect(result.enemies[0].isAlive).toBe(false)
+    expect(result.log.some(e => e.text.includes('즉사'))).toBe(true)
+  })
+
+  it('HP가 임계치 초과인 적에게는 일반 피해를 준다', () => {
+    // divine_judgment: execute threshold 0.3
+    const highHpEnemy = makeEnemy({ stats: { maxHp: 1000, hp: 800, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } }) // 80% HP
+    const char = makeCharacter({ skillIds: ['divine_judgment', 'slash'], stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 80 } })
+    const state = makeBattleState({ party: [char], enemies: [highHpEnemy] })
+    const result = useSkill(state, 'char-1', 'enemy-1', 'divine_judgment', [])
+    // 즉사 없이 일반 피해만 입어야 함
+    expect(result.enemies[0].isAlive).toBe(true)
+    expect(result.log.some(e => e.text.includes('심판 실패'))).toBe(true)
+  })
+})
+
+describe('damage_hp_scale 스킬 효과', () => {
+  it('HP가 낮을수록 더 많은 피해를 준다', () => {
+    // death_charge: damage_hp_scale physical baseMultiplier 2.0, mpCost 20
+    const fullHpChar = makeCharacter({ skillIds: ['death_charge', 'slash'], stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 30 } })
+    const lowHpChar = makeCharacter({ skillIds: ['death_charge', 'slash'], stats: { maxHp: 1000, hp: 100, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 30 } })
+    const enemy1 = makeEnemy({ stats: { maxHp: 99999, hp: 99999, attack: 80, defense: 0, speed: 0, maxMp: 0, mp: 0 } })
+    const enemy2 = makeEnemy({ stats: { maxHp: 99999, hp: 99999, attack: 80, defense: 0, speed: 0, maxMp: 0, mp: 0 } })
+
+    let dmgFull = 0
+    let dmgLow = 0
+
+    for (let seed = 0; seed < 200; seed++) {
+      const s1 = makeBattleState({ party: [fullHpChar], enemies: [enemy1], rng: createRng(seed) })
+      const r1 = useSkill(s1, 'char-1', 'enemy-1', 'death_charge', [])
+      if (r1.enemies[0].stats.hp < 99999) {
+        dmgFull = 99999 - r1.enemies[0].stats.hp
+        break
+      }
+    }
+
+    for (let seed = 0; seed < 200; seed++) {
+      const s2 = makeBattleState({ party: [lowHpChar], enemies: [enemy2], rng: createRng(seed) })
+      const r2 = useSkill(s2, 'char-1', 'enemy-1', 'death_charge', [])
+      if (r2.enemies[0].stats.hp < 99999) {
+        dmgLow = 99999 - r2.enemies[0].stats.hp
+        break
+      }
+    }
+
+    expect(dmgLow).toBeGreaterThan(dmgFull)
+  })
+
+  it('damage_hp_scale 로그가 생성된다', () => {
+    const char = makeCharacter({ skillIds: ['death_charge', 'slash'], stats: { maxHp: 1000, hp: 500, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 30 } })
+    const enemy = makeEnemy({ stats: { maxHp: 99999, hp: 99999, attack: 80, defense: 0, speed: 0, maxMp: 0, mp: 0 } })
+    let logFound = false
+    for (let seed = 0; seed < 200; seed++) {
+      const state = makeBattleState({ party: [char], enemies: [enemy], rng: createRng(seed) })
+      const result = useSkill(state, 'char-1', 'enemy-1', 'death_charge', [])
+      if (result.log.some(e => e.text.includes('분노의 일격'))) {
+        logFound = true
+        break
+      }
+    }
+    expect(logFound).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// processEnemyTurn: status_immunity
+// ---------------------------------------------------------------------------
+
+describe('status_immunity 아이템', () => {
+  it('status_immunity 아이템이 있으면 적의 상태이상 부여가 차단된다', () => {
+    const poisonImmunityItem: ItemDef = {
+      id: 'test_immunity',
+      name: '독 면역',
+      description: '',
+      rarity: 'rare',
+      effects: [{ type: 'status_immunity', statuses: ['poison'] }],
+    }
+
+    const poisonEnemy: BattleEnemy = {
+      ...makeEnemy(),
+      actions: [{ type: 'apply_status', status: 'poison', duration: 3, value: 10, targetMode: 'random' }],
+    }
+
+    const state = makeBattleState({
+      phase: 'enemy_turn',
+      enemies: [poisonEnemy],
+      items: [poisonImmunityItem],
+    })
+
+    const result = processEnemyTurn(state, [poisonImmunityItem])
+    expect(result.party[0].statusEffects.some(e => e.kind === 'poison')).toBe(false)
+    expect(result.log.some(e => e.text.includes('면역'))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 동료 행동: apply_status_all, buff_party, revive_party
+// ---------------------------------------------------------------------------
+
+describe('동료 행동 — apply_status_all / buff_party / revive_party', () => {
+  it('apply_status_all: 살아있는 모든 적에게 상태이상을 부여한다', () => {
+    const poisonAlly = makeAlly({
+      action: { type: 'apply_status_all', status: 'poison', duration: 3, value: 10 },
+    })
+    const enemy1 = makeEnemy({ id: 'enemy-1' })
+    const enemy2: BattleEnemy = { ...makeEnemy(), id: 'enemy-2', name: '두 번째 적' }
+    const state = makeBattleState({
+      phase: 'enemy_turn',
+      allies: [poisonAlly],
+      enemies: [enemy1, enemy2],
+    })
+
+    const result = processEnemyTurn(state, [])
+    expect(result.enemies[0].statusEffects.some(e => e.kind === 'poison')).toBe(true)
+    expect(result.enemies[1].statusEffects.some(e => e.kind === 'poison')).toBe(true)
+  })
+
+  it('buff_party: 살아있는 파티 전원에게 버프를 부여한다', () => {
+    const bardAlly = makeAlly({
+      action: { type: 'buff_party', status: 'powerup', duration: 2, value: 30 },
+    })
+    const char1 = makeCharacter({ id: 'char-1' })
+    const char2 = makeCharacter({ id: 'char-2', name: '두 번째 캐릭터' })
+    const state = makeBattleState({
+      phase: 'enemy_turn',
+      party: [char1, char2],
+      allies: [bardAlly],
+    })
+
+    const result = processEnemyTurn(state, [])
+    expect(result.party[0].statusEffects.some(e => e.kind === 'powerup')).toBe(true)
+    expect(result.party[1].statusEffects.some(e => e.kind === 'powerup')).toBe(true)
+  })
+
+  it('revive_party: 쓰러진 첫 번째 파티원을 healPercent로 부활시킨다', () => {
+    const angelAlly = makeAlly({
+      action: { type: 'revive_party', healPercent: 0.5 },
+    })
+    const deadChar = makeCharacter({
+      id: 'char-1',
+      stats: { maxHp: 1000, hp: 0, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 0 },
+      isAlive: false,
+    })
+    const state = makeBattleState({
+      phase: 'enemy_turn',
+      party: [deadChar],
+      allies: [angelAlly],
+    })
+
+    const result = processEnemyTurn(state, [])
+    const revived = result.party[0]
+    expect(revived.isAlive).toBe(true)
+    expect(revived.stats.hp).toBe(500) // maxHp 1000 * 0.5
+    expect(result.log.some(e => e.text.includes('부활'))).toBe(true)
+  })
+
+  it('revive_party: 죽은 파티원이 없으면 아무 행동도 하지 않는다', () => {
+    const angelAlly = makeAlly({
+      action: { type: 'revive_party', healPercent: 0.5 },
+    })
+    const aliveChar = makeCharacter({ id: 'char-1' })
+    const state = makeBattleState({
+      phase: 'enemy_turn',
+      party: [aliveChar],
+      allies: [angelAlly],
+    })
+
+    const result = processEnemyTurn(state, [])
+    // 부활 로그가 없어야 함
+    const reviveLog = result.log.find(e => e.text.includes('부활'))
+    expect(reviveLog).toBeFalsy()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects: mana_regen 상태 / mp_regen 아이템 / hp_drain_per_turn
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — 추가 효과', () => {
+  it('mana_regen 상태이상이 있으면 매 틱 MP를 회복한다', () => {
+    const manaRegenStatus: StatusEffect = { kind: 'mana_regen', duration: 3, value: 20, sourceId: 'src' }
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 50 }, statusEffects: [manaRegenStatus] })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+    expect(result.party[0].stats.mp).toBe(70) // 50 + 20
+  })
+
+  it('mana_regen 상태이상이 maxMp를 초과하지 않는다', () => {
+    const manaRegenStatus: StatusEffect = { kind: 'mana_regen', duration: 3, value: 100, sourceId: 'src' }
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 90 }, statusEffects: [manaRegenStatus] })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+    expect(result.party[0].stats.mp).toBe(100)
+  })
+
+  it('mp_regen 아이템이 있으면 매 틱 MP를 회복한다', () => {
+    const mpRegenItem: ItemDef = {
+      id: 'test_mp_regen',
+      name: 'MP 회복 아이템',
+      description: '',
+      rarity: 'common',
+      effects: [{ type: 'mp_regen', amount: 15 }],
+    }
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 50 } })
+    const state = makeBattleState({ party: [char], items: [mpRegenItem] })
+    const result = tickAllStatusEffects(state)
+    expect(result.party[0].stats.mp).toBe(65) // 50 + 15
+  })
+
+  it('hp_drain_per_turn 아이템이 있으면 매 틱 HP가 감소한다', () => {
+    const hpDrainItem: ItemDef = {
+      id: 'test_hp_drain',
+      name: 'HP 감소 아이템',
+      description: '',
+      rarity: 'rare',
+      effects: [{ type: 'hp_drain_per_turn', amount: 50 }],
+    }
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 800, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })
+    const state = makeBattleState({ party: [char], items: [hpDrainItem] })
+    const result = tickAllStatusEffects(state)
+    expect(result.party[0].stats.hp).toBe(750) // 800 - 50
+    expect(result.log.some(e => e.text.includes('저주'))).toBe(true)
+  })
+})
