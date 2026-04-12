@@ -303,10 +303,13 @@ function SkillCard({ skill, onSelect, isOwned }: { skill: SkillDef; onSelect: ()
 
 function allyActionLabel(action: AllyAction): string {
   switch (action.type) {
-    case 'attack':       return `공격력의 ${Math.round(action.multiplier * 100)}% 피해`
-    case 'heal_party':   return `전체 치유 ${Math.round(action.multiplier * 100)}%`
-    case 'apply_status': return `${action.status} 부여 ${action.duration}턴`
-    case 'shield_party': return `방막 ${action.amount}`
+    case 'attack':           return `공격력의 ${Math.round(action.multiplier * 100)}% 피해`
+    case 'heal_party':       return `전체 치유 ${Math.round(action.multiplier * 100)}%`
+    case 'apply_status':     return `${action.status} 부여 ${action.duration}턴`
+    case 'apply_status_all': return `전체 적 ${action.status} 부여 ${action.duration}턴`
+    case 'shield_party':     return `방막 ${action.amount}`
+    case 'buff_party':       return `아군 전체 ${action.status} ${action.duration}턴`
+    case 'revive_party':     return `아군 부활 (${Math.round(action.healPercent * 100)}% HP)`
   }
 }
 
