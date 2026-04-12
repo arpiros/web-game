@@ -247,9 +247,9 @@ function applyDamageToCharacter(
   state: BattleState,
   targetId: EntityId,
   damage: number,
-): { state: BattleState; actualDamage: number } {
+): { state: BattleState; actualDamage: number; revived: boolean } {
   const target = findCharacter(state, targetId)
-  if (!target || !target.isAlive) return { state, actualDamage: 0 }
+  if (!target || !target.isAlive) return { state, actualDamage: 0, revived: false }
 
   const shield = getStatusBonus(target.statusEffects, 'shield')
   const absorbed = Math.min(shield, damage)
@@ -257,16 +257,28 @@ function applyDamageToCharacter(
   const newHp = Math.max(0, target.stats.hp - remaining)
   const actualDamage = remaining + absorbed
 
-  let next = updateCharacter(state, targetId, c => ({
-    ...c,
-    stats: { ...c.stats, hp: newHp },
-    statusEffects: absorbed > 0
-      ? removeStatus(c.statusEffects, 'shield')
-      : c.statusEffects,
-    isAlive: newHp > 0,
-  }))
+  const wouldDie = newHp <= 0
+  const hasRevive = hasStatus(target.statusEffects, 'revive')
 
-  return { state: next, actualDamage }
+  const next = updateCharacter(state, targetId, c => {
+    const afterShield = absorbed > 0 ? removeStatus(c.statusEffects, 'shield') : c.statusEffects
+    if (wouldDie && hasRevive) {
+      return {
+        ...c,
+        stats: { ...c.stats, hp: Math.round(c.stats.maxHp * 0.3) },
+        statusEffects: removeStatus(afterShield, 'revive'),
+        isAlive: true,
+      }
+    }
+    return {
+      ...c,
+      stats: { ...c.stats, hp: newHp },
+      statusEffects: afterShield,
+      isAlive: newHp > 0,
+    }
+  })
+
+  return { state: next, actualDamage, revived: wouldDie && hasRevive }
 }
 
 function applyDamageToEnemy(
@@ -590,6 +602,107 @@ function applySkillEffect(
       return { state: next, newLogs, totalDamage }
     }
 
+    case 'spend_hp_gain_mp': {
+      const char = findCharacter(state, actorId)
+      if (!char) break
+      const hpCost = Math.round(char.stats.maxHp * effect.hpPercent)
+      const newHp = Math.max(1, char.stats.hp - hpCost) // 자해로 사망 불가
+      const newMp = Math.min(char.stats.maxMp, char.stats.mp + effect.mpGain)
+      const next = updateCharacter(state, actorId, c => ({
+        ...c,
+        stats: { ...c.stats, hp: newHp, mp: newMp },
+      }))
+      newLogs.push(log('system', `HP ${hpCost}을 희생해 MP ${effect.mpGain}를 획득했다!`, { sourceId: actorId }))
+      return { state: next, newLogs, totalDamage }
+    }
+
+    case 'apply_status_party': {
+      const newStatus: StatusEffect = {
+        kind: effect.status,
+        duration: effect.duration,
+        value: effect.value,
+        sourceId: actorId,
+      }
+      let next = state
+      for (const member of state.party) {
+        if (!member.isAlive) continue
+        next = updateCharacter(next, member.id, c => ({
+          ...c,
+          statusEffects: addStatus(c.statusEffects, newStatus),
+        }))
+      }
+      newLogs.push(log('status_apply', `파티 전체에 ${effect.status} 부여.`, { sourceId: actorId }))
+      return { state: next, newLogs, totalDamage }
+    }
+
+    case 'execute': {
+      const target = findEnemy(state, targetId)
+      if (!target) break
+      const hpRatio = target.stats.hp / target.stats.maxHp
+      if (hpRatio < effect.threshold) {
+        // 즉사 처리
+        const { state: killed, actualDamage: killDmg } = applyDamageToEnemy(state, targetId, target.stats.hp)
+        totalDamage += killDmg
+        newLogs.push(log('damage', `신성한 심판! ${target.name}이(가) 즉사했다!`, {
+          value: killDmg, sourceId: actorId, targetId,
+        }))
+        return { state: killed, newLogs, totalDamage }
+      } else {
+        // 임계치 미달 — 일반 피해
+        const actor = findCharacter(state, actorId)
+        if (!actor) break
+        const dmg = calcDamage({
+          attack: actor.stats.attack,
+          defense: target.stats.defense,
+          multiplier: 0.8,
+          attackElement: 'light',
+          defenderElement: target.element,
+          itemElementMultiplier: getItemElementMultiplier(items, 'light'),
+          powerupBonus: getStatusBonus(actor.statusEffects, 'powerup'),
+        })
+        const { state: hit, actualDamage } = applyDamageToEnemy(state, targetId, dmg)
+        totalDamage += actualDamage
+        newLogs.push(log('damage', `심판 실패 (HP ${Math.round(hpRatio * 100)}% > ${Math.round(effect.threshold * 100)}%). ${actualDamage} 피해.`, {
+          value: actualDamage, sourceId: actorId, targetId,
+        }))
+        return { state: hit, newLogs, totalDamage }
+      }
+    }
+
+    case 'damage_hp_scale': {
+      const actor = findCharacter(state, actorId)
+      const target = findEnemy(state, targetId) ?? findCharacter(state, targetId)
+      if (!actor || !target?.isAlive) break
+      const missingHpRatio = 1 - actor.stats.hp / actor.stats.maxHp
+      const scaledMultiplier = effect.baseMultiplier * (1 + missingHpRatio)
+      const dmg = calcDamage({
+        attack: actor.stats.attack,
+        defense: target.stats.defense,
+        multiplier: scaledMultiplier,
+        attackElement: effect.element,
+        defenderElement: target.element,
+        itemElementMultiplier: getItemElementMultiplier(items, effect.element),
+        powerupBonus: getStatusBonus(actor.statusEffects, 'powerup'),
+      })
+      const isEnemy = !!findEnemy(state, targetId)
+      let nextState = state
+      let actualDmg = 0
+      if (isEnemy) {
+        const res = applyDamageToEnemy(state, targetId, dmg)
+        nextState = res.state
+        actualDmg = res.actualDamage
+      } else {
+        const res = applyDamageToCharacter(state, targetId, dmg)
+        nextState = res.state
+        actualDmg = res.actualDamage
+      }
+      totalDamage += actualDmg
+      newLogs.push(log('damage', `분노의 일격! ${actualDmg} 피해 (HP ${Math.round((1 - missingHpRatio) * 100)}% 기준).`, {
+        value: actualDmg, sourceId: actorId, targetId,
+      }))
+      return { state: nextState, newLogs, totalDamage }
+    }
+
     default:
       break
   }
@@ -737,7 +850,12 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
               value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
             })
         current = { ...res.state, log: [...res.state.log, dmgLog] }
-        if (!current.party.find(c => c.id === target.id)?.isAlive) {
+        if (res.revived) {
+          current = {
+            ...current,
+            log: [...current.log, log('system', `${target.name}이(가) 불사조처럼 부활했다!`, { targetId: target.id })],
+          }
+        } else if (!current.party.find(c => c.id === target.id)?.isAlive) {
           current = {
             ...current,
             log: [...current.log, log('death', `${target.name}이(가) 쓰러졌다!`, { targetId: target.id })],
@@ -780,6 +898,12 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
                 value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
               })
           current = { ...res.state, log: [...res.state.log, dmgLog] }
+          if (res.revived) {
+            current = {
+              ...current,
+              log: [...current.log, log('system', `${member.name}이(가) 불사조처럼 부활했다!`, { targetId: member.id })],
+            }
+          }
         }
         break
       }
@@ -985,29 +1109,27 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
     if (hasStatus(char.statusEffects, 'poison')) {
       const poisonPct = getStatusBonus(char.statusEffects, 'poison')
       const dmg = Math.round(char.stats.maxHp * poisonPct / 100)
-      const newHp = Math.max(0, char.stats.hp - dmg)
-      current = updateCharacter(current, char.id, c => ({
-        ...c,
-        stats: { ...c.stats, hp: newHp },
-        isAlive: newHp > 0,
+      const res = applyDamageToCharacter(current, char.id, dmg)
+      current = res.state
+      newLogs.push(log('damage', `${char.name}이(가) 독으로 ${res.actualDamage} 피해!`, {
+        value: res.actualDamage, targetId: char.id,
       }))
-      newLogs.push(log('damage', `${char.name}이(가) 독으로 ${dmg} 피해!`, {
-        value: dmg, targetId: char.id,
-      }))
+      if (res.revived) {
+        newLogs.push(log('system', `${char.name}이(가) 불사조처럼 부활했다!`, { targetId: char.id }))
+      }
     }
 
     // 화상
     if (hasStatus(char.statusEffects, 'burn')) {
       const burnDmg = getStatusBonus(char.statusEffects, 'burn')
-      const newHp = Math.max(0, char.stats.hp - burnDmg)
-      current = updateCharacter(current, char.id, c => ({
-        ...c,
-        stats: { ...c.stats, hp: newHp },
-        isAlive: newHp > 0,
+      const res = applyDamageToCharacter(current, char.id, burnDmg)
+      current = res.state
+      newLogs.push(log('damage', `${char.name}이(가) 화상으로 ${res.actualDamage} 피해!`, {
+        value: res.actualDamage, targetId: char.id,
       }))
-      newLogs.push(log('damage', `${char.name}이(가) 화상으로 ${burnDmg} 피해!`, {
-        value: burnDmg, targetId: char.id,
-      }))
+      if (res.revived) {
+        newLogs.push(log('system', `${char.name}이(가) 불사조처럼 부활했다!`, { targetId: char.id }))
+      }
     }
 
     // mana_regen 상태이상 처리

@@ -128,12 +128,92 @@ export const ENEMIES: readonly EnemyDef[] = [
     ],
     lore: '세계를 불태운다는 전설의 용.',
   },
+  {
+    id: 'skeleton_archer',
+    name: '스켈레톤 궁수',
+    description: '빠르고 정확한 화살로 약점을 노리는 언데드 궁수.',
+    element: 'physical',
+    baseStats: { maxHp: 450, attack: 95, defense: 20, speed: 110 },
+    actions: [
+      { type: 'attack', element: 'physical', multiplier: 1.1, targetMode: 'lowest_hp' },
+      { type: 'apply_status', status: 'defdown', duration: 2, value: 25, targetMode: 'random' },
+    ],
+    lore: '죽어서도 활시위를 당기는 저주받은 궁수.',
+  },
+  {
+    id: 'flame_phoenix',
+    name: '불꽃 피닉스',
+    description: '불꽃 속에서 재생하는 전설의 새. 죽음 직전 폭발적인 열기를 방출한다.',
+    element: 'fire',
+    baseStats: { maxHp: 750, attack: 155, defense: 45, speed: 95 },
+    actions: [
+      { type: 'attack', element: 'fire', multiplier: 1.3, targetMode: 'random' },
+      { type: 'attack_all', element: 'fire', multiplier: 0.9 },
+      { type: 'heal_self', multiplier: 0.5 },
+    ],
+    lore: '화염에서 태어나 화염으로 돌아가는 불사의 새.',
+  },
+  {
+    id: 'dark_vampire',
+    name: '어둠 흡혈귀',
+    description: '생명력을 빨아들이는 고귀한 흡혈귀. 약한 상대를 집중 사냥한다.',
+    element: 'dark',
+    baseStats: { maxHp: 820, attack: 165, defense: 65, speed: 85 },
+    actions: [
+      { type: 'attack', element: 'dark', multiplier: 1.4, targetMode: 'lowest_hp' },
+      { type: 'heal_self', multiplier: 0.7 },
+      { type: 'apply_status', status: 'defdown', duration: 3, value: 35, targetMode: 'random' },
+    ],
+    lore: '수백 년간 생명력을 흡수하며 살아온 고대 흡혈귀.',
+  },
+  {
+    id: 'frost_giant',
+    name: '서리 거인',
+    description: '온몸이 얼음으로 뒤덮인 거대한 존재. 전체 공격으로 아군을 얼린다.',
+    element: 'water',
+    baseStats: { maxHp: 2600, attack: 230, defense: 145, speed: 35 },
+    actions: [
+      { type: 'attack_all', element: 'water', multiplier: 1.3 },
+      { type: 'apply_status', status: 'freeze', duration: 1, value: 0, targetMode: 'all' },
+      { type: 'attack', element: 'physical', multiplier: 1.9, targetMode: 'random' },
+    ],
+    lore: '빙하 깊숙이 잠들어 있던 원시 거인족.',
+  },
+  {
+    id: 'poison_hydra',
+    name: '독 하이드라',
+    description: '여러 머리에서 독을 뿜는 거대 히드라. 머리가 잘려도 재생한다.',
+    element: 'dark',
+    baseStats: { maxHp: 2300, attack: 205, defense: 95, speed: 60 },
+    actions: [
+      { type: 'attack', element: 'physical', multiplier: 1.2, targetMode: 'random' },
+      { type: 'apply_status', status: 'poison', duration: 4, value: 15, targetMode: 'all' },
+      { type: 'attack_all', element: 'physical', multiplier: 0.85 },
+      { type: 'heal_self', multiplier: 0.4 },
+    ],
+    lore: '독이 가득한 늪지대에 사는 다두 괴물.',
+  },
+  {
+    id: 'void_lord',
+    name: '공허 군주',
+    description: '공허에서 소환된 절대적 존재. 방어력을 무너뜨리고 파티를 잠식한다.',
+    element: 'dark',
+    baseStats: { maxHp: 3500, attack: 285, defense: 135, speed: 60 },
+    actions: [
+      { type: 'attack_all', element: 'dark', multiplier: 1.3 },
+      { type: 'apply_status', status: 'defdown', duration: 3, value: 50, targetMode: 'all' },
+      { type: 'attack', element: 'dark', multiplier: 2.6, targetMode: 'highest_attack' },
+      { type: 'buff_self', status: 'powerup', duration: 3, value: 70 },
+      { type: 'heal_self', multiplier: 0.5 },
+    ],
+    lore: '세계의 끝에서 온 공허의 군주. 존재 자체가 재앙이다.',
+  },
 ]
 
 // 라운드에 따른 적 선택 (낮은 라운드 = 약한 적)
-const EARLY_ENEMY_IDS = ['goblin', 'fire_imp', 'shadow_wolf']
-const MID_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'cursed_knight', 'demon_mage']
-const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'dragon_lord']
+const EARLY_ENEMY_IDS = ['goblin', 'fire_imp', 'shadow_wolf', 'skeleton_archer']
+const MID_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'cursed_knight', 'demon_mage', 'flame_phoenix', 'dark_vampire']
+const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'dragon_lord', 'frost_giant', 'poison_hydra', 'void_lord']
 
 export function getEnemyPoolForRound(round: number): readonly EnemyDef[] {
   if (round <= 2) {

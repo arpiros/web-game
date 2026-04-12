@@ -24,6 +24,7 @@ export type StatusEffectKind =
   | 'defdown'     // 방어력 디버프
   | 'mana_regen'  // 매 턴 MP 회복
   | 'cc_immune'   // CC 면역 (보스 전용)
+  | 'revive'      // 사망 시 HP 30%로 부활 (1회)
 
 // ---------------------------------------------------------------------------
 // Stats
@@ -58,15 +59,19 @@ export interface StatusEffect {
 // ---------------------------------------------------------------------------
 
 export type SkillEffect =
-  | { readonly type: 'damage';       readonly element: Element; readonly multiplier: number }
-  | { readonly type: 'damage_all';   readonly element: Element; readonly multiplier: number }
-  | { readonly type: 'heal';         readonly multiplier: number }    // attack 기반 회복
-  | { readonly type: 'heal_mp';      readonly amount: number }
-  | { readonly type: 'apply_status'; readonly status: StatusEffectKind; readonly duration: number; readonly value: number }
-  | { readonly type: 'remove_status';readonly status: StatusEffectKind }
-  | { readonly type: 'shield';       readonly amount: number; readonly flat?: true }
-  | { readonly type: 'charge';       readonly multiplier: number }    // 다음 공격 강화
-  | { readonly type: 'summon_ally';  readonly allyId: EntityId }      // 동료 소환
+  | { readonly type: 'damage';             readonly element: Element; readonly multiplier: number }
+  | { readonly type: 'damage_all';         readonly element: Element; readonly multiplier: number }
+  | { readonly type: 'damage_hp_scale';    readonly element: Element; readonly baseMultiplier: number } // HP 낮을수록 강해짐
+  | { readonly type: 'heal';              readonly multiplier: number }    // attack 기반 회복
+  | { readonly type: 'heal_mp';           readonly amount: number }
+  | { readonly type: 'apply_status';      readonly status: StatusEffectKind; readonly duration: number; readonly value: number }
+  | { readonly type: 'apply_status_party';readonly status: StatusEffectKind; readonly duration: number; readonly value: number } // 파티 전체 상태이상
+  | { readonly type: 'remove_status';     readonly status: StatusEffectKind }
+  | { readonly type: 'shield';            readonly amount: number; readonly flat?: true }
+  | { readonly type: 'charge';            readonly multiplier: number }    // 다음 공격 강화
+  | { readonly type: 'summon_ally';       readonly allyId: EntityId }      // 동료 소환
+  | { readonly type: 'spend_hp_gain_mp';  readonly hpPercent: number; readonly mpGain: number } // HP 소모 → MP 획득
+  | { readonly type: 'execute';           readonly threshold: number }     // 임계치 이하 즉사
 
 // ---------------------------------------------------------------------------
 // Skill Definition

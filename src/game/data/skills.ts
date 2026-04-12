@@ -386,6 +386,135 @@ export const SKILLS: readonly SkillDef[] = [
     element: 'physical',
     rarity: 'rare',
   },
+
+  // -------------------------------------------------------------------------
+  // 칠흑의 기사 전용
+  // -------------------------------------------------------------------------
+  {
+    id: 'void_blade',
+    name: '공허 검격',
+    description: '어둠과 물리 속성으로 2연격. 각 타격이 속성 저항에 개별 계산된다. 합산 공격력의 150%.',
+    mpCost: 20,
+    cooldown: 2,
+    effects: [
+      { type: 'damage', element: 'dark', multiplier: 0.75 },
+      { type: 'damage', element: 'physical', multiplier: 0.75 },
+    ],
+    element: 'dark',
+    rarity: 'rare',
+  },
+  {
+    id: 'blood_pact',
+    name: '피의 계약',
+    description: '최대 HP의 20%를 소모해 MP 40을 즉시 획득한다. 자신을 사망시키지 않는다.',
+    mpCost: 0,
+    cooldown: 3,
+    effects: [{ type: 'spend_hp_gain_mp', hpPercent: 0.2, mpGain: 40 }],
+    element: 'dark',
+    rarity: 'rare',
+  },
+
+  // -------------------------------------------------------------------------
+  // 불꽃의 마법사 전용
+  // -------------------------------------------------------------------------
+  {
+    id: 'mana_burst',
+    name: '마나 폭발',
+    description: '막대한 MP를 소진해 전체 적에게 공격력의 280% 화염 피해를 가한다.',
+    mpCost: 60,
+    cooldown: 4,
+    effects: [{ type: 'damage_all', element: 'fire', multiplier: 2.8 }],
+    element: 'fire',
+    rarity: 'epic',
+  },
+  {
+    id: 'phoenix_rebirth',
+    name: '불사조의 부활',
+    description: '자신에게 부활 효과를 부여한다. 다음 사망 시 HP 30%로 1회 부활한다.',
+    mpCost: 30,
+    cooldown: 6,
+    effects: [{ type: 'apply_status', status: 'revive', duration: 99, value: 1 }],
+    element: 'fire',
+    rarity: 'epic',
+  },
+
+  // -------------------------------------------------------------------------
+  // 빛의 성기사 전용
+  // -------------------------------------------------------------------------
+  {
+    id: 'holy_aura',
+    name: '성스러운 오라',
+    description: '파티 전원에게 3턴간 매 턴 HP를 회복하는 재생 효과를 부여한다.',
+    mpCost: 25,
+    cooldown: 3,
+    effects: [{ type: 'apply_status_party', status: 'regen', duration: 3, value: 15 }],
+    element: 'light',
+    rarity: 'rare',
+  },
+  {
+    id: 'divine_judgment',
+    name: '신성한 심판',
+    description: '적 HP가 30% 이하이면 즉사시킨다. 조건 미달 시 공격력의 80% 피해.',
+    mpCost: 35,
+    cooldown: 4,
+    effects: [{ type: 'execute', threshold: 0.3 }],
+    element: 'light',
+    rarity: 'epic',
+  },
+
+  // -------------------------------------------------------------------------
+  // 조류 무희 전용
+  // -------------------------------------------------------------------------
+  {
+    id: 'tsunami_dance',
+    name: '해일 춤',
+    description: '전체 적에게 공격력의 120% 수계 피해를 주고 모든 적을 1턴 빙결시킨다.',
+    mpCost: 40,
+    cooldown: 4,
+    effects: [
+      { type: 'damage_all', element: 'water', multiplier: 1.2 },
+      { type: 'apply_status', status: 'freeze', duration: 1, value: 0 },
+    ],
+    element: 'water',
+    rarity: 'epic',
+  },
+  {
+    id: 'current_step',
+    name: '조류 발걸음',
+    description: '파티 전원의 공격력을 2턴간 50% 증폭시킨다.',
+    mpCost: 30,
+    cooldown: 4,
+    effects: [{ type: 'apply_status_party', status: 'powerup', duration: 2, value: 50 }],
+    element: 'water',
+    rarity: 'rare',
+  },
+
+  // -------------------------------------------------------------------------
+  // 광전사 전용
+  // -------------------------------------------------------------------------
+  {
+    id: 'bloodlust',
+    name: '피의 광기',
+    description: '적에게 공격력의 150% 물리 피해를 주고 자신의 공격력이 3턴간 60% 증가한다.',
+    mpCost: 25,
+    cooldown: 3,
+    effects: [
+      { type: 'damage', element: 'physical', multiplier: 1.5 },
+      { type: 'apply_status', status: 'powerup', duration: 3, value: 60 },
+    ],
+    element: 'physical',
+    rarity: 'rare',
+  },
+  {
+    id: 'death_charge',
+    name: '절사 돌격',
+    description: 'HP가 낮을수록 강해지는 물리 돌격. HP가 1%면 공격력의 최대 400% 피해.',
+    mpCost: 20,
+    cooldown: 3,
+    effects: [{ type: 'damage_hp_scale', element: 'physical', baseMultiplier: 2.0 }],
+    element: 'physical',
+    rarity: 'rare',
+  },
 ]
 
 export function getSkillById(id: string): SkillDef | undefined {
