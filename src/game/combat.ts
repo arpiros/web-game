@@ -20,6 +20,15 @@ import type {
 import { getSkillById } from './data/skills'
 
 // ---------------------------------------------------------------------------
+// MP Regeneration Constants
+// ---------------------------------------------------------------------------
+
+/** 매 플레이어 턴 시작 시 자동으로 회복되는 MP */
+const PASSIVE_MP_REGEN_PER_TURN = 3
+/** 턴 종료 버튼 사용 시 추가 회복되는 MP */
+const END_TURN_MP_BONUS = 8
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -153,6 +162,31 @@ function updateCharacter(
     ...state,
     party: state.party.map(c => (c.id === id ? updater(c) : c)),
   }
+}
+
+/**
+ * 살아있는 파티 캐릭터 전원의 MP를 amount만큼 회복한다 (maxMp 상한 적용).
+ * 실제 회복이 발생한 경우에만 배틀 로그에 기록한다.
+ */
+function regenPartyMp(state: BattleState, amount: number, logMessage: string): BattleState {
+  let next = state
+  let anyRecovered = false
+
+  for (const char of state.party) {
+    if (!char.isAlive) continue
+    const recovered = Math.min(amount, char.stats.maxMp - char.stats.mp)
+    if (recovered <= 0) continue
+    anyRecovered = true
+    next = updateCharacter(next, char.id, c => ({
+      ...c,
+      stats: { ...c.stats, mp: c.stats.mp + recovered },
+    }))
+  }
+
+  if (anyRecovered) {
+    return { ...next, log: [...next.log, log('system', logMessage)] }
+  }
+  return next
 }
 
 function updateEnemy(
@@ -1044,14 +1078,24 @@ export function battleReducer(state: BattleState, action: BattleAction): BattleS
 
     case 'END_PLAYER_TURN': {
       if (state.phase !== 'player_turn') return state
-      return { ...state, phase: 'enemy_turn' }
+      const afterEndBonus = regenPartyMp(
+        { ...state, phase: 'enemy_turn' },
+        END_TURN_MP_BONUS,
+        `턴 종료 보너스! MP +${END_TURN_MP_BONUS}`,
+      )
+      return afterEndBonus
     }
 
     case 'PROCESS_ENEMY_TURN': {
       if (state.phase !== 'enemy_turn') return state
       const afterEnemyTurn = processEnemyTurn(state, state.items)
       if (afterEnemyTurn.phase === 'enemy_turn') {
-        return { ...afterEnemyTurn, phase: 'player_turn', turnCount: afterEnemyTurn.turnCount + 1 }
+        const nextTurn = { ...afterEnemyTurn, phase: 'player_turn' as const, turnCount: afterEnemyTurn.turnCount + 1 }
+        return regenPartyMp(
+          nextTurn,
+          PASSIVE_MP_REGEN_PER_TURN,
+          `마나가 자연 회복되었다. MP +${PASSIVE_MP_REGEN_PER_TURN}`,
+        )
       }
       return afterEnemyTurn
     }

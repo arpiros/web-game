@@ -86,11 +86,15 @@ run.phase = 'result'
 
 ### MP 관리 시스템
 
-MP 회복 경로는 3가지다:
+MP 회복 경로는 5가지다:
 
-1. **킬 보너스**: 적 처치 시 MP +5 (`damage` / `damage_all` 스킬 모두 적용)
-2. **mana_regen 상태이상**: `arcane_focus` 스킬로 부여. `tickAllStatusEffects`에서 매 턴 `getStatusBonus`만큼 회복
-3. **mp_regen 아이템**: `mana_crystal` 등. `tickAllStatusEffects`에서 매 턴 `item.effect.amount`만큼 회복
+1. **자동 재생 (패시브)**: 매 플레이어 턴 시작 시 MP +3 (`PASSIVE_MP_REGEN_PER_TURN`). `PROCESS_ENEMY_TURN` 처리 후 `player_turn` 전환 시점에 `regenPartyMp` 호출
+2. **턴 종료 보너스**: "턴 종료" 버튼 클릭 시 MP +8 (`END_TURN_MP_BONUS`). `END_PLAYER_TURN` 케이스에서 `regenPartyMp` 호출 후 `enemy_turn`으로 전환
+3. **킬 보너스**: 적 처치 시 MP +5 (`damage` / `damage_all` 스킬 모두 적용)
+4. **mana_regen 상태이상**: `arcane_focus` 스킬로 부여. `tickAllStatusEffects`에서 매 턴 `getStatusBonus`만큼 회복
+5. **mp_regen 아이템**: `mana_crystal` 등. `tickAllStatusEffects`에서 매 턴 `item.effect.amount`만큼 회복
+
+**`regenPartyMp(state, amount, logMessage)`**: 생존한 파티원 전체에 amount 회복. maxMp 초과 불가. 실제 회복이 발생한 경우에만 'system' 로그 추가 (MP가 이미 가득 찬 경우 조용히 no-op)
 
 **아이템 연결 흐름**: `RunState.acquiredItemIds` → `startBattle`에서 `ItemDef[]`로 매핑 → `BattleState.items` → `battleReducer`가 `useSkill` / `processEnemyTurn` / `tickAllStatusEffects` 호출 시 전달
 

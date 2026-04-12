@@ -819,3 +819,102 @@ describe('battleReducer', () => {
     })
   })
 })
+
+// ---------------------------------------------------------------------------
+// MP 재생 시스템
+// ---------------------------------------------------------------------------
+
+describe('MP 재생 시스템', () => {
+  describe('END_PLAYER_TURN — 턴 종료 MP 보너스', () => {
+    it('턴 종료 시 살아있는 캐릭터에게 MP 보너스를 지급한다', () => {
+      const state = makeBattleState({
+        phase: 'player_turn',
+        party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 30 } })],
+      })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      expect(result.party[0].stats.mp).toBe(38) // 30 + 8
+    })
+
+    it('턴 종료 MP 보너스가 maxMp를 초과하지 않는다', () => {
+      const state = makeBattleState({
+        phase: 'player_turn',
+        party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 95 } })],
+      })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      expect(result.party[0].stats.mp).toBe(100) // 100 상한
+    })
+
+    it('턴 종료 시 phase가 enemy_turn으로 전환된다', () => {
+      const state = makeBattleState({ phase: 'player_turn' })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      expect(result.phase).toBe('enemy_turn')
+    })
+
+    it('MP가 이미 최대인 경우 배틀 로그에 MP 회복 메시지가 없다', () => {
+      const state = makeBattleState({
+        phase: 'player_turn',
+        party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })],
+      })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      const hasMpLog = result.log.some(e => e.text.includes('턴 종료 보너스'))
+      expect(hasMpLog).toBe(false)
+    })
+
+    it('사망한 캐릭터는 턴 종료 MP 보너스를 받지 않는다', () => {
+      const deadChar = makeCharacter({
+        id: 'char-dead',
+        isAlive: false,
+        stats: { maxHp: 1000, hp: 0, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 20 },
+      })
+      const state = makeBattleState({ phase: 'player_turn', party: [deadChar] })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      expect(result.party[0].stats.mp).toBe(20) // 변화 없음
+    })
+
+    it('턴 종료 MP 보너스 발생 시 배틀 로그에 기록된다', () => {
+      const state = makeBattleState({
+        phase: 'player_turn',
+        party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 0 } })],
+      })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      const hasLog = result.log.some(e => e.text.includes('턴 종료 보너스'))
+      expect(hasLog).toBe(true)
+    })
+  })
+
+  describe('PROCESS_ENEMY_TURN — 자동 MP 재생', () => {
+    it('적 턴 완료 후 다음 플레이어 턴 시작 시 자동 MP가 재생된다', () => {
+      const state = makeBattleState({
+        phase: 'enemy_turn',
+        party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 50 } })],
+      })
+      const result = battleReducer(state, { type: 'PROCESS_ENEMY_TURN' })
+      if (result.phase === 'player_turn') {
+        expect(result.party[0].stats.mp).toBeGreaterThan(50)
+      }
+    })
+
+    it('자동 MP 재생이 maxMp를 초과하지 않는다', () => {
+      const state = makeBattleState({
+        phase: 'enemy_turn',
+        party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 99 } })],
+      })
+      const result = battleReducer(state, { type: 'PROCESS_ENEMY_TURN' })
+      if (result.phase === 'player_turn') {
+        expect(result.party[0].stats.mp).toBe(100)
+      }
+    })
+
+    it('자동 MP 재생 시 배틀 로그에 기록된다', () => {
+      const state = makeBattleState({
+        phase: 'enemy_turn',
+        party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 0 } })],
+      })
+      const result = battleReducer(state, { type: 'PROCESS_ENEMY_TURN' })
+      if (result.phase === 'player_turn') {
+        const hasLog = result.log.some(e => e.text.includes('마나가 자연 회복'))
+        expect(hasLog).toBe(true)
+      }
+    })
+  })
+})
