@@ -241,6 +241,7 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
     selectedSkillId: null,
     selectedTargetId: null,
     items: acquiredItems,
+    rng: currentRng,
   }
 
   return [battleState, currentRng]

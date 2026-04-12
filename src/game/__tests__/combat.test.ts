@@ -12,6 +12,7 @@ import {
   removeStatus,
   tickStatuses,
   getStatusBonus,
+  rollCombat,
 } from '../combat'
 import type {
   BattleState,
@@ -21,6 +22,7 @@ import type {
   StatusEffect,
   ItemDef,
 } from '../types'
+import { createRng } from '../rng'
 
 // ---------------------------------------------------------------------------
 // Test Fixtures
@@ -108,6 +110,7 @@ function makeBattleState(overrides: Partial<BattleState> = {}): BattleState {
     selectedSkillId: null,
     selectedTargetId: null,
     items: [],
+    rng: createRng(12345),
     ...overrides,
   }
 }
@@ -916,5 +919,100 @@ describe('MP 재생 시스템', () => {
         expect(hasLog).toBe(true)
       }
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// rollCombat (크리티컬 / 미스 시스템)
+// ---------------------------------------------------------------------------
+
+describe('rollCombat', () => {
+  it('결과값은 isCrit, isMiss, nextRng 세 필드를 가진다', () => {
+    const rng = createRng(42)
+    const result = rollCombat(rng, 100, 100)
+    expect(result).toHaveProperty('isCrit')
+    expect(result).toHaveProperty('isMiss')
+    expect(result).toHaveProperty('nextRng')
+  })
+
+  it('미스와 크리티컬이 동시에 true가 될 수 없다', () => {
+    // 1000번 호출해서 동시 true가 없는지 확인
+    let rng = createRng(99)
+    for (let i = 0; i < 1000; i++) {
+      const result = rollCombat(rng, 200, 500)
+      expect(result.isMiss && result.isCrit).toBe(false)
+      rng = result.nextRng
+    }
+  })
+
+  it('속도가 높을수록 크리티컬 확률이 높아진다 (통계적)', () => {
+    // 고속 vs 저속 각각 5000번 시뮬레이션
+    let lowRng = createRng(1)
+    let highRng = createRng(1)
+    let lowCrits = 0
+    let highCrits = 0
+    const trials = 5000
+    for (let i = 0; i < trials; i++) {
+      const low = rollCombat(lowRng, 0, 0)    // critChance ≈ 10%
+      const high = rollCombat(highRng, 500, 0) // critChance ≈ 25%
+      if (low.isCrit) lowCrits++
+      if (high.isCrit) highCrits++
+      lowRng = low.nextRng
+      highRng = high.nextRng
+    }
+    expect(highCrits).toBeGreaterThan(lowCrits)
+  })
+
+  it('방어력이 높을수록 미스 확률이 높아진다 (통계적)', () => {
+    let lowRng = createRng(2)
+    let highRng = createRng(2)
+    let lowMisses = 0
+    let highMisses = 0
+    const trials = 5000
+    for (let i = 0; i < trials; i++) {
+      const low = rollCombat(lowRng, 0, 0)      // missChance ≈ 5%
+      const high = rollCombat(highRng, 0, 1000)  // missChance ≈ 15%
+      if (low.isMiss) lowMisses++
+      if (high.isMiss) highMisses++
+      lowRng = low.nextRng
+      highRng = high.nextRng
+    }
+    expect(highMisses).toBeGreaterThan(lowMisses)
+  })
+
+  it('useSkill에서 미스 시 피해가 0이고 miss 로그가 생성된다', () => {
+    // 미스가 확정으로 발생하도록 rng를 조작할 수 없으므로 여러 번 시도
+    // 대신 missChance를 극대화한 상태에서 빈도 확인
+    const enemy = makeEnemy({ stats: { ...makeEnemy().stats, defense: 1000 } }) // missChance 15%
+    let missFound = false
+    for (let seed = 0; seed < 200; seed++) {
+      const state = makeBattleState({
+        enemies: [enemy],
+        rng: createRng(seed),
+      })
+      const result = useSkill(state, 'char-1', 'enemy-1', 'slash', [])
+      const missLog = result.log.find(e => e.kind === 'miss')
+      if (missLog) {
+        missFound = true
+        // 미스 시 적 HP가 변하지 않아야 함
+        expect(result.enemies[0].stats.hp).toBe(enemy.stats.hp)
+        break
+      }
+    }
+    expect(missFound).toBe(true)
+  })
+
+  it('useSkill에서 크리티컬 시 crit 로그가 생성된다', () => {
+    let critFound = false
+    for (let seed = 0; seed < 200; seed++) {
+      const state = makeBattleState({ rng: createRng(seed) })
+      const result = useSkill(state, 'char-1', 'enemy-1', 'slash', [])
+      const critLog = result.log.find(e => e.kind === 'crit')
+      if (critLog) {
+        critFound = true
+        break
+      }
+    }
+    expect(critFound).toBe(true)
   })
 })

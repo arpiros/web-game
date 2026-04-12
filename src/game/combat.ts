@@ -17,6 +17,8 @@ import type {
   EntityId,
   ItemDef,
 } from './types'
+import { roll } from './rng'
+import type { RngState } from './rng'
 import { getSkillById } from './data/skills'
 
 // ---------------------------------------------------------------------------
@@ -90,6 +92,32 @@ export function calcDamage(params: DamageParams): number {
   const defFactor = 100 / (100 + Math.max(0, defense))
   const damage = Math.round(rawAttack * elementMult * defFactor)
   return Math.max(1, damage)
+}
+
+// ---------------------------------------------------------------------------
+// Critical / Miss Roll
+// ---------------------------------------------------------------------------
+
+interface CombatRollResult {
+  isCrit: boolean
+  isMiss: boolean
+  nextRng: RngState
+}
+
+/**
+ * 공격자 speed와 방어자 defense 기반으로 크리티컬/미스를 결정한다.
+ * critChance  = min(25, 10 + (speed / 500) * 15) %
+ * missChance  = min(15,  5 + (defense / 1000) * 10) %
+ */
+export function rollCombat(rng: RngState, attackerSpeed: number, defenderDefense: number): CombatRollResult {
+  const critChance = Math.min(25, 10 + (attackerSpeed / 500) * 15)
+  const missChance = Math.min(15, 5 + (defenderDefense / 1000) * 10)
+
+  const [isMiss, rng1] = roll(rng, missChance)
+  if (isMiss) return { isCrit: false, isMiss: true, nextRng: rng1 }
+
+  const [isCrit, rng2] = roll(rng1, critChance)
+  return { isCrit, isMiss: false, nextRng: rng2 }
 }
 
 // ---------------------------------------------------------------------------
@@ -298,6 +326,7 @@ interface ApplyEffectContext {
   actorId: EntityId
   targetId: EntityId
   actorAttack: number
+  actorSpeed: number
   actorElement: Element
   targetElement: Element
   items: readonly ItemDef[]
@@ -308,7 +337,7 @@ function applySkillEffect(
   effect: SkillEffect,
   ctx: ApplyEffectContext,
 ): { state: BattleState; newLogs: BattleLogEntry[]; totalDamage: number } {
-  const { actorId, targetId, actorAttack, targetElement, items } = ctx
+  const { actorId, targetId, actorAttack, actorSpeed, targetElement, items } = ctx
   const newLogs: BattleLogEntry[] = []
   let totalDamage = 0
 
@@ -322,8 +351,17 @@ function applySkillEffect(
       const target = findEnemy(state, targetId) ?? findCharacter(state, targetId)
       if (!target?.isAlive) break
 
+      // 크리티컬/미스 판정
+      const combatRoll = rollCombat(state.rng, actorSpeed, target.stats.defense)
+      let currentState = { ...state, rng: combatRoll.nextRng }
+
+      if (combatRoll.isMiss) {
+        newLogs.push(log('miss', `${target.name}에게 빗나감!`, { sourceId: actorId, targetId }))
+        return { state: currentState, newLogs, totalDamage }
+      }
+
       const itemMult = getItemElementMultiplier(items, effect.element)
-      const dmg = calcDamage({
+      let baseDmg = calcDamage({
         attack: actorAttack,
         defense: target.stats.defense,
         multiplier: effect.multiplier,
@@ -332,25 +370,33 @@ function applySkillEffect(
         itemElementMultiplier: itemMult,
         powerupBonus,
       })
+      const isCrit = combatRoll.isCrit
+      if (isCrit) baseDmg = Math.round(baseDmg * 1.5)
 
-      const isEnemy = !!findEnemy(state, targetId)
+      const isEnemy = !!findEnemy(currentState, targetId)
       let nextState: BattleState
       let actualDmg: number
 
       if (isEnemy) {
-        const res = applyDamageToEnemy(state, targetId, dmg)
+        const res = applyDamageToEnemy(currentState, targetId, baseDmg)
         nextState = res.state
         actualDmg = res.actualDamage
       } else {
-        const res = applyDamageToCharacter(state, targetId, dmg)
+        const res = applyDamageToCharacter(currentState, targetId, baseDmg)
         nextState = res.state
         actualDmg = res.actualDamage
       }
 
       totalDamage += isEnemy ? actualDmg : 0
-      newLogs.push(log('damage', `${target.name}에게 ${actualDmg} 피해!`, {
-        value: actualDmg, sourceId: actorId, targetId,
-      }))
+      if (isCrit) {
+        newLogs.push(log('crit', `크리티컬! ${target.name}에게 ${actualDmg} 피해!`, {
+          value: actualDmg, sourceId: actorId, targetId,
+        }))
+      } else {
+        newLogs.push(log('damage', `${target.name}에게 ${actualDmg} 피해!`, {
+          value: actualDmg, sourceId: actorId, targetId,
+        }))
+      }
 
       const deadTarget = isEnemy
         ? nextState.enemies.find(e => e.id === targetId)
@@ -366,7 +412,6 @@ function applySkillEffect(
               stats: { ...c.stats, mp: newMp },
             }))
             newLogs.push(log('system', '적 처치! MP +5', { sourceId: actorId }))
-            // heal_on_kill 아이템 처리
             for (const item of items) {
               for (const eff of item.effects) {
                 if (eff.type === 'heal_on_kill') {
@@ -387,8 +432,17 @@ function applySkillEffect(
       const targets = current.enemies.filter(e => e.isAlive)
 
       for (const enemy of targets) {
+        // 크리티컬/미스 판정
+        const combatRoll = rollCombat(current.rng, actorSpeed, enemy.stats.defense)
+        current = { ...current, rng: combatRoll.nextRng }
+
+        if (combatRoll.isMiss) {
+          newLogs.push(log('miss', `${enemy.name}에게 빗나감!`, { sourceId: actorId, targetId: enemy.id }))
+          continue
+        }
+
         const itemMult = getItemElementMultiplier(items, effect.element)
-        const dmg = calcDamage({
+        let baseDmg = calcDamage({
           attack: actorAttack,
           defense: enemy.stats.defense,
           multiplier: effect.multiplier,
@@ -397,12 +451,23 @@ function applySkillEffect(
           itemElementMultiplier: itemMult,
           powerupBonus,
         })
-        const res = applyDamageToEnemy(current, enemy.id, dmg)
+        const isCrit = combatRoll.isCrit
+        if (isCrit) baseDmg = Math.round(baseDmg * 1.5)
+
+        const res = applyDamageToEnemy(current, enemy.id, baseDmg)
         current = res.state
         totalDamage += res.actualDamage
-        newLogs.push(log('damage', `${enemy.name}에게 ${res.actualDamage} 피해!`, {
-          value: res.actualDamage, sourceId: actorId, targetId: enemy.id,
-        }))
+
+        if (isCrit) {
+          newLogs.push(log('crit', `크리티컬! ${enemy.name}에게 ${res.actualDamage} 피해!`, {
+            value: res.actualDamage, sourceId: actorId, targetId: enemy.id,
+          }))
+        } else {
+          newLogs.push(log('damage', `${enemy.name}에게 ${res.actualDamage} 피해!`, {
+            value: res.actualDamage, sourceId: actorId, targetId: enemy.id,
+          }))
+        }
+
         const updatedEnemy = current.enemies.find(e => e.id === enemy.id)
         if (!updatedEnemy?.isAlive) {
           newLogs.push(log('death', `${enemy.name}이(가) 쓰러졌다!`, { targetId: enemy.id }))
@@ -414,7 +479,6 @@ function applySkillEffect(
               stats: { ...c.stats, mp: newMp },
             }))
             newLogs.push(log('system', '적 처치! MP +5', { sourceId: actorId }))
-            // heal_on_kill 아이템 처리
             for (const item of items) {
               for (const eff of item.effects) {
                 if (eff.type === 'heal_on_kill') {
@@ -582,6 +646,7 @@ export function useSkill(
       actorId,
       targetId,
       actorAttack: actor.stats.attack,
+      actorSpeed: actor.stats.speed,
       actorElement: actor.element,
       targetElement,
       items,
@@ -636,11 +701,23 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
         const target = selectPartyTarget(alivePary, action.targetMode)
         if (!target) break
 
+        // 크리티컬/미스 판정 (적 공격)
+        const combatRoll = rollCombat(current.rng, enemy.stats.speed, target.stats.defense)
+        current = { ...current, rng: combatRoll.nextRng }
+
+        if (combatRoll.isMiss) {
+          current = {
+            ...current,
+            log: [...current.log, log('miss', `${enemy.name}의 공격이 빗나갔다!`, { sourceId: enemy.id, targetId: target.id })],
+          }
+          break
+        }
+
         const powerupBonus = getStatusBonus(enemy.statusEffects, 'powerup')
         const defdownBonus = getStatusBonus(target.statusEffects, 'defdown')
         const effectiveDef = Math.max(0, target.stats.defense - defdownBonus)
 
-        const dmg = calcDamage({
+        let dmg = calcDamage({
           attack: enemy.stats.attack,
           defense: effectiveDef,
           multiplier: action.multiplier,
@@ -649,17 +726,17 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
           itemElementMultiplier: 1,
           powerupBonus,
         })
+        if (combatRoll.isCrit) dmg = Math.round(dmg * 1.5)
 
         const res = applyDamageToCharacter(current, target.id, dmg)
-        current = {
-          ...res.state,
-          log: [
-            ...res.state.log,
-            log('damage', `${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
+        const dmgLog = combatRoll.isCrit
+          ? log('crit', `크리티컬! ${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
               value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
-            }),
-          ],
-        }
+            })
+          : log('damage', `${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
+              value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
+            })
+        current = { ...res.state, log: [...res.state.log, dmgLog] }
         if (!current.party.find(c => c.id === target.id)?.isAlive) {
           current = {
             ...current,
@@ -671,8 +748,19 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
 
       case 'attack_all': {
         for (const member of alivePary) {
+          const combatRoll = rollCombat(current.rng, enemy.stats.speed, member.stats.defense)
+          current = { ...current, rng: combatRoll.nextRng }
+
+          if (combatRoll.isMiss) {
+            current = {
+              ...current,
+              log: [...current.log, log('miss', `${enemy.name}의 공격이 빗나갔다!`, { sourceId: enemy.id, targetId: member.id })],
+            }
+            continue
+          }
+
           const powerupBonus = getStatusBonus(enemy.statusEffects, 'powerup')
-          const dmg = calcDamage({
+          let dmg = calcDamage({
             attack: enemy.stats.attack,
             defense: member.stats.defense,
             multiplier: action.multiplier,
@@ -681,16 +769,17 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
             itemElementMultiplier: 1,
             powerupBonus,
           })
+          if (combatRoll.isCrit) dmg = Math.round(dmg * 1.5)
+
           const res = applyDamageToCharacter(current, member.id, dmg)
-          current = {
-            ...res.state,
-            log: [
-              ...res.state.log,
-              log('damage', `${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
+          const dmgLog = combatRoll.isCrit
+            ? log('crit', `크리티컬! ${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
                 value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
-              }),
-            ],
-          }
+              })
+            : log('damage', `${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
+                value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
+              })
+          current = { ...res.state, log: [...res.state.log, dmgLog] }
         }
         break
       }
@@ -787,7 +876,16 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
         const aliveEnemies = current.enemies.filter(e => e.isAlive)
         if (aliveEnemies.length === 0) break
         const target = [...aliveEnemies].sort((a, b) => a.stats.hp - b.stats.hp)[0]
-        const dmg = calcDamage({
+        const { isCrit, isMiss, nextRng } = rollCombat(current.rng, ally.stats.speed, target.stats.defense)
+        current = { ...current, rng: nextRng }
+        if (isMiss) {
+          current = {
+            ...current,
+            log: [...current.log, log('miss', `${ally.name}의 공격이 빗나갔다!`, { sourceId: ally.id, targetId: target.id })],
+          }
+          break
+        }
+        let allyDmg = calcDamage({
           attack: ally.stats.attack,
           defense: target.stats.defense,
           multiplier: action.multiplier,
@@ -796,12 +894,15 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
           itemElementMultiplier: 1,
           powerupBonus: 0,
         })
-        const res = applyDamageToEnemy(current, target.id, dmg)
+        if (isCrit) allyDmg = Math.round(allyDmg * 1.5)
+        const res = applyDamageToEnemy(current, target.id, allyDmg)
         current = {
           ...res.state,
-          log: [...res.state.log, log('damage', `${ally.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
-            value: res.actualDamage, sourceId: ally.id, targetId: target.id,
-          })],
+          log: [...res.state.log, log(isCrit ? 'crit' : 'damage',
+            isCrit
+              ? `${ally.name}이(가) 치명타! ${target.name}에게 ${res.actualDamage} 피해!`
+              : `${ally.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`,
+            { value: res.actualDamage, sourceId: ally.id, targetId: target.id })],
           totalDamageDealt: res.state.totalDamageDealt + res.actualDamage,
         }
         break

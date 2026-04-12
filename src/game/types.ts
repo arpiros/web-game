@@ -252,6 +252,7 @@ export interface BattleState {
   readonly selectedSkillId: EntityId | null
   readonly selectedTargetId: EntityId | null
   readonly items: readonly ItemDef[]
+  readonly rng: import('./rng').RngState
 }
 
 // ---------------------------------------------------------------------------
