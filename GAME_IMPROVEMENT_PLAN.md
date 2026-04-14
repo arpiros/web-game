@@ -1,6 +1,6 @@
 # 게임 개선 계획 (Game Improvement Plan)
 
-> 작성일: 2026-04-12  
+> 작성일: 2026-04-12 / 최종 정리: 2026-04-13  
 > 기준 버전: Dark Fantasy Roguelike v0.x  
 > 이 문서는 게임의 재미 요소와 완성도를 높이기 위한 추가 개발 항목을 체계적으로 정리한다.
 
@@ -11,103 +11,59 @@
 | 영역 | 구현 완료 |
 |------|-----------|
 | 캐릭터 | 5종 (칠흑의 기사, 불꽃의 마법사, 빛의 성기사, 조류 무희, 광전사) |
-| 스킬 | 33종 (물리/화염/수/어둠/빛/유틸 계열) |
-| 적 | 10종 (early 3 / mid 4 / late 3) |
-| 동료 | 8종 |
-| 아이템 | 15종 |
-| 상태이상 | 10종 (poison, burn, freeze, stun, shield, regen, powerup, defdown, mana_regen, cc_immune) |
+| 스킬 | 42종 (물리/화염/수/어둠/빛/유틸 + 캐릭터 전용 10종 추가) |
+| 적 | 16종 (early 3+1 / mid 4+2 / late 3+2 / 보스 2) |
+| 동료 | 12종 (기본 8 + 신규 4) |
+| 아이템 | 27종 (기본 15 + 신규 12) |
+| 상태이상 | 12종 (poison, burn, freeze, stun, shield, regen, powerup, defdown, mana_regen, cc_immune, undying, miss_immune) |
 | 라운드 | 7라운드 (라운드 7 = 보스 dragon_lord) |
 | 드래프트 | 전투 후 3장 선택 (스킬/동료/아이템) |
-| MP 시스템 | 킬 보너스(+5) + mana_regen 상태이상 + mp_regen 아이템 |
+| MP 시스템 | 자동재생(+3/턴) + 턴 종료보너스(+8) + 킬보너스(+5) + mana_regen + mp_regen 아이템 |
+| 전투 피드백 | 크리티컬/미스 시스템 + 데미지 팝업 애니메이션 |
 
 ---
 
-## Phase 1 — 전투 피드백 & 조작감 개선 (Gameplay Feel)
+## ✅ 완료된 Phase
 
-> 우선순위: **최상**  
-> 목표: 전투를 더 역동적이고 직관적으로 만들기
+### Phase 1-1. 자동 MP 재생 + 턴 종료 MP 보너스 _(커밋: c59f55a)_
 
----
+- 패시브 MP 재생: 매 플레이어 턴 시작 시 +3 (`PASSIVE_MP_REGEN_PER_TURN`)
+- 턴 종료 보너스: "턴 종료" 클릭 시 +8 (`END_TURN_MP_BONUS`)
+- `regenPartyMp(state, amount, logMessage)` 헬퍼 함수 (생존 캐릭터 전체, maxMp 상한)
 
-### 1-1. 자동 MP 재생 + 턴 종료 MP 보너스 _[구현 대상]_
+### Phase 1-2. 크리티컬 / 미스 시스템 _(커밋: a218e75)_
 
-**현재**: MP 회복이 킬 보너스·상태이상·아이템에만 의존, 초반 고갈 시 플레이가 막힘  
-**개선**: 패시브 재생으로 기본 흐름 보장 + 턴 종료를 전략적 선택으로 의미 부여
+- 크리티컬 확률 = 10% + (speed / 500) * 15% (최대 25%), 배율 1.5x
+- 미스 확률 = 5% + (defense / 1000) * 10% (최대 15%), 피해 0
+- `rollCombat`, `DamageResult { damage, isCrit, isMiss }` 구현
+- 배틀 로그에 crit(금색) / miss(회색) 표시
 
-```
-자동 MP 재생 (매 플레이어 턴 시작):
-  살아있는 캐릭터 전원에게 +3 MP 회복 (maxMp 상한 적용)
-  배틀 로그: "마나가 자연 회복되었다. MP +3"
+### Phase 1-3. 데미지 팝업 (Floating Numbers) _(BattleScreen.tsx)_
 
-턴 종료 MP 보너스 (END_PLAYER_TURN 시):
-  살아있는 캐릭터 전원에게 +8 MP 추가 회복 (maxMp 상한 적용)
-  배틀 로그: "턴 종료 보너스! MP +8"
-```
+- `DamagePopup` 컴포넌트: 데미지(빨강), 크리티컬(주황+크게), 미스(회색), 회복(초록)
+- 1초 위로 이동 + 페이드아웃 애니메이션
 
-**기존 MP 회복 경로와 비교**
+### Phase 2-1. 신규 스킬 추가 (+10종)
 
-| 시점 | 소스 | 회복량 |
-|------|------|--------|
-| 적 처치 시 | 킬 보너스 | +5 (고정) |
-| 적 턴 종료 후 | mana_regen 상태이상 | 상태이상 수치 |
-| 적 턴 종료 후 | mp_regen 아이템 | 아이템 수치 |
-| **플레이어 턴 시작 (신규)** | **자동 MP 재생** | **+3** |
-| **턴 종료 버튼 (신규)** | **턴 종료 보너스** | **+8** |
+`void_blade`, `blood_pact`, `mana_burst`, `phoenix_rebirth`, `holy_aura`, `divine_judgment`, `tsunami_dance`, `current_step`, `bloodlust`, `death_charge` 모두 구현 완료
 
-**밸런스 설계 의도**
+### Phase 2-2. 신규 아이템 추가 (+12종)
 
-- 턴 종료만 반복하면 스킬 1회 비용(15~40 MP)에 훨씬 못 미치고, 그동안 적에게 일방적으로 맞으므로 전략적 트레이드오프가 자연스럽게 형성
-- 상수(`PASSIVE_MP_REGEN_PER_TURN`, `END_TURN_MP_BONUS`)로 분리하여 밸런스 조정 즉시 가능
+`vampire_ring`, `ancient_scroll`, `elemental_core`, `storm_cloak`, `cursed_necklace`, `revival_potion`, `magic_antidote`, `time_sand`, `heroes_crest`, `twin_wings` + 기존 강화 아이템 포함 총 27종
 
-**변경 파일**: `src/game/combat.ts`, `src/game/__tests__/combat.test.ts`, `src/screens/BattleScreen.tsx` (로그 스타일 확인)
+### Phase 2-3. 신규 적 추가 (+6종)
 
-- `regenPartyMp(state, amount, logMessage)` 헬퍼 함수 추가 (순수 함수)
-- `PROCESS_ENEMY_TURN` 완료 → `player_turn` 전환 시 자동 재생 적용
-- `END_PLAYER_TURN` 케이스에 턴 종료 보너스 적용
-- 단위 테스트: 자동 재생, 턴 종료 보너스, maxMp 상한, 사망 캐릭터 제외, 로그 기록
+`skeleton_archer`, `flame_phoenix`, `dark_vampire`, `frost_giant`, `poison_hydra`, `void_lord` 모두 구현 완료 (총 16종)
+
+### Phase 2-4. 신규 동료 추가 (+4종)
+
+`storm_mage`, `guardian_angel`, `poison_witch`, `battle_bard` 모두 구현 완료 (총 12종)
 
 ---
 
-### 1-2. 크리티컬 / 미스 시스템 _[구현 대상]_
+## Phase 1 — 전투 피드백 & 조작감 개선 (미완료 항목)
 
-**현재**: 모든 공격이 고정 데미지만 발생  
-**개선**: 속도(speed) 기반 크리티컬과 방어력 기반 미스 도입
-
-```
-크리티컬 확률 = 10% + (speed / 500) * 15%  → 최대 25%
-크리티컬 배율 = 1.5x
-미스 확률     = 5% + (defense / 1000) * 10% → 최대 15%
-미스 시 피해  = 0 (로그: "빗나감!")
-```
-
-**변경 파일**: `src/game/combat.ts`, `src/screens/BattleScreen.tsx`
-
-- `DamageResult` 타입 추가: `{damage, isCrit, isMiss}`
-- `calcDamage` 반환형 변경 → 5개 호출부 모두 수정
-- 배틀 로그에 `'crit'` (금색), `'miss'` (회색) 엔트리 추가
-- 스킬 툴팁 미리보기에는 `forPreview: true` 플래그로 랜덤 제외
-
----
-
-### 1-3. 데미지 팝업 (Floating Numbers)
-
-**현재**: 피해/회복 수치가 배틀 로그에만 표시  
-**개선**: 피해/회복 발생 시 해당 위치에 떠오르는 숫자 애니메이션
-
-```
-- 데미지: 빨간색, 크리티컬: 주황+크기↑, 미스: 회색 "MISS"
-- 회복: 초록색, MP 회복: 파란색
-- 1초 동안 위로 이동하며 페이드아웃
-- 동시 다발적 팝업 지원 (all 공격 시)
-```
-
-**변경 파일**: `src/screens/BattleScreen.tsx`
-
-- `DamagePopup` 컴포넌트 추가 (BattleScreen 내부)
-- `popups: PopupEntry[]` 상태 관리 (`useRef` 기반 타이머)
-- `BattleState.log` 구독 → 새 로그 엔트리 시 팝업 생성
-
----
+> 우선순위: **높음**
 
 ### 1-4. 원소 시너지 시스템 (Elemental Synergy)
 
@@ -150,87 +106,11 @@
 
 **변경 파일**: `src/state/runStore.ts`, `src/screens/BattleScreen.tsx`
 
-- `battleSpeed: 1 | 1.5 | 2` 상태 추가
-- 적 턴 / 상태이상 틱 딜레이에 속도 반영
-
----
-
-## Phase 2 — 콘텐츠 확장 (Content Expansion)
-
-> 우선순위: **높음**  
-> 목표: 매 플레이가 다르게 느껴지도록 풀 확장
-
----
-
-### 2-1. 신규 스킬 추가 (각 캐릭터 전용 스킬)
-
-현재 33종에서 **+20종** 목표.
-
-| 캐릭터 | 추가 전용 스킬 |
-|--------|---------------|
-| 칠흑의 기사 | `void_blade` (어둠+물리 혼합 데미지), `blood_pact` (HP 소모해 MP 충전) |
-| 불꽃의 마법사 | `mana_burst` (현재 MP를 소진해 폭발), `phoenix_rebirth` (1회 사망 시 부활) |
-| 빛의 성기사 | `holy_aura` (파티 전체 regen), `divine_judgment` (적 HP 30%이하 즉사) |
-| 조류 무희 | `tsunami_dance` (빙결+물 데미지 연계), `current_step` (아군 속도 버프) |
-| 광전사 | `bloodlust` (킬 시 공격력 영구 +10 스택), `death_charge` (HP% 비례 데미지) |
-
-**변경 파일**: `src/game/data/skills.ts`
-
----
-
-### 2-2. 신규 아이템 추가 (+10종)
-
-| 아이템 | 효과 |
-|--------|------|
-| 흡혈 반지 | 물리 공격 시 데미지의 10% 흡혈 |
-| 고대의 두루마리 | 스킬 사용 시 5% 확률로 MP 소모 없음 |
-| 원소의 핵 | 캐릭터와 같은 원소 스킬 데미지 +20% |
-| 폭풍의 망토 | 속도 +40, 크리티컬 확률 +5% |
-| 저주의 목걸이 | 공격력 +80, 매 턴 HP -15 (위험과 보상 트레이드오프) |
-| 불사의 묘약 | 처음 치사 데미지를 받을 때 HP 1로 생존 (1회 발동) |
-| 마법 해독제 | 독/화상/동결 면역 |
-| 시간의 모래 | 매 전투 시작 시 스킬 쿨다운 전체 리셋 |
-| 용사의 문장 | 보스 상대 시 모든 피해 +25% |
-| 쌍둥이 날개 | 미스 확률 0%, 크리티컬 확률 +10% |
-
-**변경 파일**: `src/game/data/items.ts`
-
----
-
-### 2-3. 신규 적 추가 (+6종)
-
-| 적 | 특징 | 등장 구간 |
-|----|------|-----------|
-| 스켈레톤 궁수 | 물리 원거리 연속 2타 | early |
-| 불꽃 피닉스 | 처치 시 1회 부활 (HP 30%) | mid |
-| 어둠 흡혈귀 | 공격할 때마다 HP 흡혈 | mid |
-| 서리 거인 | 파티 전체 빙결 패턴 | late |
-| 독 하이드라 | 3개의 머리 → 각각 타겟 / HP 공유 | late |
-| 공허 군주 | 최종 보스급, 8라운드 추가 시 사용 | 보스 |
-
-**변경 파일**: `src/game/data/enemies.ts`
-
----
-
-### 2-4. 신규 동료 추가 (+4종)
-
-| 동료 | 행동 | 희귀도 |
-|------|------|--------|
-| 폭풍 마법사 | 매 턴 번개(새 원소) 피해 | epic |
-| 빛의 수호천사 | 사망한 아군 부활 (쿨다운 5턴) | legendary |
-| 독 마녀 | 매 턴 전체 적에게 독 부여 | rare |
-| 전투 음유시인 | 매 턴 파티 공격력 버프 (스택) | rare |
-
-**변경 파일**: `src/game/data/allies.ts`
-
 ---
 
 ## Phase 3 — 게임플레이 구조 확장 (Gameplay Structure)
 
-> 우선순위: **중간**  
-> 목표: 단순한 전투 반복에서 벗어나 선택의 폭 넓히기
-
----
+> 우선순위: **중간**
 
 ### 3-1. 이벤트 시스템 (Random Events)
 
@@ -252,8 +132,6 @@
 
 ### 3-2. 엘리트 전투 시스템 (Elite Encounters)
 
-라운드 3~6 중 일부를 강화 적이 등장하는 엘리트 전투로 지정.
-
 ```
 엘리트 조건:
   - 일반 적 1마리 + HP/공격력 1.5x 강화
@@ -266,8 +144,6 @@
 ---
 
 ### 3-3. 보스 다단계 패턴 (Boss Phases)
-
-현재 dragon_lord는 단일 패턴 순환. 다단계 전환 도입.
 
 ```
 dragon_lord 페이즈:
@@ -282,8 +158,6 @@ dragon_lord 페이즈:
 
 ### 3-4. HP 회복 선택지 추가
 
-현재는 전투 중 딜레이만 있고 라운드 간 회복 없음.
-
 ```
 옵션 A: [드래프트 대신 회복]  드래프트를 포기하고 HP 최대치의 30% 회복 선택 가능
 옵션 B: [안식의 불꽃]         이벤트 중 하나로 회복 샘 추가 (Phase 3-1과 연계)
@@ -294,14 +168,9 @@ dragon_lord 페이즈:
 
 ## Phase 4 — 메타 진행 시스템 (Meta Progression)
 
-> 우선순위: **중간**  
-> 목표: 반복 플레이의 동기 부여
-
----
+> 우선순위: **중간**
 
 ### 4-1. 런 스코어 & 통계
-
-전투 종료 시 ResultScreen에 상세 통계 표시.
 
 ```
 통계 항목:
@@ -320,8 +189,6 @@ dragon_lord 페이즈:
 
 ### 4-2. 업적 시스템 (Achievements)
 
-localStorage에 저장되는 통계 기반 업적.
-
 ```
 업적 예시:
   [불사신]       HP 100 이하로 생존하며 전투 클리어
@@ -338,8 +205,6 @@ localStorage에 저장되는 통계 기반 업적.
 
 ### 4-3. 도전 모드 (Challenge Mode)
 
-기본 모드 클리어 후 해금되는 고난이도 모드.
-
 ```
 도전 조건 예시:
   [이단자 모드]   아이템 드래프트 없음
@@ -351,8 +216,6 @@ localStorage에 저장되는 통계 기반 업적.
 ---
 
 ### 4-4. 캐릭터 잠금 해제
-
-기본 2캐릭터만 선택 가능, 나머지는 조건 달성 후 해금.
 
 ```
 해금 조건 예시:
@@ -367,10 +230,7 @@ localStorage에 저장되는 통계 기반 업적.
 
 ## Phase 5 — UI/UX 완성도 (Polish)
 
-> 우선순위: **중간~낮음**  
-> 목표: 완성도 있는 게임 경험 제공
-
----
+> 우선순위: **중간~낮음**
 
 ### 5-1. 설정 메뉴
 
@@ -388,8 +248,6 @@ localStorage에 저장되는 통계 기반 업적.
 ---
 
 ### 5-2. 인벤토리 / 파티 정보 패널
-
-현재는 전투 중에만 캐릭터 정보 확인 가능.
 
 ```
 추가할 정보:
@@ -449,8 +307,6 @@ Web Audio API 또는 Howler.js 사용.
 
 > 우선순위: **낮음** (아이디어 차원의 미래 기능)
 
----
-
 ### 6-1. 번개(Lightning) 원소 추가
 
 현재 5원소(physical, fire, water, dark, light)에 번개 추가.
@@ -474,9 +330,6 @@ Web Audio API 또는 Howler.js 사용.
   damage 스킬: 배율 +0.3
   heal 스킬: 배율 +0.5
   apply_status: 지속 +1턴
-
-강화 레벨 2 → 3 (Epic 이상만 가능):
-  특수 효과 추가 (예: 파이어볼 Lv3 = 화상 적에게 +50% 피해)
 ```
 
 ---
@@ -506,20 +359,14 @@ Web Audio API 또는 Howler.js 사용.
 
 ---
 
-## 개발 우선순위 요약
+## 개발 우선순위 요약 (미완료 항목)
 
 | 우선순위 | Phase | 예상 난이도 | 효과 |
 |----------|-------|------------|------|
-| ⭐⭐⭐ 최상 | **1-1: 자동 MP 재생 + 턴 종료 보너스** | **낮음** | **MP 흐름 안정화 + 전략성 ↑↑** |
-| ⭐⭐⭐ 최상 | 1-2: 크리티컬/미스 | 낮음 | 전투 다이나믹함 ↑↑ |
-| ⭐⭐⭐ 최상 | 1-3: 데미지 팝업 | 중간 | 시각적 피드백 ↑↑ |
-| ⭐⭐⭐ 최상 | 2-1: 신규 스킬 | 낮음 | 드래프트 다양성 ↑↑ |
-| ⭐⭐⭐ 최상 | 2-3: 신규 적 | 낮음 | 전투 다양성 ↑↑ |
 | ⭐⭐ 높음 | 1-4: 원소 시너지 | 중간 | 전략성 ↑↑ |
 | ⭐⭐ 높음 | 1-6: 전투 속도 | 낮음 | QoL ↑↑ |
 | ⭐⭐ 높음 | 3-1: 이벤트 시스템 | 높음 | 런 다양성 ↑↑ |
 | ⭐⭐ 높음 | 3-3: 보스 다단계 | 중간 | 보스전 긴장감 ↑ |
-| ⭐⭐ 높음 | 2-2: 신규 아이템 | 낮음 | 빌드 다양성 ↑ |
 | ⭐ 중간 | 4-1: 런 통계 | 낮음 | 만족감 ↑ |
 | ⭐ 중간 | 4-2: 업적 | 중간 | 장기 목표 ↑ |
 | ⭐ 중간 | 3-2: 엘리트 전투 | 중간 | 긴장감 ↑ |
@@ -529,22 +376,17 @@ Web Audio API 또는 Howler.js 사용.
 
 ---
 
-## 수정 대상 파일 전체 목록
+## 수정 대상 파일 (미완료 Phase)
 
 | 파일 | 관련 Phase |
 |------|-----------|
-| `src/game/types.ts` | 1-2, 3-1, 4-1 |
-| `src/game/combat.ts` | **1-1**, 1-2, 1-4, 3-3 |
+| `src/game/types.ts` | 3-1, 4-1 |
+| `src/game/combat.ts` | 1-4, 3-3 |
 | `src/game/run.ts` | 1-5, 3-1, 3-2 |
 | `src/game/rng.ts` | 1-5 |
-| `src/game/data/skills.ts` | 2-1 |
-| `src/game/data/items.ts` | 2-2 |
-| `src/game/data/enemies.ts` | 2-3, 3-3 |
-| `src/game/data/allies.ts` | 2-4 |
-| `src/game/__tests__/combat.test.ts` | **1-1**, 1-2 |
+| `src/game/data/enemies.ts` | 3-3 |
 | `src/state/runStore.ts` | 1-6, 4-4 |
-| `src/screens/BattleScreen.tsx` | **1-1**, 1-2, 1-3, 1-6 |
-| `src/screens/DraftScreen.tsx` | 5-2 |
+| `src/screens/BattleScreen.tsx` | 1-6 |
 | `src/screens/ResultScreen.tsx` | 4-1 |
 | `src/screens/CharacterSelectScreen.tsx` | 4-4 |
 | `src/App.tsx` | 3-1 |

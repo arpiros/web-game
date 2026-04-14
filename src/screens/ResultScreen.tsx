@@ -1,4 +1,6 @@
 import { useRunStore } from '../state/runStore'
+import { getSkillById } from '../game/data/skills'
+import { getItemById } from '../game/data/items'
 
 export function ResultScreen() {
   const run      = useRunStore(s => s.run)
@@ -12,6 +14,16 @@ export function ResultScreen() {
 
   const accentColor = isVictory ? 'var(--color-element-light)' : 'var(--color-hp-low)'
 
+  // 스킬 TOP 3
+  const top3Skills = Object.entries(run.skillUseCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([id, count]) => ({ name: getSkillById(id)?.name ?? id, count }))
+
+  // 획득 아이템 목록
+  const acquiredItems = run.acquiredItemIds
+    .map(id => getItemById(id)?.name ?? id)
+
   return (
     <div style={{
       display: 'flex',
@@ -20,7 +32,8 @@ export function ResultScreen() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: 'var(--space-8)',
-      gap: 'var(--space-8)',
+      gap: 'var(--space-6)',
+      overflowY: 'auto',
     }}>
       {/* 결과 헤더 */}
       <div style={{ textAlign: 'center' }}>
@@ -55,7 +68,7 @@ export function ResultScreen() {
         </p>
       </div>
 
-      {/* 통계 패널 */}
+      {/* 기본 통계 패널 */}
       <div style={{
         background: 'var(--color-bg-surface)',
         border: '1px solid var(--color-border-subtle)',
@@ -65,24 +78,103 @@ export function ResultScreen() {
         gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 'var(--space-6)',
         minWidth: '420px',
+        width: '100%',
+        maxWidth: '600px',
       }}>
         <StatBlock label="라운드" value={String(run.round)} accent={accentColor} />
         <StatBlock label="누적 피해" value={run.totalDamage.toLocaleString()} accent={accentColor} />
-        <StatBlock label="동료" value={`${allyCount}명`} accent={accentColor} />
-        <StatBlock label="아이템" value={`${itemCount}개`} accent={accentColor} />
-        <StatBlock
-          label="1라운드 평균"
-          value={run.round > 0
-            ? Math.round(run.totalDamage / run.round).toLocaleString()
-            : '0'}
-          accent={accentColor}
-        />
-        <StatBlock
-          label="클리어 등급"
-          value={clearRating(isVictory, run.totalDamage, run.round)}
-          accent={accentColor}
-        />
+        <StatBlock label="클리어 등급" value={clearRating(isVictory, run.totalDamage, run.round)} accent={accentColor} />
+        <StatBlock label="최고 단타" value={run.maxSingleDamage.toLocaleString()} accent={accentColor} />
+        <StatBlock label="크리티컬" value={`${run.critCount}회`} accent={accentColor} />
+        <StatBlock label="미스" value={`${run.missCount}회`} accent={accentColor} />
+        <StatBlock label="총 회복량" value={run.totalHealing.toLocaleString()} accent={accentColor} />
+        <StatBlock label="총 턴 수" value={`${run.totalTurns}턴`} accent={accentColor} />
+        <StatBlock label="동료 / 아이템" value={`${allyCount}명 / ${itemCount}개`} accent={accentColor} />
       </div>
+
+      {/* 스킬 사용 TOP 3 */}
+      {top3Skills.length > 0 && (
+        <div style={{
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border-subtle)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-4) var(--space-6)',
+          width: '100%',
+          maxWidth: '600px',
+        }}>
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: 'var(--space-3)',
+          }}>
+            스킬 사용 TOP {top3Skills.length}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {top3Skills.map((s, i) => (
+              <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <span style={{
+                    fontSize: 'var(--text-xs)',
+                    color: accentColor,
+                    fontFamily: 'var(--font-heading)',
+                    minWidth: '16px',
+                  }}>
+                    {i + 1}.
+                  </span>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)' }}>
+                    {s.name}
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--color-text-muted)',
+                  fontFamily: 'var(--font-heading)',
+                }}>
+                  {s.count}회
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 획득 아이템 */}
+      {acquiredItems.length > 0 && (
+        <div style={{
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border-subtle)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-4) var(--space-6)',
+          width: '100%',
+          maxWidth: '600px',
+        }}>
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: 'var(--space-3)',
+          }}>
+            획득한 아이템
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            {acquiredItems.map((name, i) => (
+              <span key={i} style={{
+                fontSize: 'var(--text-xs)',
+                padding: '2px 8px',
+                background: 'color-mix(in oklch, var(--color-text-muted) 12%, transparent)',
+                color: 'var(--color-text-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border-subtle)',
+              }}>
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 다시 시작 버튼 */}
       <button

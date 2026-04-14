@@ -1515,3 +1515,86 @@ describe('tickAllStatusEffects — 추가 효과', () => {
     expect(result.log.some(e => e.text.includes('저주'))).toBe(true)
   })
 })
+
+// ---------------------------------------------------------------------------
+// 보스 페이즈 시스템
+// ---------------------------------------------------------------------------
+
+describe('보스 페이즈 시스템', () => {
+  function makeBossEnemy(hpPercent: number): BattleEnemy {
+    const maxHp = 4000
+    const hp = Math.floor(maxHp * hpPercent)
+    return makeEnemy({
+      id: 'boss-1',
+      defId: 'dragon_lord',
+      name: '용군주',
+      stats: { maxHp, hp, attack: 300, defense: 150, speed: 70, maxMp: 0, mp: 0 },
+      element: 'fire',
+      isBoss: true,
+      bossCurrentPhase: 1,
+      bossPhases: {
+        phase2HpThreshold: 0.6,
+        phase3HpThreshold: 0.3,
+        phase2Actions: [
+          { type: 'attack_all', element: 'fire', multiplier: 2.0 },
+        ],
+        phase3Actions: [
+          { type: 'attack_all', element: 'fire', multiplier: 2.8 },
+        ],
+      },
+      actions: [
+        { type: 'attack_all', element: 'fire', multiplier: 1.5 },
+      ],
+    })
+  }
+
+  it('HP > 60%이면 페이즈 1 액션을 사용한다', () => {
+    const boss = makeBossEnemy(0.8)  // 80% HP
+    const state = makeBattleState({ enemies: [boss], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    // 페이즈 전환 로그가 없어야 한다
+    expect(result.log.some(e => e.text.includes('페이즈'))).toBe(false)
+    // 보스의 bossCurrentPhase가 1이어야 한다
+    expect(result.enemies[0].bossCurrentPhase).toBe(1)
+  })
+
+  it('HP가 60% 이하로 떨어지면 페이즈 2로 전환된다', () => {
+    const boss = makeBossEnemy(0.55)  // 55% HP
+    const state = makeBattleState({ enemies: [boss], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    expect(result.enemies[0].bossCurrentPhase).toBe(2)
+    expect(result.log.some(e => e.text.includes('페이즈 2'))).toBe(true)
+  })
+
+  it('HP가 30% 이하로 떨어지면 페이즈 3으로 전환된다', () => {
+    const boss = makeBossEnemy(0.25)  // 25% HP
+    const state = makeBattleState({ enemies: [boss], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    expect(result.enemies[0].bossCurrentPhase).toBe(3)
+    expect(result.log.some(e => e.text.includes('페이즈 3'))).toBe(true)
+  })
+
+  it('페이즈 2 전환 후 actionIndex가 리셋되고 페이즈 2 액션을 순환한다', () => {
+    const boss = { ...makeBossEnemy(0.55), actionIndex: 3 }
+    const state = makeBattleState({ enemies: [boss], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    // phase2Actions는 1개이므로 (0+1)%1 = 0
+    expect(result.enemies[0].bossCurrentPhase).toBe(2)
+    expect(result.enemies[0].actionIndex).toBe(0)
+  })
+
+  it('페이즈가 없는 일반 적은 기존 actions를 순환한다', () => {
+    const enemy = makeEnemy({
+      actions: [
+        { type: 'attack', element: 'physical', multiplier: 1.0, targetMode: 'random' },
+        { type: 'attack', element: 'physical', multiplier: 1.5, targetMode: 'random' },
+      ],
+      actionIndex: 1,
+    })
+    const state = makeBattleState({ enemies: [enemy], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    // actionIndex 1에서 시작해 actions[1] 사용, 이후 (1+1)%2 = 0
+    expect(result.enemies[0].actionIndex).toBe(0)
+    expect(result.enemies[0].bossCurrentPhase).toBeUndefined()
+  })
+})

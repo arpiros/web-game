@@ -116,7 +116,7 @@ export const ENEMIES: readonly EnemyDef[] = [
   {
     id: 'dragon_lord',
     name: '용군주',
-    description: '최강의 존재. 화염과 물리 공격을 번갈아 사용한다.',
+    description: '최강의 존재. HP에 따라 더욱 강력해지는 3단계 형태 변환을 한다.',
     element: 'fire',
     baseStats: { maxHp: 4000, attack: 300, defense: 150, speed: 70 },
     actions: [
@@ -126,7 +126,24 @@ export const ENEMIES: readonly EnemyDef[] = [
       { type: 'buff_self', status: 'powerup', duration: 3, value: 80 },
       { type: 'heal_self', multiplier: 0.6 },
     ],
-    lore: '세계를 불태운다는 전설의 용.',
+    bossPhases: {
+      phase2HpThreshold: 0.6,
+      phase3HpThreshold: 0.3,
+      phase2Actions: [
+        { type: 'attack_all', element: 'fire', multiplier: 2.0 },
+        { type: 'attack', element: 'physical', multiplier: 3.0, targetMode: 'highest_attack' },
+        { type: 'apply_status', status: 'burn', duration: 4, value: 35, targetMode: 'all' },
+        { type: 'buff_self', status: 'powerup', duration: 2, value: 100 },
+      ],
+      phase3Actions: [
+        { type: 'attack_all', element: 'fire', multiplier: 2.8 },
+        { type: 'apply_status', status: 'burn', duration: 5, value: 50, targetMode: 'all' },
+        { type: 'attack', element: 'physical', multiplier: 4.0, targetMode: 'lowest_hp' },
+        { type: 'attack_all', element: 'fire', multiplier: 2.5 },
+        { type: 'buff_self', status: 'powerup', duration: 3, value: 120 },
+      ],
+    },
+    lore: '세계를 불태운다는 전설의 용. 상처를 입을수록 더욱 광폭해진다.',
     isBoss: true,
   },
   {

@@ -25,6 +25,8 @@ export interface RunStore {
   run: RunState | null
   /** 현재 RNG 상태 (결정론적 재현을 위해 보관) */
   rng: RngState
+  /** 전투 속도 배율 */
+  battleSpeed: 1 | 1.5 | 2
 
   // -------------------------------------------------------------------------
   // Actions
@@ -50,6 +52,9 @@ export interface RunStore {
 
   /** 런 초기화 (타이틀로 돌아가기) */
   resetRun: () => void
+
+  /** 전투 속도 변경 */
+  setBattleSpeed: (speed: 1 | 1.5 | 2) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +64,7 @@ export interface RunStore {
 export const useRunStore = create<RunStore>((set, get) => ({
   run: null,
   rng: createRng(Date.now()),
+  battleSpeed: 1,
 
   startRun: (characterDefId) => {
     const seed = Date.now()
@@ -123,5 +129,9 @@ export const useRunStore = create<RunStore>((set, get) => ({
       run: null,
       rng: createRng(Date.now()),
     })
+  },
+
+  setBattleSpeed: (speed) => {
+    set({ battleSpeed: speed })
   },
 }))

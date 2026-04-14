@@ -117,6 +117,8 @@ interface Props {
 export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   const run            = useRunStore(s => s.run)
   const dispatchBattle = useRunStore(s => s.dispatchBattle)
+  const battleSpeed    = useRunStore(s => s.battleSpeed)
+  const setBattleSpeed = useRunStore(s => s.setBattleSpeed)
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [popups, setPopups] = useState<PopupEntry[]>([])
   const prevLogLen = useRef<number | null>(null)
@@ -184,20 +186,20 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   useEffect(() => {
     if (!bs) return
     if (bs.phase === 'enemy_turn') {
-      const t = setTimeout(() => dispatchBattle({ type: 'PROCESS_ENEMY_TURN' }), 600)
+      const t = setTimeout(() => dispatchBattle({ type: 'PROCESS_ENEMY_TURN' }), Math.round(600 / battleSpeed))
       return () => clearTimeout(t)
     }
     if (bs.phase === 'victory') {
-      const t = setTimeout(onBattleVictory, 1200)
+      const t = setTimeout(onBattleVictory, Math.round(1200 / battleSpeed))
       return () => clearTimeout(t)
     }
     if (bs.phase === 'defeat') {
-      const t = setTimeout(onBattleDefeat, 1200)
+      const t = setTimeout(onBattleDefeat, Math.round(1200 / battleSpeed))
       return () => clearTimeout(t)
     }
   // onBattleVictory/onBattleDefeat 참조가 변해도 phase 기준으로만 재실행
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bs?.phase])
+  }, [bs?.phase, battleSpeed])
 
   if (!run || !bs) return null
 
@@ -254,6 +256,8 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
           턴 {bs.turnCount + 1}
         </span>
         <span style={{ flex: 1 }} />
+        <SpeedControl speed={battleSpeed} onSetSpeed={setBattleSpeed} />
+        <span style={{ color: 'var(--color-border-default)', fontSize: 'var(--text-xs)' }}>│</span>
         <PhaseLabel phase={bs.phase} />
       </div>
 
@@ -348,6 +352,42 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
 }
 
 // ---------------------------------------------------------------------------
+// SpeedControl
+// ---------------------------------------------------------------------------
+
+function SpeedControl({ speed, onSetSpeed }: {
+  speed: 1 | 1.5 | 2
+  onSetSpeed: (s: 1 | 1.5 | 2) => void
+}) {
+  const speeds: Array<1 | 1.5 | 2> = [1, 1.5, 2]
+  return (
+    <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+      {speeds.map(s => (
+        <button
+          key={s}
+          onClick={() => onSetSpeed(s)}
+          style={{
+            padding: '2px 6px',
+            fontSize: '0.6rem',
+            fontWeight: s === speed ? 'var(--weight-bold)' : 'var(--weight-normal)',
+            background: s === speed
+              ? 'color-mix(in oklch, var(--color-accent) 25%, transparent)'
+              : 'transparent',
+            color: s === speed ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            border: `1px solid ${s === speed ? 'var(--color-accent)' : 'var(--color-border-subtle)'}`,
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            lineHeight: 1,
+          }}
+        >
+          {s}x
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // PhaseLabel
 // ---------------------------------------------------------------------------
 
@@ -406,6 +446,27 @@ function EnemyCard({ enemy, isTargetable, onClick }: {
         transform: isTargetable ? 'translateY(-4px) scale(1.02)' : 'none',
       }}
     >
+      {/* Boss phase badge */}
+      {enemy.isBoss && enemy.bossCurrentPhase !== undefined && (
+        <div style={{
+          fontSize: '0.55rem', fontWeight: 'var(--weight-bold)', textAlign: 'center',
+          padding: '2px 6px', borderRadius: 'var(--radius-sm)',
+          background: enemy.bossCurrentPhase === 3
+            ? 'oklch(40% 0.25 20)'
+            : enemy.bossCurrentPhase === 2
+            ? 'oklch(35% 0.2 45)'
+            : 'oklch(20% 0.1 270)',
+          color: enemy.bossCurrentPhase === 3
+            ? 'oklch(90% 0.15 20)'
+            : enemy.bossCurrentPhase === 2
+            ? 'oklch(90% 0.12 45)'
+            : 'var(--color-text-muted)',
+          letterSpacing: '0.05em',
+        }}>
+          {enemy.bossCurrentPhase === 3 ? '★ 페이즈 3 — 최종 형태' : enemy.bossCurrentPhase === 2 ? '▲ 페이즈 2 — 분노' : '페이즈 1'}
+        </div>
+      )}
+
       {/* Element + name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
         <span style={{ fontSize: '0.6rem', color: elColor, fontWeight: 'var(--weight-bold)' }}>

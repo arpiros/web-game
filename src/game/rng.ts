@@ -90,3 +90,42 @@ export function roll(rng: RngState, chance: number): [value: boolean, next: RngS
   const [f, next] = nextFloat(rng)
   return [f * 100 < chance, next]
 }
+
+/**
+ * 가중치 배열을 기반으로 n개의 중복 없는 요소 반환 + 새 RNG 상태
+ * weights[i] >= 1, 가중치가 높을수록 선택 확률 증가
+ */
+export function pickNWeighted<T>(
+  rng: RngState,
+  items: readonly T[],
+  weights: readonly number[],
+  n: number,
+): [values: T[], next: RngState] {
+  if (n >= items.length) {
+    return [[...items], rng]
+  }
+
+  const pool = items.map((item, i) => ({ item, weight: weights[i] ?? 1 }))
+  const result: T[] = []
+  let current = rng
+
+  for (let pick = 0; pick < n; pick++) {
+    const totalWeight = pool.reduce((sum, e) => sum + e.weight, 0)
+    const [f, next] = nextFloat(current)
+    current = next
+
+    let threshold = f * totalWeight
+    let selected = 0
+    for (let i = 0; i < pool.length; i++) {
+      threshold -= pool[i].weight
+      if (threshold <= 0) {
+        selected = i
+        break
+      }
+    }
+    result.push(pool[selected].item)
+    pool.splice(selected, 1)
+  }
+
+  return [result, current]
+}

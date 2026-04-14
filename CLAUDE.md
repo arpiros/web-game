@@ -38,7 +38,7 @@ src/styles/      ← CSS 디자인 토큰 (OKLCH 기반)
 - **`types.ts`** — 전체 도메인 타입 정의. `RunState`, `BattleState`, `BattleAction`, `SkillEffect`, `AllyAction`, `ItemEffect` 등 모든 타입의 단일 진실 공급원
 - **`combat.ts`** — `battleReducer(state, action) → state` 패턴의 순수 함수. 스킬 사용, 적 턴, 상태이상 틱 처리. `calcDamage`, `rollCombat`, `getItemElementMultiplier`, `getStatusBonus` export
 - **`run.ts`** — 런 생명주기 순수 함수: `createRun`, `startBattle`, `completeBattle`, `applyDraftChoice`, `handleDefeat`
-- **`rng.ts`** — 시드 기반 결정론적 RNG (`RngState` 불변 값 타입). `roll(rng, chancePercent)`, `pickN(rng, pool, n)`
+- **`rng.ts`** — 시드 기반 결정론적 RNG (`RngState` 불변 값 타입). `roll`, `pickN`, `pickNWeighted`, `shuffle`
 - **`data/`** — 정적 데이터 정의 (skills, characters, allies, items, enemies)
 
 ### State Machine (런 흐름)
@@ -69,6 +69,7 @@ run.phase = 'result'
 
 - `run: RunState | null` — null이면 타이틀 화면
 - `rng: RngState` — 결정론적 재현을 위해 스토어에 보관
+- `battleSpeed: 1 | 1.5 | 2` — 전투 애니메이션 속도 배율 (`setBattleSpeed`로 변경)
 - 전투 액션은 모두 `dispatchBattle(action: BattleAction)`으로 처리
 - 조건부 렌더링 분기 내에서는 `useRunStore.getState()`로 콜백 추출 (React Hook Rules 준수)
 
@@ -84,6 +85,24 @@ run.phase = 'result'
 - **상태이상 `apply_status`**: `targetMode: 'random'`인 경우 플레이어를 타겟으로 삼을 수 있음 (의도된 설계)
 - **드래프트**: 전투 승리 후 스킬/동료/아이템 중 3장 제시. 동료는 최대 4명
 - **데미지 공식**: `rawAttack * elementMult * (100 / (100 + defense))`, 최소 1
+
+### apply_status 타겟 규칙 (중요)
+
+`DEBUFF_STATUSES = ['poison', 'burn', 'freeze', 'stun', 'defdown']`
+
+`apply_status` 스킬 효과는 이 목록 기반으로 타겟을 결정한다:
+- **디버프** (목록 내) → 선택된 적(`targetId`)에 적용
+- **버프** (목록 외, 예: `mana_regen`, `powerup`, `revive`, `regen`) → 시전자 자신(`actorId`)에 적용
+
+`BattleScreen`은 항상 적 ID를 `targetId`로 넘기므로, 버프/디버프 구분은 **`combat.ts`의 `DEBUFF_STATUSES`** 가 단독으로 처리한다.
+
+### 보스 페이즈 시스템 (`BossPhases`)
+
+`EnemyDef.bossPhases`가 정의된 적은 HP 비율에 따라 행동 패턴이 전환된다:
+- `phase2HpThreshold` 이하 → 페이즈 2 (액션 배열을 `phase2Actions`로 교체, `actionIndex` 리셋)
+- `phase3HpThreshold` 이하 → 페이즈 3 (최종 형태)
+
+페이즈 전환은 `processEnemyTurn` 내부에서 각 적의 행동 직전에 체크된다. `BattleEnemy.bossCurrentPhase`가 현재 페이즈(1/2/3)를 추적한다.
 
 ### MP 관리 시스템
 
@@ -107,13 +126,23 @@ MP 회복 경로는 5가지다:
 
 ### SkillEffect 종류
 
-`damage_hp_scale`: 시전자의 **현재 HP가 낮을수록** 배율이 높아짐 (`scaledMultiplier = base * (1 + missingHpRatio)`).
+모든 variant는 `types.ts`의 `SkillEffect` discriminated union으로 정의된다.
 
-`execute`: 대상 HP가 `threshold` 이하이면 즉사, 초과이면 공격력의 80% 피해.
-
-`apply_status_party`: 파티 전원에게 상태이상 부여.
-
-`charge`: 다음 공격의 배율을 적립해 두고, 다음 `damage`/`damage_all` 스킬 사용 시 배율에 합산.
+| type | 설명 |
+|------|------|
+| `damage` | 단일 대상 피해 |
+| `damage_all` | 전체 적 피해 |
+| `damage_hp_scale` | 시전자 HP가 낮을수록 배율 증가 (`scaledMultiplier = base * (1 + missingHpRatio)`) |
+| `heal` | attack 기반 HP 회복 |
+| `heal_mp` | MP 회복 |
+| `apply_status` | 상태이상 부여 (디버프→적, 버프→자신, 위 규칙 참조) |
+| `apply_status_party` | 파티 전원에게 상태이상 부여 |
+| `remove_status` | 상태이상 해제 |
+| `shield` | 피해 흡수 (flat 또는 attack 배율) |
+| `charge` | 다음 `damage`/`damage_all` 스킬에 배율 적립 |
+| `summon_ally` | 동료 소환 |
+| `spend_hp_gain_mp` | HP 일부 소모 → MP 획득 |
+| `execute` | 대상 HP가 `threshold` 이하이면 즉사, 초과이면 공격력 80% 피해 |
 
 ### AllyAction 종류
 
@@ -147,6 +176,13 @@ export function createBattleEnemy(enemyDefId, round, index): BattleEnemy
 export function startBattle(run, rng): [BattleState, RngState]
 export function completeBattle(run, battleState, rng): [RunState, RngState]
 export function applyDraftChoice(run, optionIndex): RunState
+export function handleDefeat(run, battleState): RunState
+
+// rng.ts exports
+export function roll(rng, chancePercent): [boolean, RngState]
+export function pickN(rng, pool, n): [T[], RngState]
+export function pickNWeighted(rng, items, weights, n): [T[], RngState]  // 가중치 드래프트에 사용
+export function shuffle(rng, items): [T[], RngState]
 ```
 
 ### 테스트 구조 (`src/game/__tests__/`)

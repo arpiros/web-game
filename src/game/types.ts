@@ -167,6 +167,13 @@ export type EnemyActionPattern =
   | { readonly type: 'heal_self'; readonly multiplier: number }
   | { readonly type: 'buff_self'; readonly status: StatusEffectKind; readonly duration: number; readonly value: number }
 
+export interface BossPhases {
+  readonly phase2HpThreshold: number  // HP 비율 (예: 0.6 = 60% 이하면 페이즈 2)
+  readonly phase3HpThreshold: number  // HP 비율 (예: 0.3 = 30% 이하면 페이즈 3)
+  readonly phase2Actions: readonly EnemyActionPattern[]
+  readonly phase3Actions: readonly EnemyActionPattern[]
+}
+
 export interface EnemyDef {
   readonly id: EntityId
   readonly name: string
@@ -176,6 +183,7 @@ export interface EnemyDef {
   readonly element: Element
   readonly lore: string
   readonly isBoss?: boolean
+  readonly bossPhases?: BossPhases
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +233,8 @@ export interface BattleEnemy {
   readonly isAlive: boolean
   readonly statusEffects: readonly StatusEffect[]
   readonly isBoss?: boolean
+  readonly bossPhases?: BossPhases
+  readonly bossCurrentPhase?: 1 | 2 | 3
 }
 
 // ---------------------------------------------------------------------------
@@ -273,6 +283,7 @@ export interface BattleState {
   readonly selectedTargetId: EntityId | null
   readonly items: readonly ItemDef[]
   readonly rng: import('./rng').RngState
+  readonly skillUseCounts: Readonly<Record<string, number>>
 }
 
 // ---------------------------------------------------------------------------
@@ -292,6 +303,13 @@ export interface RunState {
   readonly totalDamage: number
   readonly draftOptions: readonly DraftOption[]
   readonly isVictory?: boolean     // result phase 전환 시 승리/패배 구분
+  // 누적 통계
+  readonly maxSingleDamage: number
+  readonly critCount: number
+  readonly missCount: number
+  readonly totalHealing: number
+  readonly totalTurns: number
+  readonly skillUseCounts: Readonly<Record<string, number>>
 }
 
 // ---------------------------------------------------------------------------

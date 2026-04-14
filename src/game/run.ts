@@ -14,7 +14,7 @@ import type {
   Stats,
 } from './types'
 import type { RngState } from './rng'
-import { pickN } from './rng'
+import { pickN, pickNWeighted } from './rng'
 import { getCharacterById } from './data/characters'
 import { getEnemyById, getEnemyPoolForRound } from './data/enemies'
 import { getAllyById, ALLIES } from './data/allies'
@@ -172,6 +172,8 @@ export function createBattleEnemy(
     statusEffects: def.id === 'dragon_lord'
       ? [{ kind: 'cc_immune' as const, duration: 999, value: 0, sourceId: 'system' }]
       : [],
+    bossPhases: def.bossPhases,
+    bossCurrentPhase: def.bossPhases ? 1 : undefined,
   }
 }
 
@@ -198,6 +200,12 @@ export function createRun(characterDefId: string, seed: number): RunState {
     battleState: null,
     totalDamage: 0,
     draftOptions: [],
+    maxSingleDamage: 0,
+    critCount: 0,
+    missCount: 0,
+    totalHealing: 0,
+    totalTurns: 0,
+    skillUseCounts: {},
   }
 }
 
@@ -285,6 +293,7 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
     selectedTargetId: null,
     items: acquiredItems,
     rng: currentRng,
+    skillUseCounts: {},
   }
 
   return [battleState, currentRng]
@@ -294,21 +303,63 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
 // 전투 완료 처리 (victory → draft 또는 result)
 // ---------------------------------------------------------------------------
 
+/** 배틀 로그에서 통계를 집계한다 */
+function accumulateBattleStats(
+  runState: RunState,
+  battleState: BattleState,
+  newTotalDamage: number,
+): Pick<RunState, 'totalDamage' | 'maxSingleDamage' | 'critCount' | 'missCount' | 'totalHealing' | 'totalTurns' | 'skillUseCounts'> {
+  let maxSingleDamage = runState.maxSingleDamage
+  let critCount = runState.critCount
+  let missCount = runState.missCount
+  let totalHealing = runState.totalHealing
+
+  for (const entry of battleState.log) {
+    if (entry.kind === 'crit') {
+      critCount++
+      if ((entry.value ?? 0) > maxSingleDamage) maxSingleDamage = entry.value ?? 0
+    } else if (entry.kind === 'damage') {
+      if ((entry.value ?? 0) > maxSingleDamage) maxSingleDamage = entry.value ?? 0
+    } else if (entry.kind === 'miss') {
+      missCount++
+    } else if (entry.kind === 'heal') {
+      totalHealing += entry.value ?? 0
+    }
+  }
+
+  // skillUseCounts 병합
+  const merged: Record<string, number> = { ...runState.skillUseCounts }
+  for (const [skillId, count] of Object.entries(battleState.skillUseCounts ?? {})) {
+    merged[skillId] = (merged[skillId] ?? 0) + count
+  }
+
+  return {
+    totalDamage: newTotalDamage,
+    maxSingleDamage,
+    critCount,
+    missCount,
+    totalHealing,
+    totalTurns: runState.totalTurns + battleState.turnCount,
+    skillUseCounts: merged,
+  }
+}
+
 export function completeBattle(
   runState: RunState,
   battleState: BattleState,
   rng: RngState,
 ): [RunState, RngState] {
   const newTotalDamage = runState.totalDamage + battleState.totalDamageDealt
+  const stats = accumulateBattleStats(runState, battleState, newTotalDamage)
 
   // 마지막 라운드 클리어 → 게임 클리어
   if (runState.round >= MAX_ROUNDS) {
     return [
       {
         ...runState,
+        ...stats,
         phase: 'result',
         battleState: null,
-        totalDamage: newTotalDamage,
         isVictory: true,
       },
       rng,
@@ -321,11 +372,11 @@ export function completeBattle(
   return [
     {
       ...runState,
+      ...stats,
       phase: 'draft',
       round: runState.round + 1,
       character: battleState.party[0],
       battleState: null,
-      totalDamage: newTotalDamage,
       draftOptions,
     },
     nextRng,
@@ -401,6 +452,36 @@ export function applyDraftChoice(runState: RunState, choiceIndex: number): RunSt
 
 const DRAFT_COUNT = 3
 
+// 캐릭터 원소와 스킬/동료 원소가 일치할 때 적용되는 가중치 배율
+const ELEMENT_MATCH_WEIGHT = 3
+// 캐릭터 원소와 관련 있는 원소 쌍 (예: dark <-> physical, fire <-> light 반대)
+const ELEMENT_AFFINITY: Readonly<Record<string, readonly string[]>> = {
+  fire:     ['fire'],
+  dark:     ['dark', 'physical'],
+  light:    ['light', 'water'],
+  water:    ['water', 'light'],
+  physical: ['physical', 'dark'],
+}
+
+function getDraftWeight(
+  option: DraftOption,
+  characterElement: string,
+): number {
+  const affinity = ELEMENT_AFFINITY[characterElement] ?? [characterElement]
+
+  if (option.type === 'skill') {
+    const skill = SKILLS.find(s => s.id === option.skillId)
+    if (skill && affinity.includes(skill.element)) return ELEMENT_MATCH_WEIGHT
+  }
+
+  if (option.type === 'ally') {
+    const ally = ALLIES.find(a => a.id === option.allyId)
+    if (ally && affinity.includes(ally.element)) return ELEMENT_MATCH_WEIGHT
+  }
+
+  return 1
+}
+
 export function generateDraftOptions(
   runState: RunState,
   rng: RngState,
@@ -432,7 +513,10 @@ export function generateDraftOptions(
     return [[], rng]
   }
 
-  const [picked, nextRng] = pickN(rng, pool, Math.min(DRAFT_COUNT, pool.length))
+  const characterElement = runState.character.element
+  const weights = pool.map(option => getDraftWeight(option, characterElement))
+
+  const [picked, nextRng] = pickNWeighted(rng, pool, weights, Math.min(DRAFT_COUNT, pool.length))
   return [picked, nextRng]
 }
 
@@ -441,10 +525,12 @@ export function generateDraftOptions(
 // ---------------------------------------------------------------------------
 
 export function handleDefeat(runState: RunState, battleState: BattleState): RunState {
+  const newTotalDamage = runState.totalDamage + battleState.totalDamageDealt
+  const stats = accumulateBattleStats(runState, battleState, newTotalDamage)
   return {
     ...runState,
+    ...stats,
     phase: 'result',
-    totalDamage: runState.totalDamage + battleState.totalDamageDealt,
     battleState: null,
     isVictory: false,
   }
