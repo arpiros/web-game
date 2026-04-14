@@ -30,6 +30,9 @@ const PASSIVE_MP_REGEN_PER_TURN = 3
 /** 턴 종료 버튼 사용 시 추가 회복되는 MP */
 const END_TURN_MP_BONUS = 8
 
+/** 적에게 부여하는 디버프 목록. 이 외의 apply_status는 시전자 자신에게 적용 */
+const DEBUFF_STATUSES = new Set<StatusEffectKind>(['poison', 'burn', 'freeze', 'stun', 'defdown'])
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -637,26 +640,30 @@ function applySkillEffect(
         sourceId: actorId,
       }
 
-      const isEnemy = !!findEnemy(state, targetId)
+      const isDebuff = DEBUFF_STATUSES.has(effect.status)
+      const isEnemyTarget = !!findEnemy(state, targetId)
       let next = state
 
-      if (isEnemy) {
+      if (isDebuff && isEnemyTarget) {
+        // 디버프: 선택된 적에게 부여
         next = updateEnemy(state, targetId, e => ({
           ...e,
           statusEffects: addStatus(e.statusEffects, newStatus),
         }))
       } else {
-        next = updateCharacter(state, targetId, c => ({
+        // 버프: 시전자 자신에게 부여
+        next = updateCharacter(state, actorId, c => ({
           ...c,
           statusEffects: addStatus(c.statusEffects, newStatus),
         }))
       }
 
-      const targetName = isEnemy
+      const applyTargetId = isDebuff && isEnemyTarget ? targetId : actorId
+      const targetName = isDebuff && isEnemyTarget
         ? findEnemy(next, targetId)?.name
-        : findCharacter(next, targetId)?.name
+        : findCharacter(next, actorId)?.name
       newLogs.push(log('status_apply', `${targetName ?? '?'}에게 ${effect.status} 부여.`, {
-        sourceId: actorId, targetId,
+        sourceId: actorId, targetId: applyTargetId,
       }))
       return { state: next, newLogs, totalDamage }
     }
@@ -910,12 +917,49 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
       continue
     }
 
-    const action = enemy.actions[enemy.actionIndex % enemy.actions.length]
+    // 보스 페이즈 전환 체크
+    if (enemy.bossPhases && enemy.bossCurrentPhase !== undefined) {
+      const hpRatio = enemy.stats.hp / enemy.stats.maxHp
+      const { phase2HpThreshold, phase3HpThreshold } = enemy.bossPhases
+      let newPhase = enemy.bossCurrentPhase
+      if (hpRatio <= phase3HpThreshold && enemy.bossCurrentPhase < 3) {
+        newPhase = 3
+      } else if (hpRatio <= phase2HpThreshold && enemy.bossCurrentPhase < 2) {
+        newPhase = 2
+      }
+      if (newPhase !== enemy.bossCurrentPhase) {
+        current = updateEnemy(current, enemy.id, e => ({
+          ...e,
+          bossCurrentPhase: newPhase,
+          actionIndex: 0,
+        }))
+        const phaseMsg = newPhase === 2
+          ? `${enemy.name}이(가) 분노했다! [페이즈 2]`
+          : `${enemy.name}이(가) 극한의 분노에 빠졌다! [페이즈 3 - 최종 형태]`
+        current = {
+          ...current,
+          log: [...current.log, log('system', phaseMsg, { targetId: enemy.id })],
+        }
+      }
+    }
+
+    // 현재 페이즈에 맞는 액션 배열 선택
+    const latestEnemy = current.enemies.find(e => e.id === enemy.id) ?? enemy
+    const currentActions = (() => {
+      if (!latestEnemy.bossPhases || latestEnemy.bossCurrentPhase === undefined) {
+        return latestEnemy.actions
+      }
+      if (latestEnemy.bossCurrentPhase === 3) return latestEnemy.bossPhases.phase3Actions
+      if (latestEnemy.bossCurrentPhase === 2) return latestEnemy.bossPhases.phase2Actions
+      return latestEnemy.actions
+    })()
+
+    const action = currentActions[latestEnemy.actionIndex % currentActions.length]
 
     // 다음 액션 인덱스 증가
-    current = updateEnemy(current, enemy.id, e => ({
+    current = updateEnemy(current, latestEnemy.id, e => ({
       ...e,
-      actionIndex: (e.actionIndex + 1) % e.actions.length,
+      actionIndex: (e.actionIndex + 1) % currentActions.length,
     }))
 
     const alivePary = current.party.filter(c => c.isAlive)
@@ -1327,6 +1371,23 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
       newLogs.push(log('system', `${char.name}의 MP가 ${regenAmount} 회복됐다.`, { sourceId: char.id }))
     }
 
+    // regen 상태이상 처리 (HP 재생)
+    if (hasStatus(char.statusEffects, 'regen')) {
+      const currentChar = current.party.find(c => c.id === char.id) ?? char
+      const regenAmount = getStatusBonus(char.statusEffects, 'regen')
+      const newHp = Math.min(currentChar.stats.maxHp, currentChar.stats.hp + regenAmount)
+      const actualHeal = newHp - currentChar.stats.hp
+      if (actualHeal > 0) {
+        current = updateCharacter(current, char.id, c => ({
+          ...c,
+          stats: { ...c.stats, hp: newHp },
+        }))
+        newLogs.push(log('heal', `${char.name}의 HP가 ${actualHeal} 재생됐다.`, {
+          value: actualHeal, sourceId: char.id,
+        }))
+      }
+    }
+
     // 아이템 MP 회복 및 기타 패시브 효과 처리
     for (const item of current.items) {
       for (const eff of item.effects) {
@@ -1487,7 +1548,15 @@ export function battleReducer(state: BattleState, action: BattleAction): BattleS
 
     case 'USE_SKILL': {
       if (state.phase !== 'player_turn') return state
-      const nextState = useSkill(state, state.party[0]?.id ?? '', action.targetId, action.skillId, state.items)
+      const currentCounts = state.skillUseCounts ?? {}
+      const stateWithCount = {
+        ...state,
+        skillUseCounts: {
+          ...currentCounts,
+          [action.skillId]: (currentCounts[action.skillId] ?? 0) + 1,
+        },
+      }
+      const nextState = useSkill(stateWithCount, stateWithCount.party[0]?.id ?? '', action.targetId, action.skillId, stateWithCount.items)
       if (nextState.phase === 'player_turn') {
         return { ...nextState, phase: 'enemy_turn', selectedSkillId: null, selectedTargetId: null }
       }
