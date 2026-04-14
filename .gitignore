@@ -27,3 +27,9 @@ dist-ssr
 *.png
 *.jpg
 .playwright-mcp/
+
+# Dev/temp files
+coverage/
+BUG_REPORT.md
+game-test.mjs
+개선사항.md
