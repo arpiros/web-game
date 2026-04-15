@@ -7,6 +7,8 @@ import type {
   StatusEffect,
   ItemDef,
   SkillDef,
+  EnemyActionPattern,
+  Element,
 } from '../game/types'
 import { getSkillById } from '../game/data/skills'
 import { MAX_ROUNDS } from '../game/run'
@@ -55,6 +57,27 @@ const STATUS_COLOR: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   poison: '독', burn: '화상', freeze: '빙결', stun: '기절',
   shield: '방막', regen: '재생', powerup: '강화', defdown: '방↓',
+  mana_regen: 'MP재생', cc_immune: 'CC면역', revive: '부활대기', undying: '불사',
+}
+
+interface StatusDesc {
+  summary: string
+  detail: (value: number) => string | null
+}
+
+const STATUS_DESCRIPTION: Record<string, StatusDesc> = {
+  poison:     { summary: '매 턴 최대 HP의 일정 %만큼 피해를 받는다',      detail: v => `${v}% / 턴` },
+  burn:       { summary: '매 턴 고정 피해를 받는다',                      detail: v => `${v} 피해 / 턴` },
+  freeze:     { summary: '이번 턴 행동 불가. 받는 데미지 +50%',           detail: () => null },
+  stun:       { summary: '이번 턴 행동 불가',                             detail: () => null },
+  shield:     { summary: '피해를 흡수한다. 흡수량 소진 시 사라진다',       detail: v => v > 0 ? `${v.toLocaleString()} 흡수` : null },
+  regen:      { summary: '매 턴 시작 시 HP를 회복한다',                   detail: v => `+${v} HP / 턴` },
+  powerup:    { summary: '공격력이 증폭된다',                             detail: v => `+${v}% 공격력` },
+  defdown:    { summary: '방어력이 감소한다',                             detail: v => `-${v} 방어력` },
+  mana_regen: { summary: '매 턴 MP를 회복한다',                          detail: v => `+${v} MP / 턴` },
+  cc_immune:  { summary: '기절·빙결 등 행동 불능 효과가 무효화된다',       detail: () => null },
+  revive:     { summary: '사망 시 HP 30%로 1회 부활한다',                 detail: () => null },
+  undying:    { summary: '사망 직전 HP 1로 1회 버틴다',                   detail: () => null },
 }
 
 function hpColor(ratio: number): string {
@@ -300,6 +323,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
                 enemy={enemy}
                 isTargetable={isPlayerTurn && !!selectedSkillId && enemy.isAlive}
                 onClick={() => handleEnemyClick(enemy.id)}
+                party={[...bs.party, ...bs.allies]}
               />
             ))}
             {popups.map(p => <DamagePopup key={p.id} popup={p} />)}
@@ -414,13 +438,117 @@ function PhaseLabel({ phase }: { phase: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// EnemyIntent
+// ---------------------------------------------------------------------------
+
+function getNextEnemyAction(enemy: BattleEnemy): EnemyActionPattern {
+  const actions =
+    enemy.bossCurrentPhase === 3 && enemy.bossPhases ? enemy.bossPhases.phase3Actions :
+    enemy.bossCurrentPhase === 2 && enemy.bossPhases ? enemy.bossPhases.phase2Actions :
+    enemy.actions
+  return actions[enemy.actionIndex % actions.length]
+}
+
+type PartyMember = BattleCharacter | BattleAlly
+
+function EnemyIntentBadge({ action, enemy, party }: {
+  action: EnemyActionPattern
+  enemy: BattleEnemy
+  party: readonly PartyMember[]
+}) {
+  const aliveParty   = party.filter(p => p.isAlive)
+  const powerupBonus = getStatusBonus(enemy.statusEffects, 'powerup')
+
+  function estimateAttack(multiplier: number, element: Element): number | null {
+    const target = aliveParty[0]
+    if (!target) return null
+    return calcDamage({
+      attack: enemy.stats.attack,
+      defense: target.stats.defense,
+      multiplier,
+      attackElement: element,
+      defenderElement: target.element,
+      itemElementMultiplier: 1,
+      powerupBonus,
+    })
+  }
+
+  let icon:     string
+  let label:    string
+  let sublabel: string | null = null
+  let color:    string        = 'var(--color-text-muted)'
+
+  switch (action.type) {
+    case 'attack': {
+      const dmg = estimateAttack(action.multiplier, action.element)
+      icon  = '⚔'
+      label = '공격'
+      sublabel = dmg !== null ? `~${dmg.toLocaleString()}` : null
+      color = ELEMENT_COLOR[action.element] ?? 'var(--color-hp-low)'
+      break
+    }
+    case 'attack_all': {
+      const dmg = estimateAttack(action.multiplier, action.element)
+      icon  = '💥'
+      label = '전체 공격'
+      sublabel = dmg !== null ? `~${dmg.toLocaleString()}/명` : null
+      color = ELEMENT_COLOR[action.element] ?? 'var(--color-hp-low)'
+      break
+    }
+    case 'apply_status': {
+      icon  = '✦'
+      label = `${STATUS_LABEL[action.status] ?? action.status} 부여`
+      sublabel = action.targetMode === 'all' ? `전체 ${action.duration}턴` : `${action.duration}턴`
+      color = STATUS_COLOR[action.status] ?? 'var(--color-text-muted)'
+      break
+    }
+    case 'heal_self': {
+      const healAmt = Math.round(enemy.stats.attack * action.multiplier)
+      icon  = '♥'
+      label = '자가 치유'
+      sublabel = `~${healAmt.toLocaleString()}`
+      color = 'var(--color-hp-high)'
+      break
+    }
+    case 'buff_self': {
+      icon  = '↑'
+      label = `${STATUS_LABEL[action.status] ?? action.status} 강화`
+      sublabel = `${action.duration}턴`
+      color = 'var(--color-status-buff)'
+      break
+    }
+  }
+
+  return (
+    <div style={{
+      borderTop: '1px solid var(--color-border-subtle)',
+      paddingTop: 'var(--space-1)',
+      display: 'flex', alignItems: 'center', gap: '4px',
+    }}>
+      <span style={{ fontSize: '0.65rem', flexShrink: 0 }}>{icon}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+        <span style={{ fontSize: '0.6rem', fontWeight: 'var(--weight-semibold)', color, lineHeight: 1 }}>
+          {label}
+        </span>
+        {sublabel && (
+          <span style={{ fontSize: '0.55rem', color: 'var(--color-text-muted)', lineHeight: 1 }}>
+            {sublabel}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // EnemyCard
 // ---------------------------------------------------------------------------
 
-function EnemyCard({ enemy, isTargetable, onClick }: {
+function EnemyCard({ enemy, isTargetable, onClick, party }: {
   enemy: BattleEnemy
   isTargetable: boolean
   onClick: () => void
+  party: readonly PartyMember[]
 }) {
   const hpRatio = enemy.stats.maxHp > 0
     ? Math.max(0, enemy.stats.hp / enemy.stats.maxHp)
@@ -508,6 +636,15 @@ function EnemyCard({ enemy, isTargetable, onClick }: {
             <StatusBadge key={i} effect={se} />
           ))}
         </div>
+      )}
+
+      {/* Enemy intent */}
+      {enemy.isAlive && (
+        <EnemyIntentBadge
+          action={getNextEnemyAction(enemy)}
+          enemy={enemy}
+          party={party}
+        />
       )}
 
       {/* Targeting indicator */}
@@ -653,22 +790,102 @@ function ResourceBar({ current, max, color, label }: {
 }
 
 // ---------------------------------------------------------------------------
+// StatusTooltip
+// ---------------------------------------------------------------------------
+
+function StatusTooltip({ effect, x, y }: { effect: StatusEffect; x: number; y: number }) {
+  const color = STATUS_COLOR[effect.kind] ?? 'var(--color-text-muted)'
+  const label = STATUS_LABEL[effect.kind] ?? effect.kind
+  const desc  = STATUS_DESCRIPTION[effect.kind]
+  const detail = desc ? desc.detail(effect.value) : null
+
+  return (
+    <div style={{
+      position: 'fixed', top: y, left: x,
+      width: '220px', padding: 'var(--space-3)',
+      background: 'var(--color-bg-elevated)',
+      border: '1px solid var(--color-border-default)',
+      borderRadius: 'var(--radius-md)',
+      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.5)',
+      zIndex: 200, pointerEvents: 'none',
+      fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+        <span style={{ color, fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>
+          {label}
+        </span>
+        {effect.duration > 0 && (
+          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.6rem' }}>
+            {effect.duration}턴 남음
+          </span>
+        )}
+      </div>
+      {desc && (
+        <>
+          <p style={{ margin: '0 0 var(--space-1)', lineHeight: 'var(--leading-relaxed)' }}>
+            {desc.summary}
+          </p>
+          {detail && (
+            <div style={{
+              borderTop: '1px solid var(--color-border-subtle)',
+              paddingTop: 'var(--space-1)',
+              color, fontWeight: 'var(--weight-semibold)',
+            }}>
+              {detail}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // StatusBadge
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ effect }: { effect: StatusEffect }) {
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
   const color = STATUS_COLOR[effect.kind] ?? 'var(--color-text-muted)'
   const label = STATUS_LABEL[effect.kind] ?? effect.kind
+
   return (
-    <span style={{
-      fontSize: '0.55rem', padding: '1px 4px',
-      borderRadius: 'var(--radius-sm)',
-      background: `color-mix(in oklch, ${color} 20%, transparent)`,
-      color,
-      border: `1px solid color-mix(in oklch, ${color} 40%, transparent)`,
-    }}>
-      {label}{effect.duration > 0 ? ` ${effect.duration}` : ''}
-    </span>
+    <>
+      {tooltipPos && <StatusTooltip effect={effect} x={tooltipPos.x} y={tooltipPos.y} />}
+      <span
+        role="button"
+        tabIndex={0}
+        onPointerEnter={e => {
+          if (e.pointerType === 'touch') return
+          const rect = e.currentTarget.getBoundingClientRect()
+          setTooltipPos({ x: rect.left, y: rect.bottom + 4 })
+        }}
+        onPointerLeave={e => {
+          if (e.pointerType === 'touch') return
+          setTooltipPos(null)
+        }}
+        onClick={e => {
+          e.stopPropagation()
+          const rect = e.currentTarget.getBoundingClientRect()
+          setTooltipPos(prev => prev ? null : { x: rect.left, y: rect.bottom + 4 })
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Escape') setTooltipPos(null)
+        }}
+        style={{
+          display: 'inline-block',
+          fontSize: '0.55rem', padding: '1px 4px',
+          borderRadius: 'var(--radius-sm)',
+          background: `color-mix(in oklch, ${color} 20%, transparent)`,
+          color,
+          border: `1px solid color-mix(in oklch, ${color} 40%, transparent)`,
+          cursor: 'help',
+          userSelect: 'none',
+        }}
+      >
+        {label}{effect.duration > 0 ? ` ${effect.duration}` : ''}
+      </span>
+    </>
   )
 }
 
