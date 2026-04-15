@@ -16,6 +16,7 @@ import type {
   Element,
   EntityId,
   ItemDef,
+  Stats,
 } from './types'
 import { roll } from './rng'
 import type { RngState } from './rng'
@@ -322,6 +323,33 @@ function applyDamageToEnemy(
   }))
 
   return { state: next, actualDamage: damage }
+}
+
+function applyDamageToAlly(
+  state: BattleState,
+  targetId: EntityId,
+  damage: number,
+): { state: BattleState; actualDamage: number } {
+  const target = findAlly(state, targetId)
+  if (!target || !target.isAlive) return { state, actualDamage: 0 }
+
+  const shield = getStatusBonus(target.statusEffects, 'shield')
+  const absorbed = Math.min(shield, damage)
+  const remaining = damage - absorbed
+  const newHp = Math.max(0, target.stats.hp - remaining)
+  const actualDamage = remaining + absorbed
+
+  const next = updateAlly(state, targetId, a => {
+    const afterShield = absorbed > 0 ? removeStatus(a.statusEffects, 'shield') : a.statusEffects
+    return {
+      ...a,
+      stats: { ...a.stats, hp: newHp },
+      statusEffects: afterShield,
+      isAlive: newHp > 0,
+    }
+  })
+
+  return { state: next, actualDamage }
 }
 
 function applyHealToCharacter(
@@ -965,10 +993,15 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
     const alivePary = current.party.filter(c => c.isAlive)
     if (alivePary.length === 0) break
 
+    const aliveAllies = current.allies.filter(a => a.isAlive)
+    const aliveTargets: readonly CombatTarget[] = [...alivePary, ...aliveAllies]
+
     switch (action.type) {
       case 'attack': {
-        const target = selectPartyTarget(alivePary, action.targetMode)
+        const target = selectTarget(aliveTargets, action.targetMode)
         if (!target) break
+
+        const isCharTarget = current.party.some(c => c.id === target.id)
 
         // 크리티컬/미스 판정 (적 공격)
         const combatRoll = rollCombat(current.rng, enemy.stats.speed, target.stats.defense)
@@ -997,31 +1030,49 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
         })
         if (combatRoll.isCrit) dmg = Math.round(dmg * 1.5)
 
-        const res = applyDamageToCharacter(current, target.id, dmg)
-        const dmgLog = combatRoll.isCrit
-          ? log('crit', `크리티컬! ${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
-              value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
-            })
-          : log('damage', `${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
-              value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
-            })
-        current = { ...res.state, log: [...res.state.log, dmgLog] }
-        if (res.revived) {
-          current = {
-            ...current,
-            log: [...current.log, log('system', `${target.name}이(가) 불사조처럼 부활했다!`, { targetId: target.id })],
+        if (isCharTarget) {
+          const res = applyDamageToCharacter(current, target.id, dmg)
+          const dmgLog = combatRoll.isCrit
+            ? log('crit', `크리티컬! ${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
+                value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
+              })
+            : log('damage', `${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
+                value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
+              })
+          current = { ...res.state, log: [...res.state.log, dmgLog] }
+          if (res.revived) {
+            current = {
+              ...current,
+              log: [...current.log, log('system', `${target.name}이(가) 불사조처럼 부활했다!`, { targetId: target.id })],
+            }
+          } else if (!current.party.find(c => c.id === target.id)?.isAlive) {
+            current = {
+              ...current,
+              log: [...current.log, log('death', `${target.name}이(가) 쓰러졌다!`, { targetId: target.id })],
+            }
           }
-        } else if (!current.party.find(c => c.id === target.id)?.isAlive) {
-          current = {
-            ...current,
-            log: [...current.log, log('death', `${target.name}이(가) 쓰러졌다!`, { targetId: target.id })],
+        } else {
+          const res = applyDamageToAlly(current, target.id, dmg)
+          const dmgLog = combatRoll.isCrit
+            ? log('crit', `크리티컬! ${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
+                value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
+              })
+            : log('damage', `${enemy.name}이(가) ${target.name}에게 ${res.actualDamage} 피해!`, {
+                value: res.actualDamage, sourceId: enemy.id, targetId: target.id,
+              })
+          current = { ...res.state, log: [...res.state.log, dmgLog] }
+          if (!current.allies.find(a => a.id === target.id)?.isAlive) {
+            current = {
+              ...current,
+              log: [...current.log, log('death', `${target.name}이(가) 쓰러졌다!`, { targetId: target.id })],
+            }
           }
         }
         break
       }
 
       case 'attack_all': {
-        for (const member of alivePary) {
+        for (const member of aliveTargets) {
           const combatRoll = rollCombat(current.rng, enemy.stats.speed, member.stats.defense)
           current = { ...current, rng: combatRoll.nextRng }
 
@@ -1045,19 +1096,43 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
           })
           if (combatRoll.isCrit) dmg = Math.round(dmg * 1.5)
 
-          const res = applyDamageToCharacter(current, member.id, dmg)
-          const dmgLog = combatRoll.isCrit
-            ? log('crit', `크리티컬! ${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
-                value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
-              })
-            : log('damage', `${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
-                value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
-              })
-          current = { ...res.state, log: [...res.state.log, dmgLog] }
-          if (res.revived) {
-            current = {
-              ...current,
-              log: [...current.log, log('system', `${member.name}이(가) 불사조처럼 부활했다!`, { targetId: member.id })],
+          const isMemberChar = current.party.some(c => c.id === member.id)
+          if (isMemberChar) {
+            const res = applyDamageToCharacter(current, member.id, dmg)
+            const dmgLog = combatRoll.isCrit
+              ? log('crit', `크리티컬! ${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
+                  value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
+                })
+              : log('damage', `${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
+                  value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
+                })
+            current = { ...res.state, log: [...res.state.log, dmgLog] }
+            if (res.revived) {
+              current = {
+                ...current,
+                log: [...current.log, log('system', `${member.name}이(가) 불사조처럼 부활했다!`, { targetId: member.id })],
+              }
+            } else if (!current.party.find(c => c.id === member.id)?.isAlive) {
+              current = {
+                ...current,
+                log: [...current.log, log('death', `${member.name}이(가) 쓰러졌다!`, { targetId: member.id })],
+              }
+            }
+          } else {
+            const res = applyDamageToAlly(current, member.id, dmg)
+            const dmgLog = combatRoll.isCrit
+              ? log('crit', `크리티컬! ${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
+                  value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
+                })
+              : log('damage', `${enemy.name}이(가) ${member.name}에게 ${res.actualDamage} 피해!`, {
+                  value: res.actualDamage, sourceId: enemy.id, targetId: member.id,
+                })
+            current = { ...res.state, log: [...res.state.log, dmgLog] }
+            if (!current.allies.find(a => a.id === member.id)?.isAlive) {
+              current = {
+                ...current,
+                log: [...current.log, log('death', `${member.name}이(가) 쓰러졌다!`, { targetId: member.id })],
+              }
             }
           }
         }
@@ -1065,7 +1140,7 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
       }
 
       case 'apply_status': {
-        const targets = action.targetMode === 'all' ? alivePary : [selectPartyTarget(alivePary, 'random')].filter(Boolean) as BattleCharacter[]
+        const targets = action.targetMode === 'all' ? alivePary : [selectTarget(alivePary, 'random')].filter(Boolean) as BattleCharacter[]
         const isStatusImmune = items.some(item =>
           item.effects.some(eff => eff.type === 'status_immunity' && eff.statuses.includes(action.status))
         )
@@ -1517,20 +1592,29 @@ function checkBattleEnd(state: BattleState): BattleState {
 // Target Selection
 // ---------------------------------------------------------------------------
 
-function selectPartyTarget(
-  party: readonly BattleCharacter[],
+type CombatTarget = {
+  readonly id: EntityId
+  readonly name: string
+  readonly stats: Stats
+  readonly element: Element
+  readonly statusEffects: readonly StatusEffect[]
+  readonly isAlive: boolean
+}
+
+function selectTarget(
+  targets: readonly CombatTarget[],
   mode: 'random' | 'lowest_hp' | 'highest_attack',
-): BattleCharacter | undefined {
-  if (party.length === 0) return undefined
+): CombatTarget | undefined {
+  if (targets.length === 0) return undefined
 
   switch (mode) {
     case 'lowest_hp':
-      return [...party].sort((a, b) => a.stats.hp - b.stats.hp)[0]
+      return [...targets].sort((a, b) => a.stats.hp - b.stats.hp)[0]
     case 'highest_attack':
-      return [...party].sort((a, b) => b.stats.attack - a.stats.attack)[0]
+      return [...targets].sort((a, b) => b.stats.attack - a.stats.attack)[0]
     case 'random':
     default:
-      return party[Math.floor(Math.random() * party.length)]
+      return targets[Math.floor(Math.random() * targets.length)]
   }
 }
 

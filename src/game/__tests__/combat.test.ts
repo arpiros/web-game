@@ -1598,3 +1598,63 @@ describe('보스 페이즈 시스템', () => {
     expect(result.enemies[0].bossCurrentPhase).toBeUndefined()
   })
 })
+
+// ---------------------------------------------------------------------------
+// 동료 타겟팅 (Phase 1: 적이 동료를 공격)
+// ---------------------------------------------------------------------------
+
+describe('processEnemyTurn — 동료 타겟팅', () => {
+  it('적 attack이 동료 HP를 감소시킨다', () => {
+    const enemy = makeEnemy({
+      stats: { maxHp: 400, hp: 400, attack: 100, defense: 30, speed: 90, maxMp: 0, mp: 0 },
+      actions: [{ type: 'attack', element: 'physical', multiplier: 1.0, targetMode: 'lowest_hp' }],
+    })
+    const ally = makeAlly({ id: 'ally-1', stats: { maxHp: 300, hp: 300, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })
+    // lowest_hp 기준: 동료 HP(300) < 캐릭터 HP(1000) → 동료가 타겟
+    const state = makeBattleState({ party: [char], allies: [ally], enemies: [enemy], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    const resultAlly = result.allies.find(a => a.id === 'ally-1')!
+    expect(resultAlly.stats.hp).toBeLessThan(300)
+  })
+
+  it('동료가 HP 0 이하로 감소하면 isAlive가 false가 된다', () => {
+    const enemy = makeEnemy({
+      stats: { maxHp: 400, hp: 400, attack: 9999, defense: 0, speed: 90, maxMp: 0, mp: 0 },
+      actions: [{ type: 'attack', element: 'physical', multiplier: 2.0, targetMode: 'lowest_hp' }],
+    })
+    const ally = makeAlly({ id: 'ally-1', stats: { maxHp: 100, hp: 100, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })
+    const state = makeBattleState({ party: [char], allies: [ally], enemies: [enemy], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    const resultAlly = result.allies.find(a => a.id === 'ally-1')!
+    expect(resultAlly.isAlive).toBe(false)
+    expect(resultAlly.stats.hp).toBe(0)
+    expect(result.log.some(e => e.kind === 'death' && e.text.includes(ally.name))).toBe(true)
+  })
+
+  it('동료가 모두 죽어도 파티가 살아있으면 battle_end가 발생하지 않는다', () => {
+    const enemy = makeEnemy({
+      stats: { maxHp: 400, hp: 400, attack: 9999, defense: 0, speed: 90, maxMp: 0, mp: 0 },
+      actions: [{ type: 'attack', element: 'physical', multiplier: 2.0, targetMode: 'lowest_hp' }],
+    })
+    const deadAlly = makeAlly({ id: 'ally-1', stats: { maxHp: 1, hp: 1, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })
+    const state = makeBattleState({ party: [char], allies: [deadAlly], enemies: [enemy], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    expect(result.phase).not.toBe('defeat')
+  })
+
+  it('attack_all이 파티원과 동료 모두를 공격한다', () => {
+    const enemy = makeEnemy({
+      stats: { maxHp: 400, hp: 400, attack: 100, defense: 0, speed: 90, maxMp: 0, mp: 0 },
+      actions: [{ type: 'attack_all', element: 'physical', multiplier: 1.0 }],
+    })
+    const ally = makeAlly({ id: 'ally-1', stats: { maxHp: 500, hp: 500, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const char = makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 0, speed: 70, maxMp: 100, mp: 100 } })
+    const state = makeBattleState({ party: [char], allies: [ally], enemies: [enemy], phase: 'enemy_turn' })
+    const result = processEnemyTurn(state, [])
+    expect(result.party[0].stats.hp).toBeLessThan(1000)
+    expect(result.allies[0].stats.hp).toBeLessThan(500)
+  })
+})
