@@ -638,13 +638,15 @@ function applySkillEffect(
     }
 
     case 'heal': {
-      const healAmount = Math.round(actorAttack * effect.multiplier)
+      const rawHeal = Math.round(actorAttack * effect.multiplier)
+      // 단일 힐 상한: 최대 HP의 40% (무한버티기 방지)
+      const healActor = findCharacter(state, actorId)
+      const healCap = healActor ? Math.floor(healActor.stats.maxHp * 0.4) : rawHeal
+      const healAmount = Math.min(rawHeal, healCap)
       const next = applyHealToCharacter(state, actorId, healAmount)
-      const actor = findCharacter(next, actorId)
       newLogs.push(log('heal', `HP를 ${healAmount} 회복했다.`, {
         value: healAmount, sourceId: actorId, targetId: actorId,
       }))
-      void actor
       return { state: next, newLogs, totalDamage }
     }
 

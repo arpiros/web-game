@@ -349,9 +349,9 @@ export const SKILLS: readonly SkillDef[] = [
   {
     id: 'meditate',
     name: '명상',
-    description: 'MP를 25 회복한다. 쿨다운 2턴.',
+    description: 'MP를 25 회복한다. 쿨다운 3턴.',
     mpCost: 0,
-    cooldown: 2,
+    cooldown: 3,
     effects: [{ type: 'heal_mp', amount: 25 }],
     element: 'physical',
     rarity: 'common',
