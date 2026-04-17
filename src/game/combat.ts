@@ -57,9 +57,9 @@ function log(
 
 const ELEMENT_MULTIPLIERS: Record<Element, Partial<Record<Element, number>>> = {
   fire:     { water: 0.5, dark: 1.5 },
-  water:    { fire: 1.5,  light: 0.5 },
-  dark:     { light: 0.5, fire: 0.5 },
-  light:    { dark: 2.0,  water: 1.5 },
+  water:    { fire: 1.5,  light: 0.75 },
+  dark:     { light: 0.5, fire: 0.75 },
+  light:    { dark: 1.75, water: 1.25 },
   physical: {},
 }
 

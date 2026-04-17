@@ -222,8 +222,8 @@ describe('getElementMultiplier', () => {
     expect(getElementMultiplier('water', 'fire')).toBe(1.5)
   })
 
-  it('빛 속성이 어둠에 강하다 (2.0배)', () => {
-    expect(getElementMultiplier('light', 'dark')).toBe(2.0)
+  it('빛 속성이 어둠에 강하다 (1.75배)', () => {
+    expect(getElementMultiplier('light', 'dark')).toBe(1.75)
   })
 
   it('불 속성이 물에 약하다 (0.5배)', () => {
