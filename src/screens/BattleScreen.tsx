@@ -13,6 +13,7 @@ import type {
 import { getSkillById } from '../game/data/skills'
 import { MAX_ROUNDS } from '../game/run'
 import { calcDamage, getItemElementMultiplier, getStatusBonus } from '../game/combat'
+import { getActiveSynergies } from '../game/synergy'
 import { useRunStore } from '../state/runStore'
 
 // ---------------------------------------------------------------------------
@@ -278,6 +279,17 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
           턴 {bs.turnCount + 1}
         </span>
+        {getActiveSynergies(bs.party, bs.allies).map(s => (
+          <span key={s.id} title={s.description} style={{
+            fontSize: 'var(--text-xs)', padding: '2px 6px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'color-mix(in oklch, var(--color-accent) 20%, transparent)',
+            color: 'var(--color-accent)',
+            border: '1px solid color-mix(in oklch, var(--color-accent) 40%, transparent)',
+          }}>
+            {s.name}
+          </span>
+        ))}
         <span style={{ flex: 1 }} />
         <SpeedControl speed={battleSpeed} onSetSpeed={setBattleSpeed} />
         <span style={{ color: 'var(--color-border-default)', fontSize: 'var(--text-xs)' }}>│</span>

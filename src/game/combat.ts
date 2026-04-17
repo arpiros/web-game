@@ -21,6 +21,7 @@ import type {
 import { roll } from './rng'
 import type { RngState } from './rng'
 import { getSkillById } from './data/skills'
+import { hasSynergy } from './synergy'
 
 // ---------------------------------------------------------------------------
 // MP Regeneration Constants
@@ -455,6 +456,14 @@ function applySkillEffect(
       const isCrit = combatRoll.isCrit
       if (isCrit) baseDmg = Math.round(baseDmg * 1.5)
 
+      // 증기 폭발 시너지: 화염 스킬이 빙결된 적을 공격할 때 +50% 피해
+      if (effect.element === 'fire' && hasSynergy(currentState.party, currentState.allies, 'steam_explosion')) {
+        const frozenEnemy = findEnemy(currentState, targetId)
+        if (frozenEnemy && hasStatus(frozenEnemy.statusEffects, 'freeze')) {
+          baseDmg = Math.round(baseDmg * 1.5)
+        }
+      }
+
       // 보스 대미지 보너스
       const isEnemy = !!findEnemy(currentState, targetId)
       if (isEnemy) {
@@ -495,6 +504,19 @@ function applySkillEffect(
               }
             }
           }
+        }
+      }
+
+      // 파멸의 일격 시너지: 크리티컬 발생 시 대상에게 독(3턴) 자동 부여
+      if (isCrit && isEnemy && hasSynergy(nextState.party, nextState.allies, 'doom_strike')) {
+        const targetAfterDmg = findEnemy(nextState, targetId)
+        if (targetAfterDmg?.isAlive) {
+          const poisonStatus: StatusEffect = { kind: 'poison', duration: 3, value: 4, sourceId: actorId }
+          nextState = updateEnemy(nextState, targetId, e => ({
+            ...e,
+            statusEffects: addStatus(e.statusEffects, poisonStatus),
+          }))
+          newLogs.push(log('status_apply', `파멸의 일격! ${target.name}에게 독이 스며든다.`, { sourceId: actorId, targetId }))
         }
       }
 
@@ -642,7 +664,11 @@ function applySkillEffect(
       // 단일 힐 상한: 최대 HP의 40% (무한버티기 방지)
       const healActor = findCharacter(state, actorId)
       const healCap = healActor ? Math.floor(healActor.stats.maxHp * 0.4) : rawHeal
-      const healAmount = Math.min(rawHeal, healCap)
+      let healAmount = Math.min(rawHeal, healCap)
+      // 성수 시너지: 회복 스킬 효과 +30%
+      if (hasSynergy(state.party, state.allies, 'holy_water')) {
+        healAmount = Math.round(healAmount * 1.3)
+      }
       const next = applyHealToCharacter(state, actorId, healAmount)
       newLogs.push(log('heal', `HP를 ${healAmount} 회복했다.`, {
         value: healAmount, sourceId: actorId, targetId: actorId,
@@ -1541,6 +1567,20 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
       }
       newLogs.push(log('damage', `${enemy.name}이(가) 화상으로 ${burnDmg} 피해!`, {
         value: burnDmg, targetId: enemy.id,
+      }))
+    }
+  }
+
+  // 카오스 시너지: 매 턴 종료 시 랜덤 적에게 최대 HP 15% 피해
+  if (hasSynergy(current.party, current.allies, 'chaos')) {
+    const aliveEnemies = current.enemies.filter(e => e.isAlive)
+    if (aliveEnemies.length > 0) {
+      const chaosTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)]
+      const chaosDmg = Math.round(chaosTarget.stats.maxHp * 0.15)
+      const res = applyDamageToEnemy(current, chaosTarget.id, chaosDmg)
+      current = { ...res.state, totalDamageDealt: res.state.totalDamageDealt + chaosDmg }
+      newLogs.push(log('damage', `카오스! ${chaosTarget.name}에게 ${chaosDmg} 피해!`, {
+        value: chaosDmg, targetId: chaosTarget.id,
       }))
     }
   }
