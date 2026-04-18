@@ -53,7 +53,7 @@ const ELITE_ROUNDS = new Set([3, 5])
 const EVENT_ROUNDS = new Set([2, 4])
 
 /** 엘리트 스탯 배율 (라운드 스케일링 위에 추가 적용) */
-const ELITE_STAT_MULTIPLIER = 1.5
+const ELITE_STAT_MULTIPLIER = 1.2
 
 // ---------------------------------------------------------------------------
 // Character → BattleCharacter
