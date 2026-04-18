@@ -159,3 +159,140 @@ img, svg { display: block; max-width: 100%; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   ★ 가독성 패치 — 세리프 폰트 기준 최소 폰트 크기 강제 상향
+   BattleScreen.tsx가 0.55~0.65rem 같은 값을 인라인으로 하드코딩 중.
+   세리프체는 x-height이 낮아 같은 px에서도 작아 보이므로 전역으로 bump.
+   ========================================================================== */
+
+/* 전역 최소 크기 — 어떤 요소든 0.72rem 이하면 11.5px로 승격.
+   (React 인라인 style의 `fontSize: '0.55rem'` 등을 덮어씀)      */
+#root [style*="font-size: 0.55rem"],
+#root [style*="fontSize:0.55rem"],
+#root [style*="font-size: 0.6rem"],
+#root [style*="fontSize:0.6rem"],
+#root [style*="font-size: 0.65rem"],
+#root [style*="fontSize:0.65rem"],
+#root [style*="font-size: 0.7rem"],
+#root [style*="fontSize:0.7rem"] {
+  font-size: 0.85rem !important;
+  letter-spacing: 0.02em;
+}
+
+/* --text-xs 사용처도 한 단계 키움 (세리프 보정) */
+#root [style*="var(--text-xs)"] {
+  font-size: 0.88rem !important;
+}
+
+/* 수치(HP/MP/공격력 등)는 mono 폰트로 — 세리프보다 훨씬 읽기 쉬움 */
+#root [style*="JetBrains Mono"],
+#root [style*="font-mono"],
+.stat-value {
+  font-family: var(--font-mono) !important;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+  letter-spacing: 0;
+}
+
+/* HP/MP 숫자 — 리소스 바 아래 표기 */
+button > div > div:last-child,
+button > div:has(+ div[style*="height: 5px"]) ~ div,
+[style*="textAlign: right"][style*="font-size: 0.6rem"],
+[style*="text-align: right"][style*="font-size: 0.6rem"] {
+  font-family: var(--font-mono) !important;
+  font-size: 0.82rem !important;
+  color: var(--color-paper) !important;
+  letter-spacing: 0.02em;
+}
+
+/* 적 HP 수치 — 14px로 */
+button[disabled] > div:last-child,
+button:not([disabled]) > div > div[style*="text-align: right"],
+button:not([disabled]) > div > div[style*="textAlign: right"] {
+  font-size: 0.82rem !important;
+}
+
+/* 스킬 카드 MP 코스트 / CD / 원소 라벨 — 13px로 */
+[style*="0.6rem"][style*="MP"],
+[style*="0.55rem"][style*="CD"] {
+  font-size: 0.82rem !important;
+}
+
+/* 상태이상 배지 — 12px로 (기존 0.55rem=8.8px는 읽을 수 없음) */
+span[role="button"][tabindex="0"] {
+  font-size: 0.75rem !important;
+  padding: 2px 6px !important;
+  letter-spacing: 0.02em;
+  font-family: var(--font-body);
+  font-variant: small-caps;
+}
+
+/* 적 의도 배지 — 아이콘/텍스트 확대 */
+[style*="border-top: 1px solid"][style*="paddingTop"] span {
+  font-size: 0.78rem !important;
+  line-height: 1.25 !important;
+}
+
+/* 상단 HUD의 라운드·턴 표시 */
+[style*="var(--hud-height)"] span {
+  font-size: 0.88rem !important;
+  letter-spacing: 0.08em;
+}
+
+/* 전투 로그 — 본문 키움 */
+[style*="var(--color-bg-surface)"][style*="var(--text-xs)"] > div {
+  font-size: 0.92rem !important;
+  line-height: 1.55 !important;
+}
+
+/* 스킬 이름 — 14.5px로 */
+button[style*="minWidth: 88px"] span[style*="var(--text-xs)"] {
+  font-size: 0.92rem !important;
+  max-width: 100% !important;
+}
+
+/* 숫자 강조 — 더 굵고 크게 (데미지 팝업) */
+[style*="popup-float"] {
+  font-size: 1.2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+}
+
+/* 크리티컬 팝업은 더 크게 */
+[style*="popup-float"][style*="var(--text-lg)"] {
+  font-size: 1.6rem !important;
+}
+
+/* 파티 카드 — 이름/공격력 */
+[style*="justifyContent: space-between"][style*="baseline"] > span:last-child,
+[style*="justify-content: space-between"][style*="baseline"] > span:last-child {
+  font-size: 0.82rem !important;
+  font-family: var(--font-mono) !important;
+}
+
+/* 적 이름 대비 키우기 */
+button > div > span[style*="flex: 1"][style*="text-align: center"],
+button > div > span[style*="flex:1"][style*="textAlign:center"] {
+  font-size: 0.95rem !important;
+  letter-spacing: 0.04em;
+}
+
+/* 리소스 바 라벨 HP/MP */
+[style*="var(--color-text-muted)"][style*="0.6rem"] {
+  font-size: 0.78rem !important;
+  font-family: var(--font-heading);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* 한글 텍스트 — lang 관계없이 CJK 검출되면 한글 폰트 */
+:lang(ko), body {
+  font-feature-settings: 'kern' 1;
+}
+
+/* 숫자 전용 규칙 — tabular figures */
+[style*="toLocaleString"],
+[style*="MP"],
+[style*="HP"] {
+  font-variant-numeric: tabular-nums;
+}

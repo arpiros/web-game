@@ -83,14 +83,17 @@
   /* 수치 */
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  --text-xs: clamp(0.7rem, 0.55rem + 0.3vw, 0.8rem);   /* 약간 키움 — 세리프는 작으면 안읽힘 */
-  --text-sm: clamp(0.82rem, 0.7rem + 0.3vw, 0.95rem);
-  --text-base: clamp(0.95rem, 0.85rem + 0.3vw, 1.08rem);
-  --text-md: clamp(1.05rem, 0.95rem + 0.4vw, 1.2rem);
-  --text-lg: clamp(1.2rem, 1.05rem + 0.5vw, 1.45rem);
-  --text-xl: clamp(1.45rem, 1.25rem + 0.8vw, 2rem);
-  --text-2xl: clamp(2rem, 1.6rem + 1.5vw, 2.7rem);
-  --text-hero: clamp(2.8rem, 2.2rem + 3vw, 4.4rem);
+  /* ★ 세리프 보정된 스케일 — 모두 한 단계 키움.
+     세리프 폰트는 산세리프 대비 같은 px에서 ~15% 작아 보이므로
+     최소값을 0.85rem(13.6px)로 끌어올려 수치 가독성 확보 */
+  --text-xs: clamp(0.82rem, 0.72rem + 0.25vw, 0.92rem);   /* 기존 0.625~0.75 → 상향 */
+  --text-sm: clamp(0.92rem, 0.82rem + 0.3vw, 1.05rem);
+  --text-base: clamp(1.02rem, 0.92rem + 0.3vw, 1.15rem);
+  --text-md: clamp(1.12rem, 1rem + 0.4vw, 1.28rem);
+  --text-lg: clamp(1.28rem, 1.12rem + 0.5vw, 1.55rem);
+  --text-xl: clamp(1.55rem, 1.35rem + 0.8vw, 2.1rem);
+  --text-2xl: clamp(2.1rem, 1.7rem + 1.5vw, 2.8rem);
+  --text-hero: clamp(2.9rem, 2.3rem + 3vw, 4.5rem);
 
   --weight-normal: 400;
   --weight-medium: 500;
