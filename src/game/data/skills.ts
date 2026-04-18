@@ -542,6 +542,74 @@ export const SKILLS: readonly SkillDef[] = [
     element: 'physical',
     rarity: 'epic',
   },
+  // -------------------------------------------------------------------------
+  // 조합 전용 (Craft-only) 스킬
+  // -------------------------------------------------------------------------
+  {
+    id: 'void_annihilation',
+    name: '허공 전멸',
+    description: '전체 적에게 공격력의 550% 어둠 피해. 그림자 타격과 전멸의 정수를 합쳤다.',
+    mpCost: 60,
+    cooldown: 6,
+    effects: [{ type: 'damage_all', element: 'dark', multiplier: 5.5 }],
+    element: 'dark',
+    rarity: 'legendary',
+  },
+  {
+    id: 'holy_inferno',
+    name: '성화 지옥불',
+    description: '전체 적에게 공격력의 300% 화염+빛 피해. 화상 2턴 부여 및 방어막 생성.',
+    mpCost: 65,
+    cooldown: 6,
+    effects: [
+      { type: 'damage_all', element: 'fire', multiplier: 1.5 },
+      { type: 'damage_all', element: 'light', multiplier: 1.5 },
+      { type: 'apply_status', status: 'burn', duration: 2, value: 20 },
+      { type: 'shield', amount: 1.5 },
+    ],
+    element: 'fire',
+    rarity: 'legendary',
+  },
+  {
+    id: 'storm_blade',
+    name: '폭풍 검기',
+    description: '단일 적에게 물리+수계 350% 2연격. 빙결 부여.',
+    mpCost: 45,
+    cooldown: 4,
+    effects: [
+      { type: 'damage', element: 'physical', multiplier: 1.75 },
+      { type: 'damage', element: 'water', multiplier: 1.75 },
+      { type: 'apply_status', status: 'freeze', duration: 1, value: 0 },
+    ],
+    element: 'physical',
+    rarity: 'legendary',
+  },
+  {
+    id: 'dark_heal',
+    name: '암흑 치유',
+    description: '단일 적에게 공격력의 200% 어둠 피해를 주고 가한 피해만큼 자신의 HP를 회복한다.',
+    mpCost: 50,
+    cooldown: 4,
+    effects: [
+      { type: 'damage', element: 'dark', multiplier: 2.0 },
+      { type: 'heal', multiplier: 2.0 },
+    ],
+    element: 'dark',
+    rarity: 'legendary',
+  },
+  {
+    id: 'berserker_rage',
+    name: '광전사의 분노',
+    description: 'HP가 낮을수록 강해지는 최대 공격력의 500% 물리 공격. 3턴간 공격력 100% 증가.',
+    mpCost: 40,
+    cooldown: 5,
+    effects: [
+      { type: 'damage_hp_scale', element: 'physical', baseMultiplier: 3.0 },
+      { type: 'apply_status', status: 'powerup', duration: 3, value: 100 },
+    ],
+    element: 'physical',
+    rarity: 'legendary',
+  },
 ]
 
 export function getSkillById(id: string): SkillDef | undefined {

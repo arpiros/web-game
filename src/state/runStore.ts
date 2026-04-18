@@ -12,6 +12,7 @@ import {
   startBattle,
   completeBattle,
   applyDraftChoice,
+  applyCraftChoice,
   handleDefeat,
 } from '../game/run'
 import { battleReducer } from '../game/combat'
@@ -49,6 +50,9 @@ export interface RunStore {
 
   /** 새 전투 시작 (draft → battle) */
   advanceToNextBattle: () => void
+
+  /** 조합(Craft) 수행 후 다음 전투로 바로 전환 */
+  craftAndAdvance: (recipeId: string) => void
 
   /** 런 초기화 (타이틀로 돌아가기) */
   resetRun: () => void
@@ -122,6 +126,14 @@ export const useRunStore = create<RunStore>((set, get) => ({
       rng: nextRng,
       run: { ...run, battleState },
     })
+  },
+
+  craftAndAdvance: (recipeId) => {
+    const { run } = get()
+    if (!run || run.phase !== 'draft') return
+
+    const newRun = applyCraftChoice(run, recipeId)
+    set({ run: newRun })
   },
 
   resetRun: () => {

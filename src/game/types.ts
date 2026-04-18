@@ -313,6 +313,21 @@ export interface RunState {
 }
 
 // ---------------------------------------------------------------------------
+// Craft (조합) System
+// ---------------------------------------------------------------------------
+
+export type CraftCategory = 'skill' | 'item'
+
+export interface CraftRecipe {
+  readonly id: EntityId
+  readonly name: string
+  readonly description: string
+  readonly category: CraftCategory
+  readonly ingredients: readonly [EntityId, EntityId]
+  readonly resultId: EntityId
+}
+
+// ---------------------------------------------------------------------------
 // Battle Actions (reducer 입력)
 // ---------------------------------------------------------------------------
 

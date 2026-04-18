@@ -212,6 +212,34 @@ export const ITEMS: readonly ItemDef[] = [
       { type: 'miss_immunity' },
     ],
   },
+  // ── 조합 전용 (Craft-only) 아이템 ────────────────────────────────────────
+  {
+    id: 'dragon_blade',
+    name: '용의 검',
+    description: '공격력이 60 증가하고 화염 속성 공격의 피해가 30% 증가한다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'stat_boost', stat: 'attack', amount: 60 },
+      { type: 'elemental_damage', element: 'fire', multiplier: 1.30 },
+    ],
+  },
+  {
+    id: 'immortal_armor',
+    name: '불사의 갑옷',
+    description: '방어력이 60 증가하고 전투 중 첫 사망 시 HP 1로 살아남는다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'stat_boost', stat: 'defense', amount: 60 },
+      { type: 'death_prevention' },
+    ],
+  },
+  {
+    id: 'archmage_tome',
+    name: '대마법사의 마법서',
+    description: '매 턴 MP를 20 회복한다.',
+    rarity: 'legendary',
+    effects: [{ type: 'mp_regen', amount: 20 }],
+  },
 ]
 
 export function getItemById(id: string): ItemDef | undefined {

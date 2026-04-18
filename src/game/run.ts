@@ -20,6 +20,8 @@ import { getEnemyById, getEnemyPoolForRound } from './data/enemies'
 import { getAllyById, ALLIES } from './data/allies'
 import { getItemById, ITEMS } from './data/items'
 import { SKILLS } from './data/skills'
+import { CRAFT_RESULT_IDS, RECIPES } from './data/recipes'
+import { applyCraft } from './craft'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -459,6 +461,65 @@ export function applyDraftChoice(runState: RunState, choiceIndex: number): RunSt
 }
 
 // ---------------------------------------------------------------------------
+// 조합(Craft) 선택
+// ---------------------------------------------------------------------------
+
+/**
+ * 레시피로 조합을 수행하고 바로 다음 전투 phase로 전환한다.
+ * 조합 1회 = 드래프트 보상 1회 포기이므로 draftOptions를 비운다.
+ */
+export function applyCraftChoice(runState: RunState, recipeId: string): RunState {
+  const recipe = RECIPES.find(r => r.id === recipeId)
+  if (!recipe) return runState
+
+  const { skillIds, itemIds } = applyCraft(
+    recipe,
+    runState.character.skillIds,
+    runState.acquiredItemIds,
+  )
+
+  let { character, acquiredItemIds } = runState
+
+  // stat_boost 아이템이 결과물인 경우 스탯 즉시 반영
+  if (recipe.category === 'item') {
+    const item = getItemById(recipe.resultId)
+    if (item) {
+      const stats = { ...character.stats }
+      let changed = false
+      for (const eff of item.effects) {
+        if (eff.type === 'stat_boost') {
+          changed = true
+          switch (eff.stat) {
+            case 'attack':  stats.attack  = stats.attack  + eff.amount; break
+            case 'defense': stats.defense = stats.defense + eff.amount; break
+            case 'speed':   stats.speed   = stats.speed   + eff.amount; break
+            case 'maxHp': {
+              stats.maxHp = stats.maxHp + eff.amount
+              stats.hp    = Math.min(stats.hp + eff.amount, stats.maxHp)
+              break
+            }
+          }
+        }
+      }
+      if (changed) {
+        character = { ...character, stats: stats as typeof character.stats }
+      }
+    }
+  }
+
+  character = { ...character, skillIds }
+  acquiredItemIds = itemIds as string[]
+
+  return {
+    ...runState,
+    phase: 'battle',
+    character,
+    acquiredItemIds,
+    draftOptions: [],
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 드래프트 옵션 생성
 // ---------------------------------------------------------------------------
 
@@ -502,8 +563,10 @@ export function generateDraftOptions(
   const ownedAllyIds = new Set(runState.allies.map(a => a.defId))
   const ownedItemIds = new Set(runState.acquiredItemIds)
 
-  // 획득 가능한 스킬 (이미 보유한 스킬 제외)
-  const availableSkills = SKILLS.filter(s => !ownedSkillIds.has(s.id))
+  // 획득 가능한 스킬 (이미 보유한 스킬 제외, 조합 전용 결과물 제외)
+  const availableSkills = SKILLS.filter(
+    s => !ownedSkillIds.has(s.id) && !CRAFT_RESULT_IDS.has(s.id),
+  )
 
   // 획득 가능한 동료 (이미 보유, 파티 풀인 경우 제외)
   const canAddAlly = runState.allies.length < MAX_ALLIES
@@ -511,8 +574,10 @@ export function generateDraftOptions(
     ? ALLIES.filter(a => !ownedAllyIds.has(a.id))
     : []
 
-  // 획득 가능한 아이템 (이미 보유한 아이템 제외)
-  const availableItems = ITEMS.filter(i => !ownedItemIds.has(i.id))
+  // 획득 가능한 아이템 (이미 보유한 아이템 제외, 조합 전용 결과물 제외)
+  const availableItems = ITEMS.filter(
+    i => !ownedItemIds.has(i.id) && !CRAFT_RESULT_IDS.has(i.id),
+  )
 
   // 전체 후보풀 구성 (DraftOption 형식)
   const pool: DraftOption[] = [

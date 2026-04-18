@@ -1,8 +1,9 @@
-import type React from 'react'
-import type { DraftOption, SkillDef, AllyDef, ItemDef, Rarity, Element, AllyAction } from '../game/types'
-import { getSkillById } from '../game/data/skills'
+import React, { useState } from 'react'
+import type { DraftOption, SkillDef, AllyDef, ItemDef, CraftRecipe, Rarity, Element, AllyAction } from '../game/types'
+import { getSkillById, SKILLS } from '../game/data/skills'
 import { getAllyById } from '../game/data/allies'
 import { getItemById } from '../game/data/items'
+import { getAvailableRecipes } from '../game/craft'
 import { useRunStore } from '../state/runStore'
 
 // ---------------------------------------------------------------------------
@@ -43,10 +44,15 @@ const RARITY_LABELS: Record<Rarity, string> = {
 // DraftScreen
 // ---------------------------------------------------------------------------
 
+type DraftTab = 'reward' | 'craft'
+
 export function DraftScreen() {
   const run                = useRunStore(s => s.run)
   const selectDraft        = useRunStore(s => s.selectDraft)
   const advanceToNextBattle = useRunStore(s => s.advanceToNextBattle)
+  const craftAndAdvance    = useRunStore(s => s.craftAndAdvance)
+
+  const [tab, setTab] = useState<DraftTab>('reward')
 
   if (!run || run.phase !== 'draft') return null
 
@@ -54,6 +60,13 @@ export function DraftScreen() {
     selectDraft(index)
     advanceToNextBattle()
   }
+
+  function handleCraft(recipeId: string) {
+    craftAndAdvance(recipeId)
+    advanceToNextBattle()
+  }
+
+  const recipes = getAvailableRecipes(run.character.skillIds, run.acquiredItemIds)
 
   return (
     <div style={{
@@ -63,7 +76,7 @@ export function DraftScreen() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: 'var(--space-8)',
-      gap: 'var(--space-8)',
+      gap: 'var(--space-6)',
     }}>
       {/* 헤더 */}
       <div style={{ textAlign: 'center' }}>
@@ -82,7 +95,7 @@ export function DraftScreen() {
           color: 'var(--color-accent)',
           margin: 0,
         }}>
-          보상을 선택하세요
+          {tab === 'reward' ? '보상을 선택하세요' : '아이템 조합'}
         </h2>
         <p style={{
           marginTop: 'var(--space-2)',
@@ -94,24 +107,265 @@ export function DraftScreen() {
         </p>
       </div>
 
-      {/* 카드 3장 */}
+      {/* 탭 */}
       <div style={{
         display: 'flex',
-        gap: 'var(--space-6)',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
+        gap: 0,
+        border: '1px solid var(--color-border-default)',
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
       }}>
-        {run.draftOptions.map((opt, i) => (
-          <DraftCard
-            key={i}
-            option={opt}
-            index={i}
-            onSelect={handleSelect}
-            ownedSkillIds={run.character.skillIds}
-            ownedItemIds={run.acquiredItemIds}
-          />
-        ))}
+        <TabButton active={tab === 'reward'} onClick={() => setTab('reward')}>
+          보상 선택
+        </TabButton>
+        <TabButton active={tab === 'craft'} onClick={() => setTab('craft')}>
+          아이템 조합
+          {recipes.length > 0 && (
+            <span style={{
+              marginLeft: 'var(--space-2)',
+              fontSize: '10px',
+              padding: '1px 5px',
+              background: 'var(--color-accent)',
+              color: 'oklch(15% 0 0)',
+              borderRadius: '99px',
+              fontWeight: 'var(--weight-bold)',
+            }}>
+              {recipes.length}
+            </span>
+          )}
+        </TabButton>
       </div>
+
+      {/* 탭 내용 */}
+      {tab === 'reward' ? (
+        <div style={{
+          display: 'flex',
+          gap: 'var(--space-6)',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}>
+          {run.draftOptions.map((opt, i) => (
+            <DraftCard
+              key={i}
+              option={opt}
+              index={i}
+              onSelect={handleSelect}
+              ownedSkillIds={run.character.skillIds}
+              ownedItemIds={run.acquiredItemIds}
+            />
+          ))}
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--space-4)',
+          width: '100%',
+          maxWidth: '760px',
+        }}>
+          {recipes.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              color: 'var(--color-text-muted)',
+              fontSize: 'var(--text-sm)',
+              padding: 'var(--space-8)',
+            }}>
+              <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-3)' }}>⚗️</div>
+              <div>조합 가능한 레시피가 없습니다.</div>
+              <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
+                스킬이나 아이템을 더 모아보세요.
+              </div>
+            </div>
+          ) : (
+            recipes.map(recipe => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                ownedSkillIds={run.character.skillIds}
+                ownedItemIds={run.acquiredItemIds}
+                onCraft={() => handleCraft(recipe.id)}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabButton
+// ---------------------------------------------------------------------------
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: 'var(--space-2) var(--space-5)',
+        background: active ? 'var(--color-bg-elevated)' : 'transparent',
+        color: active ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: 'var(--text-sm)',
+        fontWeight: active ? 'var(--weight-semibold)' : 'var(--weight-normal)',
+        display: 'flex',
+        alignItems: 'center',
+        transition: 'background var(--duration-fast), color var(--duration-fast)',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// RecipeCard
+// ---------------------------------------------------------------------------
+
+interface RecipeCardProps {
+  recipe: CraftRecipe
+  ownedSkillIds: readonly string[]
+  ownedItemIds: readonly string[]
+  onCraft: () => void
+}
+
+function getEntityName(id: string): { name: string; type: 'skill' | 'item' } {
+  const skill = SKILLS.find(s => s.id === id)
+  if (skill) return { name: skill.name, type: 'skill' }
+  const item = getItemById(id)
+  if (item) return { name: item.name, type: 'item' }
+  return { name: id, type: 'item' }
+}
+
+function RecipeCard({ recipe, onCraft }: RecipeCardProps) {
+  const [a, b] = recipe.ingredients
+  const entityA = getEntityName(a)
+  const entityB = getEntityName(b)
+
+  const resultSkill = recipe.category === 'skill' ? SKILLS.find(s => s.id === recipe.resultId) : null
+  const resultItem  = recipe.category === 'item'  ? getItemById(recipe.resultId) : null
+  const resultRarity: Rarity = (resultSkill?.rarity ?? resultItem?.rarity ?? 'legendary')
+  const resultName   = resultSkill?.name ?? resultItem?.name ?? recipe.resultId
+  const resultDesc   = resultSkill?.description ?? resultItem?.description ?? ''
+  const rarityColor  = RARITY_COLORS[resultRarity]
+
+  return (
+    <div style={{
+      width: '100%',
+      background: 'var(--color-bg-surface)',
+      border: `1px solid var(--color-border-subtle)`,
+      borderLeft: `3px solid ${rarityColor}`,
+      borderRadius: 'var(--radius-lg)',
+      padding: 'var(--space-5)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 'var(--space-5)',
+    }}>
+      {/* 재료 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)',
+        flex: 1,
+        minWidth: 0,
+      }}>
+        <IngredientChip label={entityA.name} type={entityA.type} />
+        <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', flexShrink: 0 }}>+</span>
+        <IngredientChip label={entityB.name} type={entityB.type} />
+        <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xl)', flexShrink: 0 }}>→</span>
+        {/* 결과물 */}
+        <div style={{ minWidth: 0 }}>
+          <span style={{
+            fontSize: 'var(--text-xs)',
+            color: rarityColor,
+            fontWeight: 'var(--weight-semibold)',
+            display: 'block',
+            marginBottom: '2px',
+          }}>
+            {RARITY_LABELS[resultRarity]} {recipe.category === 'skill' ? '스킬' : '아이템'}
+          </span>
+          <div style={{
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--weight-bold)',
+            color: 'var(--color-text-primary)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {resultName}
+          </div>
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+            marginTop: '2px',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical' as const,
+            overflow: 'hidden',
+          }}>
+            {resultDesc}
+          </div>
+        </div>
+      </div>
+
+      {/* 조합 버튼 */}
+      <button
+        onClick={onCraft}
+        style={{
+          flexShrink: 0,
+          padding: 'var(--space-2) var(--space-5)',
+          background: `color-mix(in oklch, ${rarityColor} 18%, transparent)`,
+          border: `1px solid color-mix(in oklch, ${rarityColor} 50%, transparent)`,
+          borderRadius: 'var(--radius-md)',
+          color: rarityColor,
+          fontWeight: 'var(--weight-semibold)',
+          fontSize: 'var(--text-sm)',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          transition: 'background var(--duration-fast)',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLButtonElement).style.background =
+            `color-mix(in oklch, ${rarityColor} 30%, transparent)`
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLButtonElement).style.background =
+            `color-mix(in oklch, ${rarityColor} 18%, transparent)`
+        }}
+      >
+        조합하기
+      </button>
+    </div>
+  )
+}
+
+function IngredientChip({ label, type }: { label: string; type: 'skill' | 'item' }) {
+  const color = type === 'skill' ? 'var(--color-element-dark)' : 'var(--color-rarity-rare)'
+  return (
+    <div style={{
+      padding: '3px var(--space-3)',
+      border: `1px solid color-mix(in oklch, ${color} 40%, transparent)`,
+      borderRadius: 'var(--radius-sm)',
+      background: `color-mix(in oklch, ${color} 12%, transparent)`,
+      fontSize: 'var(--text-xs)',
+      color: 'var(--color-text-secondary)',
+      fontWeight: 'var(--weight-medium)',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      maxWidth: '110px',
+    }}>
+      {label}
     </div>
   )
 }
