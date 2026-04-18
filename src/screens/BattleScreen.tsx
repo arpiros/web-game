@@ -119,12 +119,12 @@ function DamagePopup({ popup, battleSpeed }: { popup: PopupEntry; battleSpeed: n
       fontWeight: 'var(--weight-bold)',
       fontSize: isCrit ? 'var(--text-lg)' : 'var(--text-sm)',
       pointerEvents: 'none',
-      animation: `popup-float ${Math.round(1000 / battleSpeed)}ms ease-out forwards`,
+      animation: `${isCrit ? 'popup-float-crit' : 'popup-float'} ${Math.round(1000 / battleSpeed)}ms ease-out forwards`,
       textShadow: '0 1px 4px oklch(0% 0 0 / 0.8)',
       whiteSpace: 'nowrap',
       zIndex: 10,
     }}>
-      {popup.text}
+      {isCrit ? `★ ${popup.text}` : popup.text}
     </div>
   )
 }
@@ -136,6 +136,7 @@ function DamagePopup({ popup, battleSpeed }: { popup: PopupEntry; battleSpeed: n
 interface AnimationState {
   shakingIds: ReadonlySet<string>
   dyingIds: ReadonlySet<string>
+  flashingIds: ReadonlySet<string>
   popups: PopupEntry[]
 }
 
@@ -143,11 +144,13 @@ function useBattleAnimations(
   bs: { log: readonly BattleLogEntry[]; enemies: readonly BattleEnemy[] } | null | undefined,
   battleSpeed: number,
 ): AnimationState {
-  const [shakingIds, setShakingIds] = useState<Set<string>>(new Set())
-  const [dyingIds, setDyingIds]     = useState<Set<string>>(new Set())
-  const [popups, setPopups]         = useState<PopupEntry[]>([])
+  const [shakingIds, setShakingIds]   = useState<Set<string>>(new Set())
+  const [dyingIds, setDyingIds]       = useState<Set<string>>(new Set())
+  const [flashingIds, setFlashingIds] = useState<Set<string>>(new Set())
+  const [popups, setPopups]           = useState<PopupEntry[]>([])
   const prevLogLen    = useRef<number | null>(null)
   const shakeTimers   = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const flashTimers   = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const popupTimers   = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const dyingRef      = useRef(new Set<string>())
 
@@ -179,14 +182,25 @@ function useBattleAnimations(
       } else if ((entry.kind === 'damage' || entry.kind === 'crit') && entry.targetId) {
         const id = entry.targetId
         if (!dyingRef.current.has(id)) {
+          // Shake
           const existing = shakeTimers.current.get(id)
           if (existing) clearTimeout(existing)
           setShakingIds(prev => new Set([...prev, id]))
-          const t = setTimeout(() => {
+          const st = setTimeout(() => {
             setShakingIds(prev => { const next = new Set(prev); next.delete(id); return next })
             shakeTimers.current.delete(id)
           }, Math.round(300 / battleSpeed))
-          shakeTimers.current.set(id, t)
+          shakeTimers.current.set(id, st)
+
+          // Hit flash
+          const existingFlash = flashTimers.current.get(id)
+          if (existingFlash) clearTimeout(existingFlash)
+          setFlashingIds(prev => new Set([...prev, id]))
+          const ft = setTimeout(() => {
+            setFlashingIds(prev => { const next = new Set(prev); next.delete(id); return next })
+            flashTimers.current.delete(id)
+          }, Math.round(200 / battleSpeed))
+          flashTimers.current.set(id, ft)
         }
       }
 
@@ -227,11 +241,12 @@ function useBattleAnimations(
   useEffect(() => {
     return () => {
       shakeTimers.current.forEach(t => clearTimeout(t))
+      flashTimers.current.forEach(t => clearTimeout(t))
       popupTimers.current.forEach(t => clearTimeout(t))
     }
   }, [])
 
-  return { shakingIds, dyingIds, popups }
+  return { shakingIds, dyingIds, flashingIds, popups }
 }
 
 // ---------------------------------------------------------------------------
@@ -254,7 +269,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   const isPlayerTurn = bs?.phase === 'player_turn'
   const isEnding     = bs?.phase === 'victory' || bs?.phase === 'defeat'
 
-  const { shakingIds, dyingIds, popups } = useBattleAnimations(bs, battleSpeed)
+  const { shakingIds, dyingIds, flashingIds, popups } = useBattleAnimations(bs, battleSpeed)
 
   useEffect(() => {
     if (!bs) return
@@ -387,6 +402,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
                 party={[...bs.party, ...bs.allies]}
                 isShaking={shakingIds.has(enemy.id)}
                 isDying={dyingIds.has(enemy.id)}
+                isFlashing={flashingIds.has(enemy.id)}
                 battleSpeed={battleSpeed}
               />
             ))}
@@ -416,6 +432,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
             entity={character}
             isShaking={shakingIds.has(character.id)}
             isDying={dyingIds.has(character.id)}
+            isFlashing={flashingIds.has(character.id)}
             battleSpeed={battleSpeed}
           />
           {bs.allies.map(ally => (
@@ -425,6 +442,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
               isAlly
               isShaking={shakingIds.has(ally.id)}
               isDying={dyingIds.has(ally.id)}
+              isFlashing={flashingIds.has(ally.id)}
               battleSpeed={battleSpeed}
             />
           ))}
@@ -620,13 +638,14 @@ function EnemyIntentBadge({ action, enemy, party }: {
 // EnemyCard
 // ---------------------------------------------------------------------------
 
-function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, battleSpeed }: {
+function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, isFlashing, battleSpeed }: {
   enemy: BattleEnemy
   isTargetable: boolean
   onClick: () => void
   party: readonly PartyMember[]
   isShaking: boolean
   isDying: boolean
+  isFlashing: boolean
   battleSpeed: number
 }) {
   const hpRatio = enemy.stats.maxHp > 0
@@ -638,7 +657,9 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, ba
   const animStyle: React.CSSProperties = isDying
     ? { animation: `entity-death-fadeout ${Math.round(600 / battleSpeed)}ms ease-out forwards`, opacity: undefined, transition: 'none' }
     : isShaking
-    ? { animation: `entity-shake ${Math.round(300 / battleSpeed)}ms ease-out` }
+    ? { animation: `entity-shake ${Math.round(300 / battleSpeed)}ms ease-out${isFlashing ? `, entity-hit-flash ${Math.round(200 / battleSpeed)}ms ease-out` : ''}` }
+    : isFlashing
+    ? { animation: `entity-hit-flash ${Math.round(200 / battleSpeed)}ms ease-out` }
     : {}
 
   return (
@@ -765,9 +786,9 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, ba
 
 type PartyEntity = BattleCharacter | BattleAlly
 
-function PartyMemberCard({ entity, isAlly, isShaking, isDying, battleSpeed }: {
+function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battleSpeed }: {
   entity: PartyEntity; isAlly?: boolean
-  isShaking: boolean; isDying: boolean; battleSpeed: number
+  isShaking: boolean; isDying: boolean; isFlashing: boolean; battleSpeed: number
 }) {
   const hpRatio  = entity.stats.maxHp > 0
     ? Math.max(0, entity.stats.hp / entity.stats.maxHp)
@@ -778,7 +799,9 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, battleSpeed }: {
   const animStyle: React.CSSProperties = isDying
     ? { animation: `entity-death-fadeout ${Math.round(600 / battleSpeed)}ms ease-out forwards`, opacity: undefined, transition: 'none' }
     : isShaking
-    ? { animation: `entity-shake ${Math.round(300 / battleSpeed)}ms ease-out` }
+    ? { animation: `entity-shake ${Math.round(300 / battleSpeed)}ms ease-out${isFlashing ? `, entity-hit-flash ${Math.round(200 / battleSpeed)}ms ease-out` : ''}` }
+    : isFlashing
+    ? { animation: `entity-hit-flash ${Math.round(200 / battleSpeed)}ms ease-out` }
     : {}
 
   return (
