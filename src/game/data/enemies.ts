@@ -229,6 +229,57 @@ export const ENEMIES: readonly EnemyDef[] = [
   },
 ]
 
+// ---------------------------------------------------------------------------
+// 엘리트 적 (라운드 3, 5에 등장 — 일반 적보다 강하고 보스보다 약함)
+// ---------------------------------------------------------------------------
+
+export const ELITE_ENEMIES: readonly EnemyDef[] = [
+  {
+    id: 'iron_golem',
+    name: '강철 골렘',
+    description: '마법으로 단조된 철의 거인. 두꺼운 방어를 뚫기 어렵다.',
+    element: 'physical',
+    tier: 'elite',
+    baseStats: { maxHp: 1100, attack: 160, defense: 100, speed: 40 },
+    actions: [
+      { type: 'attack', element: 'physical', multiplier: 1.8, targetMode: 'highest_attack' },
+      { type: 'attack_all', element: 'physical', multiplier: 1.0 },
+      { type: 'buff_self', status: 'powerup', duration: 2, value: 50 },
+    ],
+    lore: '고대 연금술사가 만든 무적의 철 수호자. 한 번 명령을 받으면 멈추지 않는다.',
+  },
+  {
+    id: 'shadow_stalker',
+    name: '암흑 추적자',
+    description: '어둠 속에서 나타나 급소를 노리는 암살자.',
+    element: 'dark',
+    tier: 'elite',
+    baseStats: { maxHp: 950, attack: 190, defense: 55, speed: 130 },
+    actions: [
+      { type: 'attack', element: 'dark', multiplier: 2.0, targetMode: 'lowest_hp' },
+      { type: 'apply_status', status: 'poison', duration: 3, value: 12, targetMode: 'random' },
+      { type: 'apply_status', status: 'defdown', duration: 2, value: 40, targetMode: 'random' },
+      { type: 'attack', element: 'physical', multiplier: 1.6, targetMode: 'highest_attack' },
+    ],
+    lore: '빛이 닿지 않는 곳에서 태어났다. 먹이가 약해지는 순간을 기다린다.',
+  },
+  {
+    id: 'volcanic_wyvern',
+    name: '화산 와이번',
+    description: '화산의 열기를 몸에 두른 날개 달린 파충류.',
+    element: 'fire',
+    tier: 'elite',
+    baseStats: { maxHp: 1050, attack: 180, defense: 70, speed: 85 },
+    actions: [
+      { type: 'attack_all', element: 'fire', multiplier: 1.2 },
+      { type: 'apply_status', status: 'burn', duration: 3, value: 20, targetMode: 'all' },
+      { type: 'attack', element: 'fire', multiplier: 2.2, targetMode: 'random' },
+      { type: 'heal_self', multiplier: 0.5 },
+    ],
+    lore: '화산 심층에서 서식하는 아룡. 화염 브레스로 적을 소각시킨다.',
+  },
+]
+
 // 라운드에 따른 적 선택 (낮은 라운드 = 약한 적)
 const EARLY_ENEMY_IDS = ['goblin', 'fire_imp', 'shadow_wolf', 'skeleton_archer']
 const MID_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'cursed_knight', 'demon_mage', 'flame_phoenix', 'dark_vampire']
@@ -244,6 +295,10 @@ export function getEnemyPoolForRound(round: number): readonly EnemyDef[] {
   return ENEMIES.filter(e => MID_ENEMY_IDS.includes(e.id) || LATE_ENEMY_IDS.includes(e.id))
 }
 
+export function getEliteEnemyPool(): readonly EnemyDef[] {
+  return ELITE_ENEMIES
+}
+
 export function getEnemyById(id: string): EnemyDef | undefined {
-  return ENEMIES.find(e => e.id === id)
+  return ENEMIES.find(e => e.id === id) ?? ELITE_ENEMIES.find(e => e.id === id)
 }

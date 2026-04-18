@@ -3,6 +3,7 @@ import { useRunStore } from './state/runStore'
 import { CharacterSelectScreen } from './screens/CharacterSelectScreen'
 import { BattleScreen } from './screens/BattleScreen'
 import { DraftScreen } from './screens/DraftScreen'
+import { EventScreen } from './screens/EventScreen'
 import { ResultScreen } from './screens/ResultScreen'
 
 function App() {
@@ -44,6 +45,14 @@ function App() {
           onBattleVictory={onBattleVictory}
           onBattleDefeat={onBattleDefeat}
         />
+      </main>
+    )
+  }
+
+  if (run.phase === 'event') {
+    return (
+      <main style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <EventScreen />
       </main>
     )
   }

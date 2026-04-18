@@ -102,6 +102,8 @@ export interface CharacterDef {
   readonly startingSkillIds: readonly EntityId[]
   readonly element: Element
   readonly lore: string
+  /** 캐릭터별 드래프트 가중치. 스킬/아이템/동료 ID → 가중치 (기본 1). 높을수록 더 자주 등장. */
+  readonly draftWeights?: Readonly<Record<string, number>>
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +184,7 @@ export interface EnemyDef {
   readonly actions: readonly EnemyActionPattern[]  // 순환하여 사용
   readonly element: Element
   readonly lore: string
+  readonly tier?: 'normal' | 'elite' | 'boss'
   readonly isBoss?: boolean
   readonly bossPhases?: BossPhases
 }
@@ -233,6 +236,7 @@ export interface BattleEnemy {
   readonly isAlive: boolean
   readonly statusEffects: readonly StatusEffect[]
   readonly isBoss?: boolean
+  readonly isElite?: boolean
   readonly bossPhases?: BossPhases
   readonly bossCurrentPhase?: 1 | 2 | 3
 }
@@ -290,7 +294,7 @@ export interface BattleState {
 // Run State (전체 게임 런)
 // ---------------------------------------------------------------------------
 
-export type RunPhase = 'battle' | 'draft' | 'result'
+export type RunPhase = 'battle' | 'draft' | 'event' | 'result'
 
 export interface RunState {
   readonly phase: RunPhase
@@ -303,6 +307,7 @@ export interface RunState {
   readonly totalDamage: number
   readonly draftOptions: readonly DraftOption[]
   readonly isVictory?: boolean     // result phase 전환 시 승리/패배 구분
+  readonly currentEventId?: string // event phase에서 진행 중인 이벤트 ID
   // 누적 통계
   readonly maxSingleDamage: number
   readonly critCount: number
@@ -310,6 +315,32 @@ export interface RunState {
   readonly totalHealing: number
   readonly totalTurns: number
   readonly skillUseCounts: Readonly<Record<string, number>>
+}
+
+// ---------------------------------------------------------------------------
+// Event System
+// ---------------------------------------------------------------------------
+
+export type EventEffect =
+  | { readonly type: 'heal_hp'; readonly percent: number }
+  | { readonly type: 'gain_skill'; readonly rarity: Rarity }
+  | { readonly type: 'gain_item'; readonly rarity: Rarity }
+  | { readonly type: 'stat_change'; readonly stat: 'maxHp' | 'attack' | 'defense'; readonly amount: number }
+  | { readonly type: 'nothing' }
+
+export interface EventChoice {
+  readonly id: string
+  readonly label: string
+  readonly description: string
+  readonly effects: readonly EventEffect[]
+}
+
+export interface EventDef {
+  readonly id: string
+  readonly name: string
+  readonly flavor: string          // 분위기 문구
+  readonly description: string
+  readonly choices: readonly [EventChoice, EventChoice]
 }
 
 // ---------------------------------------------------------------------------

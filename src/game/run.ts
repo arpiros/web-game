@@ -12,16 +12,18 @@ import type {
   BattleLogEntry,
   DraftOption,
   Stats,
+  CharacterDef,
 } from './types'
 import type { RngState } from './rng'
 import { pickN, pickNWeighted } from './rng'
 import { getCharacterById } from './data/characters'
-import { getEnemyById, getEnemyPoolForRound } from './data/enemies'
+import { getEnemyById, getEnemyPoolForRound, getEliteEnemyPool } from './data/enemies'
 import { getAllyById, ALLIES } from './data/allies'
 import { getItemById, ITEMS } from './data/items'
 import { SKILLS } from './data/skills'
 import { CRAFT_RESULT_IDS, RECIPES } from './data/recipes'
 import { applyCraft } from './craft'
+import { EVENTS, getEventById } from './data/events'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -43,6 +45,15 @@ const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
 
 /** 라운드 7은 항상 dragon_lord */
 const BOSS_ENEMY_ID = 'dragon_lord'
+
+/** 엘리트 적이 등장하는 라운드 */
+const ELITE_ROUNDS = new Set([3, 5])
+
+/** 이벤트가 등장하는 라운드 (전투 완료 후 드래프트 전) */
+const EVENT_ROUNDS = new Set([2, 4])
+
+/** 엘리트 스탯 배율 (라운드 스케일링 위에 추가 적용) */
+const ELITE_STAT_MULTIPLIER = 1.5
 
 // ---------------------------------------------------------------------------
 // Character → BattleCharacter
@@ -144,6 +155,7 @@ export function createBattleEnemy(
   enemyDefId: string,
   round: number,
   index: number,
+  isElite = false,
 ): BattleEnemy {
   const def = getEnemyById(enemyDefId)
   if (!def) {
@@ -151,13 +163,16 @@ export function createBattleEnemy(
   }
 
   // 라운드가 높을수록 스탯 강화 (10% per round after round 1)
-  const scale = 1 + (round - 1) * 0.1
+  const roundScale = 1 + (round - 1) * 0.1
+  // 엘리트는 라운드 스케일 위에 추가 배율 적용
+  const scale = isElite ? roundScale * ELITE_STAT_MULTIPLIER : roundScale
 
   return {
     id: `enemy-${index}`,
     defId: def.id,
     name: def.name,
     isBoss: def.isBoss,
+    isElite,
     stats: {
       maxHp:   Math.floor(def.baseStats.maxHp  * scale),
       hp:      Math.floor(def.baseStats.maxHp  * scale),
@@ -225,6 +240,21 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
   if (round === MAX_ROUNDS) {
     // 보스전
     enemies = [createBattleEnemy(BOSS_ENEMY_ID, round, 0)]
+  } else if (ELITE_ROUNDS.has(round)) {
+    // 엘리트 라운드: 엘리트 1마리 + 나머지 일반 적
+    const elitePool = getEliteEnemyPool()
+    const [pickedElites, rng2] = pickN(currentRng, elitePool, 1)
+    currentRng = rng2
+
+    const normalCount = enemyCount - 1
+    const normalPool = getEnemyPoolForRound(round)
+    const [pickedNormals, rng3] = pickN(currentRng, normalPool, Math.min(normalCount, normalPool.length))
+    currentRng = rng3
+
+    enemies = [
+      createBattleEnemy(pickedElites[0].id, round, 0, true),
+      ...pickedNormals.map((def, i) => createBattleEnemy(def.id, round, i + 1)),
+    ]
   } else {
     const pool = getEnemyPoolForRound(round)
     const [picked, nextRng] = pickN(currentRng, pool, Math.min(enemyCount, pool.length))
@@ -275,6 +305,13 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
       text: `라운드 ${round} 시작!`,
     },
   ]
+  if (ELITE_ROUNDS.has(round)) {
+    startLog.push({
+      id: `log-elite-${round}`,
+      kind: 'system',
+      text: '⚔ 엘리트 조우! 강적이 나타났다. 처치 시 추가 보상을 획득한다.',
+    })
+  }
   if (hasDeathPrevention) {
     startLog.push({
       id: `log-undying-${round}`,
@@ -368,8 +405,12 @@ export function completeBattle(
     ]
   }
 
+  // 엘리트 처치 시 추가 드래프트 옵션 +1
+  const hadElite = battleState.enemies.some(e => e.isElite)
+  const draftCount = hadElite ? DRAFT_COUNT + 1 : DRAFT_COUNT
+
   // 드래프트 옵션 생성
-  const [draftOptions, nextRng] = generateDraftOptions(runState, rng)
+  const [draftOptions, nextRng] = generateDraftOptions(runState, rng, draftCount)
 
   // 전투 클리어 보상: 최대 HP의 25% 회복
   const VICTORY_HEAL_RATIO = 0.25
@@ -383,12 +424,33 @@ export function completeBattle(
     },
   }
 
+  const nextRound = runState.round + 1
+
+  // 이벤트 라운드 전환: 드래프트 전에 이벤트 화면 삽입
+  if (EVENT_ROUNDS.has(runState.round)) {
+    const [pickedEvents, eventRng] = pickN(nextRng, EVENTS, 1)
+    const eventId = pickedEvents[0].id
+    return [
+      {
+        ...runState,
+        ...stats,
+        phase: 'event',
+        round: nextRound,
+        character: healedCharacter,
+        battleState: null,
+        draftOptions,
+        currentEventId: eventId,
+      },
+      eventRng,
+    ]
+  }
+
   return [
     {
       ...runState,
       ...stats,
       phase: 'draft',
-      round: runState.round + 1,
+      round: nextRound,
       character: healedCharacter,
       battleState: null,
       draftOptions,
@@ -520,6 +582,116 @@ export function applyCraftChoice(runState: RunState, recipeId: string): RunState
 }
 
 // ---------------------------------------------------------------------------
+// 이벤트 선택 적용
+// ---------------------------------------------------------------------------
+
+export function applyEventChoice(
+  runState: RunState,
+  choiceId: string,
+  rng: RngState,
+): [RunState, RngState] {
+  const event = runState.currentEventId ? getEventById(runState.currentEventId) : undefined
+  if (!event) {
+    return [{ ...runState, phase: 'draft', currentEventId: undefined }, rng]
+  }
+
+  const choice = event.choices.find(c => c.id === choiceId)
+  if (!choice) {
+    return [{ ...runState, phase: 'draft', currentEventId: undefined }, rng]
+  }
+
+  let { character, acquiredItemIds } = runState
+  let currentRng = rng
+
+  for (const effect of choice.effects) {
+    switch (effect.type) {
+      case 'heal_hp': {
+        const healAmount = Math.floor(character.stats.maxHp * effect.percent)
+        character = {
+          ...character,
+          stats: {
+            ...character.stats,
+            hp: Math.min(character.stats.maxHp, character.stats.hp + healAmount),
+          },
+        }
+        break
+      }
+      case 'stat_change': {
+        const stats = { ...character.stats }
+        switch (effect.stat) {
+          case 'attack':  stats.attack  = Math.max(1, stats.attack  + effect.amount); break
+          case 'defense': stats.defense = Math.max(0, stats.defense + effect.amount); break
+          case 'maxHp': {
+            const newMaxHp = Math.max(1, stats.maxHp + effect.amount)
+            stats.maxHp = newMaxHp
+            stats.hp = Math.max(1, Math.min(stats.hp, newMaxHp))
+            break
+          }
+        }
+        character = { ...character, stats: stats as typeof character.stats }
+        break
+      }
+      case 'gain_skill': {
+        const ownedSkillIds = new Set(character.skillIds)
+        const pool = SKILLS.filter(
+          s => s.rarity === effect.rarity && !ownedSkillIds.has(s.id)
+        )
+        if (pool.length > 0) {
+          const [picked, nextRng] = pickN(currentRng, pool, 1)
+          currentRng = nextRng
+          character = { ...character, skillIds: [...character.skillIds, picked[0].id] }
+        }
+        break
+      }
+      case 'gain_item': {
+        const pool = ITEMS.filter(i => i.rarity === effect.rarity)
+        if (pool.length > 0) {
+          const [picked, nextRng] = pickN(currentRng, pool, 1)
+          currentRng = nextRng
+          const item = picked[0]
+          acquiredItemIds = [...acquiredItemIds, item.id]
+          // stat_boost 즉시 반영
+          const stats = { ...character.stats }
+          let changed = false
+          for (const eff of item.effects) {
+            if (eff.type === 'stat_boost') {
+              changed = true
+              switch (eff.stat) {
+                case 'attack':  stats.attack  = stats.attack  + eff.amount; break
+                case 'defense': stats.defense = stats.defense + eff.amount; break
+                case 'speed':   stats.speed   = stats.speed   + eff.amount; break
+                case 'maxHp': {
+                  stats.maxHp = stats.maxHp + eff.amount
+                  stats.hp    = Math.min(stats.hp + eff.amount, stats.maxHp)
+                  break
+                }
+              }
+            }
+          }
+          if (changed) {
+            character = { ...character, stats: stats as typeof character.stats }
+          }
+        }
+        break
+      }
+      case 'nothing':
+        break
+    }
+  }
+
+  return [
+    {
+      ...runState,
+      phase: 'draft',
+      character,
+      acquiredItemIds,
+      currentEventId: undefined,
+    },
+    currentRng,
+  ]
+}
+
+// ---------------------------------------------------------------------------
 // 드래프트 옵션 생성
 // ---------------------------------------------------------------------------
 
@@ -538,18 +710,25 @@ const ELEMENT_AFFINITY: Readonly<Record<string, readonly string[]>> = {
 
 function getDraftWeight(
   option: DraftOption,
-  characterElement: string,
+  characterDef: CharacterDef,
 ): number {
-  const affinity = ELEMENT_AFFINITY[characterElement] ?? [characterElement]
+  const affinity = ELEMENT_AFFINITY[characterDef.element] ?? [characterDef.element]
+  const weights = characterDef.draftWeights ?? {}
 
   if (option.type === 'skill') {
+    if (weights[option.skillId] !== undefined) return weights[option.skillId]
     const skill = SKILLS.find(s => s.id === option.skillId)
     if (skill && affinity.includes(skill.element)) return ELEMENT_MATCH_WEIGHT
   }
 
   if (option.type === 'ally') {
+    if (weights[option.allyId] !== undefined) return weights[option.allyId]
     const ally = ALLIES.find(a => a.id === option.allyId)
     if (ally && affinity.includes(ally.element)) return ELEMENT_MATCH_WEIGHT
+  }
+
+  if (option.type === 'item') {
+    if (weights[option.itemId] !== undefined) return weights[option.itemId]
   }
 
   return 1
@@ -558,6 +737,7 @@ function getDraftWeight(
 export function generateDraftOptions(
   runState: RunState,
   rng: RngState,
+  count = DRAFT_COUNT,
 ): [DraftOption[], RngState] {
   const ownedSkillIds = new Set(runState.character.skillIds)
   const ownedAllyIds = new Set(runState.allies.map(a => a.defId))
@@ -590,10 +770,10 @@ export function generateDraftOptions(
     return [[], rng]
   }
 
-  const characterElement = runState.character.element
-  const weights = pool.map(option => getDraftWeight(option, characterElement))
+  const characterDef = getCharacterById(runState.character.defId) ?? { element: runState.character.element, draftWeights: {} } as CharacterDef
+  const weights = pool.map(option => getDraftWeight(option, characterDef))
 
-  const [picked, nextRng] = pickNWeighted(rng, pool, weights, Math.min(DRAFT_COUNT, pool.length))
+  const [picked, nextRng] = pickNWeighted(rng, pool, weights, Math.min(count, pool.length))
   return [picked, nextRng]
 }
 

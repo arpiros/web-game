@@ -4,6 +4,7 @@ import { getSkillById, SKILLS } from '../game/data/skills'
 import { getAllyById } from '../game/data/allies'
 import { getItemById } from '../game/data/items'
 import { getAvailableRecipes } from '../game/craft'
+import { SYNERGIES, type Synergy } from '../game/synergy'
 import { useRunStore } from '../state/runStore'
 
 // ---------------------------------------------------------------------------
@@ -55,6 +56,20 @@ export function DraftScreen() {
   const [tab, setTab] = useState<DraftTab>('reward')
 
   if (!run || run.phase !== 'draft') return null
+
+  // 현재 파티의 활성 원소 목록 (캐릭터 + 동료)
+  const currentElements = new Set<Element>()
+  if (run.character.isAlive) currentElements.add(run.character.element)
+  for (const ally of run.allies) {
+    if (ally.isAlive) currentElements.add(ally.element)
+  }
+
+  function getNewSynergies(element: Element): readonly Synergy[] {
+    if (currentElements.has(element)) return []
+    const extended = new Set(currentElements)
+    extended.add(element)
+    return SYNERGIES.filter(s => s.elements.every(e => extended.has(e)) && !s.elements.every(e => currentElements.has(e)))
+  }
 
   function handleSelect(index: number) {
     selectDraft(index)
@@ -152,6 +167,7 @@ export function DraftScreen() {
               onSelect={handleSelect}
               ownedSkillIds={run.character.skillIds}
               ownedItemIds={run.acquiredItemIds}
+              getNewSynergies={getNewSynergies}
             />
           ))}
         </div>
@@ -380,19 +396,22 @@ interface DraftCardProps {
   onSelect: (index: number) => void
   ownedSkillIds: readonly string[]
   ownedItemIds: readonly string[]
+  getNewSynergies: (element: Element) => readonly Synergy[]
 }
 
-function DraftCard({ option, index, onSelect, ownedSkillIds, ownedItemIds }: DraftCardProps) {
+function DraftCard({ option, index, onSelect, ownedSkillIds, ownedItemIds, getNewSynergies }: DraftCardProps) {
   if (option.type === 'skill') {
     const skill = getSkillById(option.skillId)
     if (!skill) return null
     const isOwned = ownedSkillIds.includes(option.skillId)
-    return <SkillCard skill={skill} onSelect={() => onSelect(index)} isOwned={isOwned} />
+    const newSynergies = getNewSynergies(skill.element)
+    return <SkillCard skill={skill} onSelect={() => onSelect(index)} isOwned={isOwned} newSynergies={newSynergies} />
   }
   if (option.type === 'ally') {
     const ally = getAllyById(option.allyId)
     if (!ally) return null
-    return <AllyCard ally={ally} onSelect={() => onSelect(index)} />
+    const newSynergies = getNewSynergies(ally.element)
+    return <AllyCard ally={ally} onSelect={() => onSelect(index)} newSynergies={newSynergies} />
   }
   const item = getItemById(option.itemId)
   if (!item) return null
@@ -495,13 +514,51 @@ const OWNED_BADGE: React.CSSProperties = {
   pointerEvents: 'none',
 }
 
-function SkillCard({ skill, onSelect, isOwned }: { skill: SkillDef; onSelect: () => void; isOwned?: boolean }) {
+function SynergyBadge({ synergies }: { synergies: readonly Synergy[] }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 'var(--space-2)',
+      right: 'var(--space-2)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+      alignItems: 'flex-end',
+      pointerEvents: 'none',
+    }}>
+      {synergies.map(s => (
+        <span
+          key={s.id}
+          title={s.description}
+          style={{
+            fontSize: '10px',
+            padding: '2px 5px',
+            background: 'color-mix(in oklch, var(--color-accent) 20%, transparent)',
+            color: 'var(--color-accent)',
+            border: '1px solid color-mix(in oklch, var(--color-accent) 40%, transparent)',
+            borderRadius: 'var(--radius-sm)',
+            fontWeight: 'var(--weight-semibold)',
+            letterSpacing: '0.02em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          ✦ {s.name}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function SkillCard({ skill, onSelect, isOwned, newSynergies = [] }: { skill: SkillDef; onSelect: () => void; isOwned?: boolean; newSynergies?: readonly Synergy[] }) {
   const elColor = ELEMENT_COLORS[skill.element]
   const elLabel = ELEMENT_LABELS[skill.element]
 
   return (
     <CardWrapper rarity={skill.rarity} element={skill.element} typeLabel="스킬" onSelect={onSelect}>
       {isOwned && <span style={OWNED_BADGE}>보유중</span>}
+      {newSynergies.length > 0 && (
+        <SynergyBadge synergies={newSynergies} />
+      )}
       {/* 속성 + 이름 */}
       <div>
         <span style={{
@@ -567,12 +624,15 @@ function allyActionLabel(action: AllyAction): string {
   }
 }
 
-function AllyCard({ ally, onSelect }: { ally: AllyDef; onSelect: () => void }) {
+function AllyCard({ ally, onSelect, newSynergies = [] }: { ally: AllyDef; onSelect: () => void; newSynergies?: readonly Synergy[] }) {
   const elColor = ELEMENT_COLORS[ally.element]
   const elLabel = ELEMENT_LABELS[ally.element]
 
   return (
     <CardWrapper rarity={ally.rarity} element={ally.element} typeLabel="동료" onSelect={onSelect}>
+      {newSynergies.length > 0 && (
+        <SynergyBadge synergies={newSynergies} />
+      )}
       {/* 속성 + 이름 */}
       <div>
         <span style={{
