@@ -1,9 +1,10 @@
 /* ==========================================================================
-   Global Reset & Base Styles — Dark Fantasy Roguelike
+   Global Reset & Base Styles — Dark Fantasy Roguelike (SINoALICE 리스킨)
    ========================================================================== */
 
 @import './tokens.css';
 @import './typography.css';
+@import './ornaments.css';  /* ★ 새 파일 — 장식 레이어 */
 
 *,
 *::before,
@@ -33,29 +34,66 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* 다크 판타지 배경 — 미세한 노이즈 텍스처 효과 */
+  /* SINoALICE 감성 — 잉크 블러 + 양피지 그레인 + 비네트 */
   background-image:
+    /* 상단 제단 빛 */
     radial-gradient(
-      ellipse 80% 60% at 50% 0%,
-      oklch(20% 0.03 270 / 0.4) 0%,
+      ellipse 80% 50% at 50% 0%,
+      oklch(18% 0.06 25 / 0.5) 0%,
       transparent 70%
+    ),
+    /* 하단 혈흔 */
+    radial-gradient(
+      ellipse 90% 40% at 50% 100%,
+      oklch(14% 0.08 20 / 0.4) 0%,
+      transparent 65%
+    ),
+    /* 종이 그레인 (대각선 해칭) */
+    repeating-linear-gradient(
+      23deg,
+      oklch(100% 0 0 / 0.012) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      103deg,
+      oklch(100% 0 0 / 0.010) 0 1px,
+      transparent 1px 5px
     );
+  background-attachment: fixed;
+  position: relative;
+}
+
+/* 비네트 오버레이 — 전체 화면 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    oklch(0% 0 0 / 0.55) 100%
+  );
+  pointer-events: none;
+  z-index: 1000;
 }
 
 #root {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 /* 링크 */
 a {
   color: var(--color-accent);
   text-decoration: none;
+  border-bottom: 1px dotted var(--color-accent-dim);
 }
-a:hover { text-decoration: underline; }
+a:hover { border-bottom-style: solid; }
 
-/* 포커스 링 — 접근성 */
+/* 포커스 링 */
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
@@ -68,70 +106,52 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+  color: var(--color-text-primary);
 }
 button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-/* 이미지 */
-img, svg {
-  display: block;
-  max-width: 100%;
-}
+img, svg { display: block; max-width: 100%; }
 
-/* 스크롤바 스타일 (WebKit) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-bg-surface);
-}
+/* 스크롤바 — 핏빛 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg-surface); }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-default);
-  border-radius: var(--radius-full);
+  background: var(--color-blood-deep);
+  border-radius: 0;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-strong);
-}
+::-webkit-scrollbar-thumb:hover { background: var(--color-blood); }
 
-/* 데미지 팝업 애니메이션 */
+/* 데미지 팝업 — 더 드라마틱하게 */
 @keyframes popup-float {
-  0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-  15%  { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1.08); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-70px) scale(0.85); }
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) rotate(-4deg); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(-14px) scale(1.15) rotate(-4deg); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-80px) scale(0.8) rotate(-4deg); }
 }
 
-/* 피격 shake 애니메이션 */
 @keyframes entity-shake {
   0%   { transform: translateX(0); }
-  15%  { transform: translateX(-4px); }
-  30%  { transform: translateX(4px); }
-  45%  { transform: translateX(-3px); }
-  60%  { transform: translateX(3px); }
+  15%  { transform: translateX(-5px); }
+  30%  { transform: translateX(5px); }
+  45%  { transform: translateX(-4px); }
+  60%  { transform: translateX(4px); }
   75%  { transform: translateX(-1px); }
   100% { transform: translateX(0); }
 }
 
-/* 사망 fade-out 애니메이션 */
 @keyframes entity-death-fadeout {
-  0%   { opacity: 1;    transform: scale(1);    filter: brightness(1); }
-  30%  { opacity: 0.8;  transform: scale(1.02); filter: brightness(1.5); }
-  100% { opacity: 0.15; transform: scale(0.95); filter: brightness(0.5); }
+  0%   { opacity: 1;    transform: scale(1);    filter: brightness(1) saturate(1); }
+  30%  { opacity: 0.85; transform: scale(1.03); filter: brightness(1.8) saturate(1.4); }
+  100% { opacity: 0.1;  transform: scale(0.92); filter: brightness(0.4) saturate(0.3); }
 }
 
 /* 유틸리티 */
 .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
 }
 
 .truncate {

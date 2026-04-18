@@ -1,15 +1,21 @@
 /* ==========================================================================
-   Typography — Cinzel (heading) + Inter (body)
-   Google Fonts는 빌드 시 자체 호스팅으로 대체 예정.
+   Typography — SINoALICE 감성: UnifrakturCook + Cinzel Decorative + Cormorant + Nanum Myeongjo
+   빌드 시 자체 호스팅 권장.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Nanum+Myeongjo:wght@400;700;800&family=UnifrakturCook:wght@700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
   color: var(--color-text-primary);
+  letter-spacing: 0.08em;   /* 장식체는 여유 있게 */
+}
+
+/* 한글이 섞이면 Nanum Myeongjo로 */
+h1:lang(ko), h2:lang(ko), h3:lang(ko), h4:lang(ko) {
+  font-family: var(--font-korean);
   letter-spacing: 0.03em;
 }
 
@@ -24,7 +30,32 @@ p, span, div {
   line-height: var(--leading-normal);
 }
 
-/* 전투 로그 전용 */
+/* 라틴어 레이블 유틸 */
+.latin-label {
+  font-family: var(--font-heading);
+  font-size: var(--text-xs);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--color-gold-dim);
+}
+
+/* 장식체 배너 */
+.display-banner {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--color-gold);
+}
+
+/* 한글 시적 대사 */
+.quote-korean {
+  font-family: var(--font-korean);
+  font-style: italic;
+  color: var(--color-bone);
+}
+.quote-korean::before { content: '「'; color: var(--color-gold-dim); margin-right: 0.1em; }
+.quote-korean::after  { content: '」'; color: var(--color-gold-dim); margin-left: 0.1em; }
+
+/* 전투 로그 */
 .battle-log-entry {
   font-family: var(--font-body);
   font-size: var(--text-sm);
@@ -32,12 +63,12 @@ p, span, div {
   color: var(--color-text-secondary);
 }
 
-.battle-log-entry--damage { color: var(--color-hp-low); }
-.battle-log-entry--heal { color: var(--color-hp-high); }
-.battle-log-entry--crit { color: var(--color-accent); font-weight: var(--weight-semibold); }
-.battle-log-entry--system { color: var(--color-text-muted); font-style: italic; }
+.battle-log-entry--damage { color: var(--color-blood-bright); }
+.battle-log-entry--heal   { color: var(--color-hp-high); }
+.battle-log-entry--crit   { color: var(--color-ember); font-weight: var(--weight-semibold); text-shadow: 0 0 6px var(--color-blood); }
+.battle-log-entry--system { color: var(--color-gold); font-style: italic; }
 
-/* 수치 강조 */
+/* 수치 */
 .stat-value {
   font-family: var(--font-mono);
   font-size: var(--text-sm);

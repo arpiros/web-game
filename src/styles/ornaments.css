@@ -1,0 +1,290 @@
+/* ==========================================================================
+   Ornaments — 장식 레이어 (필리그리, 찢어진 엣지, 핏방울, 프레임)
+   컴포넌트 TSX 수정 없이 CSS 클래스만 얹으면 되는 장식들.
+   ========================================================================== */
+
+/* ---------- 필리그리 프레임 — ::before/::after SVG 코너 ---------- */
+/* 사용법: <div class="ornate-frame"> ... </div> */
+.ornate-frame {
+  position: relative;
+  border: 1px solid var(--color-border-default);
+  padding: var(--space-3);
+}
+.ornate-frame::before,
+.ornate-frame::after {
+  content: '';
+  position: absolute;
+  width: 24px; height: 24px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.ornate-frame::before {
+  top: 2px; left: 2px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b38d4a' stroke-width='1' stroke-linecap='round'><path d='M1 1 L1 12 M1 1 L12 1'/><path d='M1 6 Q 4 6 4 9 Q 4 12 2 12'/><path d='M6 1 Q 6 4 9 4 Q 12 4 12 2'/><circle cx='6' cy='6' r='0.9' fill='%23b38d4a'/><path d='M8 8 Q 11 9 13 12'/></svg>");
+}
+.ornate-frame::after {
+  top: 2px; right: 2px;
+  transform: scaleX(-1);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b38d4a' stroke-width='1' stroke-linecap='round'><path d='M1 1 L1 12 M1 1 L12 1'/><path d='M1 6 Q 4 6 4 9 Q 4 12 2 12'/><path d='M6 1 Q 6 4 9 4 Q 12 4 12 2'/><circle cx='6' cy='6' r='0.9' fill='%23b38d4a'/><path d='M8 8 Q 11 9 13 12'/></svg>");
+}
+
+/* 4-corner 장식 버전 (추가로 하단 래퍼가 하나 더 필요한 경우) */
+.ornate-frame--full {
+  position: relative;
+}
+.ornate-frame--full > .ornate-corners {
+  position: absolute; inset: 0;
+  pointer-events: none;
+}
+.ornate-frame--full > .ornate-corners::before,
+.ornate-frame--full > .ornate-corners::after {
+  content: '';
+  position: absolute;
+  width: 24px; height: 24px;
+  background: inherit;
+  opacity: 0.7;
+}
+.ornate-frame--full > .ornate-corners::before {
+  bottom: 2px; left: 2px; transform: scaleY(-1);
+}
+.ornate-frame--full > .ornate-corners::after {
+  bottom: 2px; right: 2px; transform: scale(-1, -1);
+}
+
+/* 황금 필리그리 버전 (보스·레전더리) */
+.ornate-frame--gold {
+  border-color: var(--color-gold-dim);
+  box-shadow: 0 0 0 1px var(--color-ink), 0 0 16px oklch(72% 0.13 78 / 0.15);
+}
+
+/* 핏빛 필리그리 (HP 낮음·위험) */
+.ornate-frame--blood {
+  border-color: var(--color-blood-deep);
+  box-shadow: 0 0 0 1px var(--color-ink), 0 0 16px oklch(42% 0.22 25 / 0.25);
+}
+
+/* ---------- 찢어진 양피지 하단 엣지 ---------- */
+/* 사용법: 부모에 position: relative, 클래스만 추가 */
+.torn-bottom::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -1px; height: 14px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 14' preserveAspectRatio='none'><path d='M0,0 L12,3 L24,1 L38,5 L52,2 L68,6 L82,2 L96,4 L112,1 L128,5 L144,2 L160,4 L176,1 L190,5 L204,3 L218,1 L232,4 L248,2 L264,5 L280,1 L296,4 L310,2 L324,5 L340,1 L354,4 L368,2 L384,5 L400,0 L400,14 L0,14 Z' fill='%23140e0b'/></svg>");
+  background-size: 100% 100%;
+  pointer-events: none;
+}
+
+/* ---------- 핏방울 드립 ---------- */
+.blood-drip {
+  position: absolute;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    oklch(56% 0.24 25) 0%,
+    oklch(42% 0.22 25) 40%,
+    oklch(28% 0.18 25) 95%,
+    transparent 100%
+  );
+  border-radius: 2px 2px 50% 50%;
+  filter: blur(0.3px);
+  pointer-events: none;
+}
+.blood-drip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: -2px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--color-blood);
+}
+
+/* ---------- 배너 (양쪽 꼬리) ---------- */
+.banner {
+  position: relative;
+  padding: var(--space-1) var(--space-6);
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-gold-dim);
+  border-bottom: 1px solid var(--color-gold-dim);
+  font-family: var(--font-korean);
+  font-weight: var(--weight-bold);
+  color: var(--color-paper);
+  text-align: center;
+}
+.banner::before,
+.banner::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 14px;
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-gold-dim);
+  border-bottom: 1px solid var(--color-gold-dim);
+}
+.banner::before {
+  left: -7px;
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+  border-left: 1px solid var(--color-gold-dim);
+}
+.banner::after {
+  right: -7px;
+  clip-path: polygon(0 0, 0 100%, 100% 50%);
+  border-right: 1px solid var(--color-gold-dim);
+}
+
+/* 보스 배너 — 더 진한 핏빛 */
+.banner--boss {
+  background: linear-gradient(180deg, var(--color-blood-deep), var(--color-ink));
+  border-color: var(--color-gold);
+}
+.banner--boss::before,
+.banner--boss::after {
+  background: var(--color-blood-deep);
+  border-color: var(--color-gold);
+}
+
+/* ---------- HUD 헤더 — 제단 스타일 ---------- */
+.altar-hud {
+  position: relative;
+  background: linear-gradient(180deg, var(--color-ash-dark) 0%, var(--color-ink) 100%);
+  border-bottom: 1px solid var(--color-blood-deep);
+  box-shadow:
+    0 2px 0 var(--color-blood-deep),
+    0 4px 18px oklch(0% 0 0 / 0.6);
+}
+.altar-hud::before {
+  /* 상단 핏방울 4개 — 결정론적 위치 */
+  content: '';
+  position: absolute;
+  top: 100%; left: 18%; width: 3px; height: 34px;
+  background: linear-gradient(180deg, var(--color-blood-bright), var(--color-blood-deep), transparent);
+  border-radius: 2px 2px 50% 50%;
+  pointer-events: none;
+}
+.altar-hud::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 42%; width: 3px; height: 58px;
+  background: linear-gradient(180deg, var(--color-blood-bright), var(--color-blood-deep), transparent);
+  border-radius: 2px 2px 50% 50%;
+  pointer-events: none;
+}
+
+/* ---------- 라운드 비드 (로마 숫자 원형 트래커) ---------- */
+.round-bead {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 50%;
+  font-family: var(--font-heading);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.round-bead--current {
+  width: 38px; height: 38px;
+  background: radial-gradient(circle, var(--color-blood), var(--color-blood-deep));
+  border-color: var(--color-blood-bright);
+  color: var(--color-paper);
+  font-size: 16px;
+  box-shadow: 0 0 16px var(--color-blood), inset 0 1px 0 oklch(100% 0 0 / 0.2);
+}
+.round-bead--past {
+  background: var(--color-ash);
+  color: var(--color-text-secondary);
+  position: relative;
+}
+.round-bead--past::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg,
+    transparent 45%,
+    var(--color-text-muted) 45%,
+    var(--color-text-muted) 55%,
+    transparent 55%);
+  opacity: 0.5;
+  border-radius: 50%;
+}
+
+/* ---------- 스킬 카드 (타로 스타일) ---------- */
+.tarot-card {
+  position: relative;
+  background: linear-gradient(180deg, var(--color-ash-dark), var(--color-ink));
+  border: 2px solid var(--color-text-muted);
+  padding: var(--space-2);
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+}
+.tarot-card::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--color-ash-dark);
+  pointer-events: none;
+}
+.tarot-card--selected {
+  transform: translateY(-8px);
+  box-shadow: 0 0 24px var(--color-blood), 0 4px 12px oklch(0% 0 0 / 0.7);
+  border-color: var(--color-blood-bright);
+}
+.tarot-card--legendary { border-color: var(--color-gold); }
+.tarot-card--epic      { border-color: var(--color-rarity-epic); }
+.tarot-card--rare      { border-color: var(--color-rarity-rare); }
+
+/* ---------- HP 바 (양피지 프레임) ---------- */
+.parchment-bar {
+  background: var(--color-ink);
+  border: 1px solid var(--color-blood-deep);
+  padding: 2px;
+}
+.parchment-bar__fill {
+  height: 8px;
+  background: linear-gradient(180deg,
+    var(--color-blood-bright),
+    var(--color-blood) 50%,
+    var(--color-blood-deep));
+  box-shadow:
+    inset 0 1px 0 oklch(100% 0 0 / 0.25),
+    inset 0 -1px 0 oklch(0% 0 0 / 0.4);
+  transition: width var(--duration-normal);
+}
+
+/* ---------- 타겟 리티클 (공격 선택 시) ---------- */
+@keyframes reticle-pulse {
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 0.5; }
+}
+.target-reticle {
+  position: absolute;
+  inset: -12px;
+  pointer-events: none;
+  z-index: 5;
+  animation: reticle-pulse 2s ease-in-out infinite;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23e04545' stroke-width='0.8'><circle cx='100' cy='100' r='98' stroke-dasharray='2 4' opacity='0.5'/><path d='M100 2 L100 14 M100 186 L100 198 M2 100 L14 100 M186 100 L198 100' stroke-width='1.5'/></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* ---------- 섹션 헤더 (COMITATUS, GRIMORIVM 등) ---------- */
+.section-header {
+  font-family: var(--font-heading);
+  font-size: var(--text-xs);
+  letter-spacing: 0.4em;
+  text-align: center;
+  color: var(--color-gold);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-gold-dim);
+  text-transform: uppercase;
+}
+.section-header__subtitle {
+  display: block;
+  font-family: var(--font-korean);
+  font-size: 0.65rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+  text-transform: none;
+}
