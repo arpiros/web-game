@@ -610,6 +610,73 @@ export const SKILLS: readonly SkillDef[] = [
     element: 'physical',
     rarity: 'legendary',
   },
+  {
+    id: 'steam_surge',
+    name: '증기 폭풍',
+    description: '전체 적에게 화염+수계 각 200% 피해를 주고 화상과 빙결을 동시에 부여한다.',
+    mpCost: 65,
+    cooldown: 6,
+    effects: [
+      { type: 'damage_all', element: 'fire', multiplier: 2.0 },
+      { type: 'damage_all', element: 'water', multiplier: 2.0 },
+      { type: 'apply_status', status: 'burn', duration: 2, value: 20 },
+      { type: 'apply_status', status: 'freeze', duration: 1, value: 0 },
+    ],
+    element: 'fire',
+    rarity: 'legendary',
+  },
+  {
+    id: 'phantom_strike',
+    name: '환영 타격',
+    description: '단일 적에게 공격력의 320% 어둠 피해를 주고 독 상태 4턴을 부여한다.',
+    mpCost: 50,
+    cooldown: 4,
+    effects: [
+      { type: 'damage', element: 'dark', multiplier: 3.2 },
+      { type: 'apply_status', status: 'poison', duration: 4, value: 20 },
+    ],
+    element: 'dark',
+    rarity: 'legendary',
+  },
+  {
+    id: 'titan_smash',
+    name: '타이탄 분쇄',
+    description: '전체 적에게 공격력의 320% 물리 피해를 주고 전체 적의 방어력을 2턴간 감소시킨다.',
+    mpCost: 55,
+    cooldown: 5,
+    effects: [
+      { type: 'damage_all', element: 'physical', multiplier: 3.2 },
+      { type: 'apply_status', status: 'defdown', duration: 2, value: 30 },
+    ],
+    element: 'physical',
+    rarity: 'legendary',
+  },
+  {
+    id: 'holy_tide',
+    name: '성스러운 조류',
+    description: '파티 전원의 HP를 공격력의 180%로 치유하고 3턴간 재생 효과를 부여한다.',
+    mpCost: 50,
+    cooldown: 5,
+    effects: [
+      { type: 'heal', multiplier: 1.8 },
+      { type: 'apply_status_party', status: 'regen', duration: 3, value: 20 },
+    ],
+    element: 'light',
+    rarity: 'legendary',
+  },
+  {
+    id: 'void_lance',
+    name: '공허의 창',
+    description: '단일 적에게 공격력의 400% 어둠 피해를 주고 가한 피해의 50%를 HP로 흡수한다.',
+    mpCost: 60,
+    cooldown: 5,
+    effects: [
+      { type: 'damage', element: 'dark', multiplier: 4.0 },
+      { type: 'heal', multiplier: 2.0 },
+    ],
+    element: 'dark',
+    rarity: 'legendary',
+  },
 ]
 
 export function getSkillById(id: string): SkillDef | undefined {

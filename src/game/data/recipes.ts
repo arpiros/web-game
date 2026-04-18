@@ -67,6 +67,72 @@ export const RECIPES: readonly CraftRecipe[] = [
     ingredients: ['arcane_tome', 'mana_crystal'],
     resultId: 'archmage_tome',
   },
+  // ── 신규 스킬 레시피 ─────────────────────────────────────────────────────
+  {
+    id: 'recipe_steam_surge',
+    name: '증기 폭풍 조합',
+    description: '파이어볼 + 해일 → 증기 폭풍',
+    category: 'skill',
+    ingredients: ['fireball', 'tidal_wave'],
+    resultId: 'steam_surge',
+  },
+  {
+    id: 'recipe_phantom_strike',
+    name: '환영 타격 조합',
+    description: '그림자 타격 + 독아 → 환영 타격',
+    category: 'skill',
+    ingredients: ['shadow_strike', 'poison_bite'],
+    resultId: 'phantom_strike',
+  },
+  {
+    id: 'recipe_titan_smash',
+    name: '타이탄 분쇄 조합',
+    description: '강타 + 휩쓸기 → 타이탄 분쇄',
+    category: 'skill',
+    ingredients: ['heavy_blow', 'cleave'],
+    resultId: 'titan_smash',
+  },
+  {
+    id: 'recipe_holy_tide',
+    name: '성스러운 조류 조합',
+    description: '정화 + 신성 치유 → 성스러운 조류',
+    category: 'skill',
+    ingredients: ['cleanse', 'divine_heal'],
+    resultId: 'holy_tide',
+  },
+  {
+    id: 'recipe_void_lance',
+    name: '공허의 창 조합',
+    description: '영혼 흡수 + 어둠의 신성 → 공허의 창',
+    category: 'skill',
+    ingredients: ['soul_drain', 'dark_nova'],
+    resultId: 'void_lance',
+  },
+  // ── 신규 아이템 레시피 ────────────────────────────────────────────────────
+  {
+    id: 'recipe_night_blade',
+    name: '야밤의 검 조합',
+    description: '철의 반지 + 어둠의 보석 → 야밤의 검',
+    category: 'item',
+    ingredients: ['iron_ring', 'shadow_gem'],
+    resultId: 'night_blade',
+  },
+  {
+    id: 'recipe_life_crystal',
+    name: '생명의 수정 조합',
+    description: '생명력 보석 + 마나 수정 → 생명의 수정',
+    category: 'item',
+    ingredients: ['vitality_gem', 'mana_crystal'],
+    resultId: 'life_crystal',
+  },
+  {
+    id: 'recipe_pyroclast_orb',
+    name: '화산탄의 구슬 조합',
+    description: '화염 파편 + 숫돌 → 화산탄의 구슬',
+    category: 'item',
+    ingredients: ['flame_shard', 'whetstone'],
+    resultId: 'pyroclast_orb',
+  },
 ]
 
 /** 조합으로만 얻을 수 있는 결과물 ID 집합 — 드래프트 풀에서 제외하는 데 사용 */

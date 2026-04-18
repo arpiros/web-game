@@ -212,6 +212,13 @@ export const ITEMS: readonly ItemDef[] = [
       { type: 'miss_immunity' },
     ],
   },
+  {
+    id: 'frost_gem',
+    name: '서리 보석',
+    description: '수계 속성 공격의 피해가 25% 증가한다.',
+    rarity: 'rare',
+    effects: [{ type: 'elemental_damage', element: 'water', multiplier: 1.25 }],
+  },
   // ── 조합 전용 (Craft-only) 아이템 ────────────────────────────────────────
   {
     id: 'dragon_blade',
@@ -239,6 +246,36 @@ export const ITEMS: readonly ItemDef[] = [
     description: '매 턴 MP를 20 회복한다.',
     rarity: 'legendary',
     effects: [{ type: 'mp_regen', amount: 20 }],
+  },
+  {
+    id: 'night_blade',
+    name: '야밤의 검',
+    description: '공격력이 70 증가하고 어둠 속성 공격의 피해가 30% 증가한다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'stat_boost', stat: 'attack', amount: 70 },
+      { type: 'elemental_damage', element: 'dark', multiplier: 1.30 },
+    ],
+  },
+  {
+    id: 'life_crystal',
+    name: '생명의 수정',
+    description: '최대 HP가 350 증가하고 매 턴 MP를 8 회복한다.',
+    rarity: 'epic',
+    effects: [
+      { type: 'stat_boost', stat: 'maxHp', amount: 350 },
+      { type: 'mp_regen', amount: 8 },
+    ],
+  },
+  {
+    id: 'pyroclast_orb',
+    name: '화산탄의 구슬',
+    description: '화염 속성 공격의 피해가 40% 증가하고 물리 속성 공격의 피해가 25% 증가한다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'elemental_damage', element: 'fire', multiplier: 1.40 },
+      { type: 'elemental_damage', element: 'physical', multiplier: 1.25 },
+    ],
   },
 ]
 

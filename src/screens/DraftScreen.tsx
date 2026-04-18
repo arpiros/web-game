@@ -4,6 +4,7 @@ import { getSkillById, SKILLS } from '../game/data/skills'
 import { getAllyById } from '../game/data/allies'
 import { getItemById } from '../game/data/items'
 import { getAvailableRecipes } from '../game/craft'
+import { RECIPES } from '../game/data/recipes'
 import { SYNERGIES, type Synergy } from '../game/synergy'
 import { useRunStore } from '../state/runStore'
 
@@ -172,39 +173,13 @@ export function DraftScreen() {
           ))}
         </div>
       ) : (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 'var(--space-4)',
-          width: '100%',
-          maxWidth: '760px',
-        }}>
-          {recipes.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              color: 'var(--color-text-muted)',
-              fontSize: 'var(--text-sm)',
-              padding: 'var(--space-8)',
-            }}>
-              <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-3)' }}>⚗️</div>
-              <div>조합 가능한 레시피가 없습니다.</div>
-              <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
-                스킬이나 아이템을 더 모아보세요.
-              </div>
-            </div>
-          ) : (
-            recipes.map(recipe => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                ownedSkillIds={run.character.skillIds}
-                ownedItemIds={run.acquiredItemIds}
-                onCraft={() => handleCraft(recipe.id)}
-              />
-            ))
-          )}
-        </div>
+        <CraftTab
+          allRecipes={RECIPES}
+          availableRecipes={recipes}
+          ownedSkillIds={run.character.skillIds}
+          ownedItemIds={run.acquiredItemIds}
+          onCraft={handleCraft}
+        />
       )}
     </div>
   )
@@ -245,6 +220,103 @@ function TabButton({
 }
 
 // ---------------------------------------------------------------------------
+// CraftTab
+// ---------------------------------------------------------------------------
+
+interface CraftTabProps {
+  allRecipes: readonly CraftRecipe[]
+  availableRecipes: readonly CraftRecipe[]
+  ownedSkillIds: readonly string[]
+  ownedItemIds: readonly string[]
+  onCraft: (recipeId: string) => void
+}
+
+function CraftTab({ allRecipes, availableRecipes, ownedSkillIds, ownedItemIds, onCraft }: CraftTabProps) {
+  const availableIds = new Set(availableRecipes.map(r => r.id))
+  const lockedRecipes = allRecipes.filter(r => !availableIds.has(r.id))
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 'var(--space-4)',
+      width: '100%',
+      maxWidth: '800px',
+    }}>
+      {availableRecipes.length > 0 && (
+        <>
+          <SectionHeader label={`조합 가능 (${availableRecipes.length})`} />
+          {availableRecipes.map(recipe => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              ownedSkillIds={ownedSkillIds}
+              ownedItemIds={ownedItemIds}
+              isLocked={false}
+              onCraft={() => onCraft(recipe.id)}
+            />
+          ))}
+        </>
+      )}
+
+      {lockedRecipes.length > 0 && (
+        <>
+          <SectionHeader label={`재료 부족 (${lockedRecipes.length})`} dimmed />
+          {lockedRecipes.map(recipe => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              ownedSkillIds={ownedSkillIds}
+              ownedItemIds={ownedItemIds}
+              isLocked={true}
+              onCraft={() => {}}
+            />
+          ))}
+        </>
+      )}
+
+      {availableRecipes.length === 0 && lockedRecipes.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          color: 'var(--color-text-muted)',
+          fontSize: 'var(--text-sm)',
+          padding: 'var(--space-8)',
+        }}>
+          <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-3)' }}>⚗️</div>
+          <div>레시피가 없습니다.</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SectionHeader({ label, dimmed }: { label: string; dimmed?: boolean }) {
+  return (
+    <div style={{
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 'var(--space-3)',
+    }}>
+      <div style={{ flex: 1, height: '1px', background: 'var(--color-border-subtle)' }} />
+      <span style={{
+        fontSize: 'var(--text-xs)',
+        color: dimmed ? 'var(--color-text-muted)' : 'var(--color-text-secondary)',
+        fontWeight: 'var(--weight-semibold)',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
+        opacity: dimmed ? 0.6 : 1,
+      }}>
+        {label}
+      </span>
+      <div style={{ flex: 1, height: '1px', background: 'var(--color-border-subtle)' }} />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // RecipeCard
 // ---------------------------------------------------------------------------
 
@@ -252,10 +324,11 @@ interface RecipeCardProps {
   recipe: CraftRecipe
   ownedSkillIds: readonly string[]
   ownedItemIds: readonly string[]
+  isLocked: boolean
   onCraft: () => void
 }
 
-function getEntityName(id: string): { name: string; type: 'skill' | 'item' } {
+function getEntityInfo(id: string): { name: string; type: 'skill' | 'item' } {
   const skill = SKILLS.find(s => s.id === id)
   if (skill) return { name: skill.name, type: 'skill' }
   const item = getItemById(id)
@@ -263,29 +336,37 @@ function getEntityName(id: string): { name: string; type: 'skill' | 'item' } {
   return { name: id, type: 'item' }
 }
 
-function RecipeCard({ recipe, onCraft }: RecipeCardProps) {
+function isOwned(id: string, ownedSkillIds: readonly string[], ownedItemIds: readonly string[]): boolean {
+  return ownedSkillIds.includes(id) || ownedItemIds.includes(id)
+}
+
+function RecipeCard({ recipe, ownedSkillIds, ownedItemIds, isLocked, onCraft }: RecipeCardProps) {
   const [a, b] = recipe.ingredients
-  const entityA = getEntityName(a)
-  const entityB = getEntityName(b)
+  const entityA = getEntityInfo(a)
+  const entityB = getEntityInfo(b)
+  const ownedA = isOwned(a, ownedSkillIds, ownedItemIds)
+  const ownedB = isOwned(b, ownedSkillIds, ownedItemIds)
 
   const resultSkill = recipe.category === 'skill' ? SKILLS.find(s => s.id === recipe.resultId) : null
   const resultItem  = recipe.category === 'item'  ? getItemById(recipe.resultId) : null
   const resultRarity: Rarity = (resultSkill?.rarity ?? resultItem?.rarity ?? 'legendary')
   const resultName   = resultSkill?.name ?? resultItem?.name ?? recipe.resultId
   const resultDesc   = resultSkill?.description ?? resultItem?.description ?? ''
-  const rarityColor  = RARITY_COLORS[resultRarity]
+  const rarityColor  = isLocked ? 'var(--color-text-muted)' : RARITY_COLORS[resultRarity]
+  const actualRarityColor = RARITY_COLORS[resultRarity]
 
   return (
     <div style={{
       width: '100%',
       background: 'var(--color-bg-surface)',
       border: `1px solid var(--color-border-subtle)`,
-      borderLeft: `3px solid ${rarityColor}`,
+      borderLeft: `3px solid ${isLocked ? 'var(--color-border-subtle)' : actualRarityColor}`,
       borderRadius: 'var(--radius-lg)',
       padding: 'var(--space-5)',
       display: 'flex',
       alignItems: 'center',
       gap: 'var(--space-5)',
+      opacity: isLocked ? 0.6 : 1,
     }}>
       {/* 재료 */}
       <div style={{
@@ -295,9 +376,9 @@ function RecipeCard({ recipe, onCraft }: RecipeCardProps) {
         flex: 1,
         minWidth: 0,
       }}>
-        <IngredientChip label={entityA.name} type={entityA.type} />
+        <IngredientChip label={entityA.name} type={entityA.type} owned={ownedA} locked={isLocked} />
         <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', flexShrink: 0 }}>+</span>
-        <IngredientChip label={entityB.name} type={entityB.type} />
+        <IngredientChip label={entityB.name} type={entityB.type} owned={ownedB} locked={isLocked} />
         <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xl)', flexShrink: 0 }}>→</span>
         {/* 결과물 */}
         <div style={{ minWidth: 0 }}>
@@ -313,7 +394,7 @@ function RecipeCard({ recipe, onCraft }: RecipeCardProps) {
           <div style={{
             fontSize: 'var(--text-sm)',
             fontWeight: 'var(--weight-bold)',
-            color: 'var(--color-text-primary)',
+            color: isLocked ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -334,45 +415,81 @@ function RecipeCard({ recipe, onCraft }: RecipeCardProps) {
         </div>
       </div>
 
-      {/* 조합 버튼 */}
-      <button
-        onClick={onCraft}
-        style={{
+      {/* 조합 버튼 or 잠금 표시 */}
+      {isLocked ? (
+        <div style={{
           flexShrink: 0,
-          padding: 'var(--space-2) var(--space-5)',
-          background: `color-mix(in oklch, ${rarityColor} 18%, transparent)`,
-          border: `1px solid color-mix(in oklch, ${rarityColor} 50%, transparent)`,
+          padding: 'var(--space-2) var(--space-4)',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--color-text-muted)',
+          border: '1px solid var(--color-border-subtle)',
           borderRadius: 'var(--radius-md)',
-          color: rarityColor,
-          fontWeight: 'var(--weight-semibold)',
-          fontSize: 'var(--text-sm)',
-          cursor: 'pointer',
           whiteSpace: 'nowrap',
-          transition: 'background var(--duration-fast)',
-        }}
-        onMouseEnter={e => {
-          (e.currentTarget as HTMLButtonElement).style.background =
-            `color-mix(in oklch, ${rarityColor} 30%, transparent)`
-        }}
-        onMouseLeave={e => {
-          (e.currentTarget as HTMLButtonElement).style.background =
-            `color-mix(in oklch, ${rarityColor} 18%, transparent)`
-        }}
-      >
-        조합하기
-      </button>
+        }}>
+          재료 부족
+        </div>
+      ) : (
+        <button
+          onClick={onCraft}
+          style={{
+            flexShrink: 0,
+            padding: 'var(--space-2) var(--space-5)',
+            background: `color-mix(in oklch, ${actualRarityColor} 18%, transparent)`,
+            border: `1px solid color-mix(in oklch, ${actualRarityColor} 50%, transparent)`,
+            borderRadius: 'var(--radius-md)',
+            color: actualRarityColor,
+            fontWeight: 'var(--weight-semibold)',
+            fontSize: 'var(--text-sm)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'background var(--duration-fast)',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              `color-mix(in oklch, ${actualRarityColor} 30%, transparent)`
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              `color-mix(in oklch, ${actualRarityColor} 18%, transparent)`
+          }}
+        >
+          조합하기
+        </button>
+      )}
     </div>
   )
 }
 
-function IngredientChip({ label, type }: { label: string; type: 'skill' | 'item' }) {
-  const color = type === 'skill' ? 'var(--color-element-dark)' : 'var(--color-rarity-rare)'
+function IngredientChip({ label, type, owned, locked }: { label: string; type: 'skill' | 'item'; owned: boolean; locked: boolean }) {
+  const baseColor = type === 'skill' ? 'var(--color-element-dark)' : 'var(--color-rarity-rare)'
+  const missingColor = 'var(--color-text-muted)'
+
+  if (locked && !owned) {
+    return (
+      <div style={{
+        padding: '3px var(--space-3)',
+        border: `1px dashed color-mix(in oklch, ${missingColor} 40%, transparent)`,
+        borderRadius: 'var(--radius-sm)',
+        background: 'transparent',
+        fontSize: 'var(--text-xs)',
+        color: missingColor,
+        fontWeight: 'var(--weight-medium)',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        maxWidth: '110px',
+      }}>
+        {label}
+      </div>
+    )
+  }
+
   return (
     <div style={{
       padding: '3px var(--space-3)',
-      border: `1px solid color-mix(in oklch, ${color} 40%, transparent)`,
+      border: `1px solid color-mix(in oklch, ${baseColor} 40%, transparent)`,
       borderRadius: 'var(--radius-sm)',
-      background: `color-mix(in oklch, ${color} 12%, transparent)`,
+      background: `color-mix(in oklch, ${baseColor} 12%, transparent)`,
       fontSize: 'var(--text-xs)',
       color: 'var(--color-text-secondary)',
       fontWeight: 'var(--weight-medium)',
