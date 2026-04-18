@@ -136,10 +136,10 @@ export const ENEMIES: readonly EnemyDef[] = [
         { type: 'buff_self', status: 'powerup', duration: 2, value: 100 },
       ],
       phase3Actions: [
-        { type: 'attack_all', element: 'fire', multiplier: 2.8 },
+        { type: 'attack_all', element: 'fire', multiplier: 2.0 },
         { type: 'apply_status', status: 'burn', duration: 5, value: 50, targetMode: 'all' },
         { type: 'attack', element: 'physical', multiplier: 4.0, targetMode: 'lowest_hp' },
-        { type: 'attack_all', element: 'fire', multiplier: 2.5 },
+        { type: 'attack_all', element: 'fire', multiplier: 1.8 },
         { type: 'buff_self', status: 'powerup', duration: 3, value: 120 },
       ],
     },

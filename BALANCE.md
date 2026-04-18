@@ -7,7 +7,7 @@
 
 ## 🔴 CRITICAL — 즉시 수정 필요
 
-### BAL-01 · 보스 페이즈3 피해가 사실상 즉사 수준
+### ✅ BAL-01 · 보스 페이즈3 피해가 사실상 즉사 수준
 - **관련 파일**: `src/game/data/enemies.ts` (dragon_lord bossPhases)
 - **계산**:
   - dragon_lord 라운드7: 기본 ATK 300 × 1.6배율 = **480**
@@ -19,7 +19,7 @@
 
 ---
 
-### BAL-02 · `barrier` 고정값이 후반 무의미
+### ✅ BAL-02 · `barrier` 고정값이 후반 무의미
 - **관련 파일**: `src/game/data/skills.ts` (barrier 스킬)
 - **계산**:
   - 라운드3 엘리트(iron_golem) ATK 160 × 1.2 = 192, 공격 2.2x → 원시 426 피해
@@ -29,7 +29,7 @@
 
 ---
 
-### BAL-03 · `current_step` 과강
+### ✅ BAL-03 · `current_step` 과강
 - **관련 파일**: `src/game/data/skills.ts` (current_step 스킬)
 - **문제**:
   - 파티 전체 ATK +60% 2턴, CD3, MP30
@@ -41,7 +41,7 @@
 
 ## 🟡 MEDIUM — 캐릭터 간 격차
 
-### BAL-04 · 성기사 딜 부재 — 전반부 강, 후반 급락
+### ✅ BAL-04 · 성기사 딜 부재 — 전반부 강, 후반 급락
 - **관련 파일**: `src/game/data/characters.ts`, `src/game/data/skills.ts`
 - **문제**:
   - ATK 150 (전 캐릭터 최저)
@@ -52,7 +52,7 @@
 
 ---
 
-### BAL-05 · 광전사 생존-딜 딜레마 실전 불가
+### ✅ BAL-05 · 광전사 생존-딜 딜레마 실전 불가
 - **관련 파일**: `src/game/data/skills.ts` (death_charge, blood_pact), `src/game/data/items.ts` (berserker_heart)
 - **문제**:
   - `death_charge` + `berserker_heart` 시너지 이론상 강력 (HP 30% 이하에서 powerup 100%)
@@ -62,7 +62,7 @@
 
 ---
 
-### BAL-06 · 마법사 생존력 붕괴 시점이 너무 이름
+### ✅ BAL-06 · 마법사 생존력 붕괴 시점이 너무 이름
 - **관련 파일**: `src/game/data/characters.ts` (fire_mage)
 - **계산**:
   - HP 800, DEF 50
@@ -116,12 +116,12 @@
 
 | ID | 우선도 | 항목 | 제안 수치 |
 |----|--------|------|-----------|
-| BAL-01 | 🔴 즉시 | 보스 Phase3 `attack_all` 배율 하향 | 2.8x→2.0x, 2.5x→1.8x |
-| BAL-02 | 🔴 즉시 | `barrier` → attack 배율 기반 | flat 300 → attack×1.5 |
-| BAL-03 | 🔴 즉시 | `current_step` CD 상향 | CD3 → CD5 |
-| BAL-04 | 🟡 권장 | 성기사 딜 스킬 또는 ATK 상향 | ATK 150 → 165 |
-| BAL-05 | 🟡 권장 | 광전사 `blood_pact` HP 소모 감소 | 20% → 10% |
-| BAL-06 | 🟡 권장 | 마법사 내구도 상향 | HP 800→950 또는 DEF 50→70 |
+| BAL-01 | ✅ 완료 | 보스 Phase3 `attack_all` 배율 하향 | 2.8x→2.0x, 2.5x→1.8x |
+| BAL-02 | ✅ 완료 | `barrier` → attack 배율 기반 | flat 300 → attack×1.5 |
+| BAL-03 | ✅ 완료 | `current_step` CD 상향 | CD3 → CD5 |
+| BAL-04 | ✅ 완료 | 성기사 ATK 상향 | ATK 150 → 165 |
+| BAL-05 | ✅ 완료 | 광전사 `blood_pact` HP 소모 감소 | 20% → 10% |
+| BAL-06 | ✅ 완료 | 마법사 내구도 상향 | HP 800 → 950 |
 | BAL-07 | 🟢 선택 | 독 피해 상한 설정 | 최대 200/턴 |
 | BAL-08 | 🟢 선택 | `mana_crystal` 부가 효과 추가 | +DEF 10 또는 8MP/턴 |
 | BAL-09 | 🟢 선택 | `ice_witch` CC 불가 시 폴백 | defdown 2턴 |

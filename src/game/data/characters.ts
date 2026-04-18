@@ -34,7 +34,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
     title: '파멸의 불꽃',
     element: 'fire',
     baseStats: {
-      maxHp: 800,
+      maxHp: 950,
       attack: 200,
       defense: 50,
       speed: 80,
@@ -61,7 +61,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
     element: 'light',
     baseStats: {
       maxHp: 1350,
-      attack: 150,
+      attack: 165,
       defense: 110,
       speed: 50,
       maxMp: 120,
