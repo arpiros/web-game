@@ -28,7 +28,7 @@ export const SKILLS: readonly SkillDef[] = [
     id: 'cleave',
     name: '휩쓸기',
     description: '전체 적에게 공격력의 100% 물리 피해를 준다.',
-    mpCost: 25,
+    mpCost: 20,
     cooldown: 3,
     effects: [{ type: 'damage_all', element: 'physical', multiplier: 1.0 }],
     element: 'physical',

@@ -119,11 +119,11 @@ export const CHARACTERS: readonly CharacterDef[] = [
       maxMp: 120,
     },
     innateSkillId: 'heavy_blow',
-    startingSkillIds: ['slash', 'cleave'],
+    startingSkillIds: ['slash', 'bloodlust', 'cleave'],
     lore: '분노를 힘으로 바꾸는 광전사. 방어를 포기하고 오직 공격에만 집중한다.',
     draftWeights: {
       // 스킬
-      bloodlust: 5, death_charge: 5, war_cry: 4, heavy_blow: 4,
+      death_charge: 5, war_cry: 4, heavy_blow: 4,
       cleave: 4, charge_strike: 4, thousand_blades: 4, power_surge: 4,
       // 아이템
       berserker_heart: 5, whetstone: 4, iron_ring: 4, executioner_axe: 4,
