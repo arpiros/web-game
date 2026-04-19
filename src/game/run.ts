@@ -36,7 +36,7 @@ export const MAX_ALLIES = 4
 const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
   1:  1,
   2:  2,
-  3:  2,
+  3:  1,
   4:  2,
   5:  2,  // 엘리트
   6:  3,
@@ -420,8 +420,8 @@ export function completeBattle(
   // 드래프트 옵션 생성
   const [draftOptions, nextRng] = generateDraftOptions(runState, rng, draftCount)
 
-  // 전투 클리어 보상: 최대 HP의 25% 회복
-  const VICTORY_HEAL_RATIO = 0.25
+  // 전투 클리어 보상: 최대 HP의 35% 회복
+  const VICTORY_HEAL_RATIO = 0.35
   const survivingChar = battleState.party[0]
   const victoryHeal = Math.floor(survivingChar.stats.maxHp * VICTORY_HEAL_RATIO)
   const healedCharacter = {
