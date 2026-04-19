@@ -225,6 +225,7 @@ export function createRun(characterDefId: string, seed: number): RunState {
     battleState: null,
     totalDamage: 0,
     draftOptions: [],
+    rerollsRemaining: 0,
     maxSingleDamage: 0,
     critCount: 0,
     missCount: 0,
@@ -447,6 +448,7 @@ export function completeBattle(
         character: healedCharacter,
         battleState: null,
         draftOptions,
+        rerollsRemaining: 1,
         currentEventId: eventId,
       },
       eventRng,
@@ -462,6 +464,7 @@ export function completeBattle(
       character: healedCharacter,
       battleState: null,
       draftOptions,
+      rerollsRemaining: 1,
     },
     nextRng,
   ]
@@ -794,6 +797,62 @@ export function generateDraftOptions(
 
   const [picked, nextRng] = pickNWeighted(rng, pool, weights, Math.min(count, pool.length))
   return [picked, nextRng]
+}
+
+// ---------------------------------------------------------------------------
+// 드래프트 리롤 (특정 카드 1장 교체)
+// ---------------------------------------------------------------------------
+
+export function rerollDraftOption(
+  runState: RunState,
+  rng: RngState,
+  targetIndex: number,
+): [RunState, RngState] {
+  if (runState.rerollsRemaining <= 0) return [runState, rng]
+  if (!runState.draftOptions[targetIndex]) return [runState, rng]
+
+  const ownedSkillIds = new Set(runState.character.skillIds)
+  const ownedAllyIds  = new Set(runState.allies.map(a => a.defId))
+  const ownedItemIds  = new Set(runState.acquiredItemIds)
+
+  // 현재 3장(리롤 대상 포함)을 제외 목록에 추가하여 중복 방지
+  const excludedSkillIds = new Set(ownedSkillIds)
+  const excludedAllyIds  = new Set(ownedAllyIds)
+  const excludedItemIds  = new Set(ownedItemIds)
+  for (const opt of runState.draftOptions) {
+    if (opt.type === 'skill') excludedSkillIds.add(opt.skillId)
+    else if (opt.type === 'ally') excludedAllyIds.add(opt.allyId)
+    else if (opt.type === 'item') excludedItemIds.add(opt.itemId)
+  }
+
+  const canAddAlly = runState.allies.length < MAX_ALLIES
+  const pool: DraftOption[] = [
+    ...SKILLS.filter(s => !excludedSkillIds.has(s.id) && !CRAFT_RESULT_IDS.has(s.id))
+      .map(s => ({ type: 'skill' as const, skillId: s.id })),
+    ...(canAddAlly ? ALLIES.filter(a => !excludedAllyIds.has(a.id)) : [])
+      .map(a => ({ type: 'ally' as const, allyId: a.id })),
+    ...ITEMS.filter(i => !excludedItemIds.has(i.id) && !CRAFT_RESULT_IDS.has(i.id))
+      .map(i => ({ type: 'item' as const, itemId: i.id })),
+  ]
+
+  if (pool.length === 0) return [runState, rng]
+
+  const characterDef = getCharacterById(runState.character.defId) ?? { element: runState.character.element, draftWeights: {} } as CharacterDef
+  const weights = pool.map(option => getDraftWeight(option, characterDef, runState.round))
+  const [picked, nextRng] = pickNWeighted(rng, pool, weights, 1)
+
+  const newOptions = runState.draftOptions.map((opt, i) =>
+    i === targetIndex ? picked[0] : opt,
+  )
+
+  return [
+    {
+      ...runState,
+      draftOptions: newOptions,
+      rerollsRemaining: runState.rerollsRemaining - 1,
+    },
+    nextRng,
+  ]
 }
 
 // ---------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import {
   applyCraftChoice,
   applyEventChoice,
   handleDefeat,
+  rerollDraftOption,
 } from '../game/run'
 import { battleReducer } from '../game/combat'
 
@@ -57,6 +58,9 @@ export interface RunStore {
 
   /** 이벤트 선택지 적용 → draft 단계로 전환 */
   resolveEvent: (choiceId: string) => void
+
+  /** 드래프트 카드 1장 리롤 */
+  rerollDraft: (targetIndex: number) => void
 
   /** 런 초기화 (타이틀로 돌아가기) */
   resetRun: () => void
@@ -145,6 +149,15 @@ export const useRunStore = create<RunStore>((set, get) => ({
     if (!run || run.phase !== 'event') return
 
     const [newRun, nextRng] = applyEventChoice(run, choiceId, rng)
+    set({ run: newRun, rng: nextRng })
+  },
+
+  rerollDraft: (targetIndex) => {
+    const { run, rng } = get()
+    if (!run || run.phase !== 'draft') return
+    if (run.rerollsRemaining <= 0) return
+
+    const [newRun, nextRng] = rerollDraftOption(run, rng, targetIndex)
     set({ run: newRun, rng: nextRng })
   },
 

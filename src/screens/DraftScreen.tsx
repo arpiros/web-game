@@ -53,6 +53,7 @@ export function DraftScreen() {
   const selectDraft        = useRunStore(s => s.selectDraft)
   const advanceToNextBattle = useRunStore(s => s.advanceToNextBattle)
   const craftAndAdvance    = useRunStore(s => s.craftAndAdvance)
+  const rerollDraft        = useRunStore(s => s.rerollDraft)
 
   const [tab, setTab] = useState<DraftTab>('reward')
 
@@ -120,6 +121,15 @@ export function DraftScreen() {
           marginBottom: 0,
         }}>
           누적 피해: {run.totalDamage.toLocaleString()}
+          {tab === 'reward' && (
+            <span style={{
+              marginLeft: 'var(--space-3)',
+              color: run.rerollsRemaining > 0 ? 'var(--color-accent)' : 'var(--color-text-muted)',
+              fontWeight: 'var(--weight-semibold)',
+            }}>
+              · 리롤 {run.rerollsRemaining}회 남음
+            </span>
+          )}
         </p>
       </div>
 
@@ -166,6 +176,8 @@ export function DraftScreen() {
               option={opt}
               index={i}
               onSelect={handleSelect}
+              onReroll={rerollDraft}
+              rerollsRemaining={run.rerollsRemaining}
               ownedSkillIds={run.character.skillIds}
               ownedItemIds={run.acquiredItemIds}
               getNewSynergies={getNewSynergies}
@@ -511,29 +523,89 @@ interface DraftCardProps {
   option: DraftOption
   index: number
   onSelect: (index: number) => void
+  onReroll: (index: number) => void
+  rerollsRemaining: number
   ownedSkillIds: readonly string[]
   ownedItemIds: readonly string[]
   getNewSynergies: (element: Element) => readonly Synergy[]
 }
 
-function DraftCard({ option, index, onSelect, ownedSkillIds, ownedItemIds, getNewSynergies }: DraftCardProps) {
+function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedSkillIds, ownedItemIds, getNewSynergies }: DraftCardProps) {
+  const canReroll = rerollsRemaining > 0
+
+  function RerollButton() {
+    return (
+      <button
+        onClick={e => { e.stopPropagation(); onReroll(index) }}
+        disabled={!canReroll}
+        title={canReroll ? '이 카드를 리롤' : '리롤 횟수 없음'}
+        style={{
+          position: 'absolute',
+          bottom: 'var(--space-2)',
+          right: 'var(--space-2)',
+          padding: '3px 8px',
+          fontSize: '10px',
+          fontWeight: 'var(--weight-semibold)',
+          background: canReroll
+            ? 'color-mix(in oklch, var(--color-accent) 18%, transparent)'
+            : 'transparent',
+          color: canReroll ? 'var(--color-accent)' : 'var(--color-text-muted)',
+          border: `1px solid ${canReroll ? 'color-mix(in oklch, var(--color-accent) 40%, transparent)' : 'var(--color-border-subtle)'}`,
+          borderRadius: 'var(--radius-sm)',
+          cursor: canReroll ? 'pointer' : 'not-allowed',
+          opacity: canReroll ? 1 : 0.45,
+          zIndex: 1,
+          letterSpacing: '0.04em',
+          transition: 'background var(--duration-fast)',
+        }}
+        onMouseEnter={e => {
+          if (!canReroll) return
+          ;(e.currentTarget as HTMLButtonElement).style.background =
+            'color-mix(in oklch, var(--color-accent) 30%, transparent)'
+        }}
+        onMouseLeave={e => {
+          if (!canReroll) return
+          ;(e.currentTarget as HTMLButtonElement).style.background =
+            'color-mix(in oklch, var(--color-accent) 18%, transparent)'
+        }}
+      >
+        🔄 리롤
+      </button>
+    )
+  }
+
   if (option.type === 'skill') {
     const skill = getSkillById(option.skillId)
     if (!skill) return null
     const isOwned = ownedSkillIds.includes(option.skillId)
     const newSynergies = getNewSynergies(skill.element)
-    return <SkillCard skill={skill} onSelect={() => onSelect(index)} isOwned={isOwned} newSynergies={newSynergies} />
+    return (
+      <div style={{ position: 'relative' }}>
+        <SkillCard skill={skill} onSelect={() => onSelect(index)} isOwned={isOwned} newSynergies={newSynergies} />
+        <RerollButton />
+      </div>
+    )
   }
   if (option.type === 'ally') {
     const ally = getAllyById(option.allyId)
     if (!ally) return null
     const newSynergies = getNewSynergies(ally.element)
-    return <AllyCard ally={ally} onSelect={() => onSelect(index)} newSynergies={newSynergies} />
+    return (
+      <div style={{ position: 'relative' }}>
+        <AllyCard ally={ally} onSelect={() => onSelect(index)} newSynergies={newSynergies} />
+        <RerollButton />
+      </div>
+    )
   }
   const item = getItemById(option.itemId)
   if (!item) return null
   const isOwned = ownedItemIds.includes(option.itemId)
-  return <ItemCard item={item} onSelect={() => onSelect(index)} isOwned={isOwned} />
+  return (
+    <div style={{ position: 'relative' }}>
+      <ItemCard item={item} onSelect={() => onSelect(index)} isOwned={isOwned} />
+      <RerollButton />
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------

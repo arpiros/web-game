@@ -306,6 +306,7 @@ export interface RunState {
   readonly battleState: BattleState | null
   readonly totalDamage: number
   readonly draftOptions: readonly DraftOption[]
+  readonly rerollsRemaining: number // 이번 드래프트에서 남은 리롤 횟수
   readonly isVictory?: boolean     // result phase 전환 시 승리/패배 구분
   readonly currentEventId?: string // event phase에서 진행 중인 이벤트 ID
   // 누적 통계
