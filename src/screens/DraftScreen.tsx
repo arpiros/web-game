@@ -169,6 +169,7 @@ export function DraftScreen() {
           gap: 'var(--space-6)',
           flexWrap: 'wrap',
           justifyContent: 'center',
+          alignItems: 'stretch',
         }}>
           {run.draftOptions.map((opt, i) => (
             <DraftCard
@@ -574,13 +575,19 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
     )
   }
 
+  const wrapperStyle: React.CSSProperties = {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+  }
+
   if (option.type === 'skill') {
     const skill = getSkillById(option.skillId)
     if (!skill) return null
     const isOwned = ownedSkillIds.includes(option.skillId)
     const newSynergies = getNewSynergies(skill.element)
     return (
-      <div style={{ position: 'relative' }}>
+      <div style={wrapperStyle}>
         <SkillCard skill={skill} onSelect={() => onSelect(index)} isOwned={isOwned} newSynergies={newSynergies} />
         <RerollButton />
       </div>
@@ -591,7 +598,7 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
     if (!ally) return null
     const newSynergies = getNewSynergies(ally.element)
     return (
-      <div style={{ position: 'relative' }}>
+      <div style={wrapperStyle}>
         <AllyCard ally={ally} onSelect={() => onSelect(index)} newSynergies={newSynergies} />
         <RerollButton />
       </div>
@@ -601,7 +608,7 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
   if (!item) return null
   const isOwned = ownedItemIds.includes(option.itemId)
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={wrapperStyle}>
       <ItemCard item={item} onSelect={() => onSelect(index)} isOwned={isOwned} />
       <RerollButton />
     </div>
@@ -630,6 +637,7 @@ function CardWrapper({ rarity, element, typeLabel, onSelect, children }: CardWra
       style={{
         width: '220px',
         minHeight: '260px',
+        flex: 1,
         background: 'var(--color-bg-surface)',
         border: `1px solid var(--color-border-subtle)`,
         borderTop: `3px solid ${rarityColor}`,
@@ -775,6 +783,7 @@ function SkillCard({ skill, onSelect, isOwned, newSynergies = [] }: { skill: Ski
         lineHeight: 'var(--leading-relaxed)',
         margin: 0,
         flex: 1,
+        wordBreak: 'keep-all',
       }}>
         {skill.description}
       </p>
@@ -849,6 +858,7 @@ function AllyCard({ ally, onSelect, newSynergies = [] }: { ally: AllyDef; onSele
         lineHeight: 'var(--leading-relaxed)',
         margin: 0,
         flex: 1,
+        wordBreak: 'keep-all',
       }}>
         {ally.description}
       </p>
@@ -906,6 +916,7 @@ function ItemCard({ item, onSelect, isOwned }: { item: ItemDef; onSelect: () => 
         lineHeight: 'var(--leading-relaxed)',
         margin: 0,
         flex: 1,
+        wordBreak: 'keep-all',
       }}>
         {item.description}
       </p>
