@@ -29,28 +29,36 @@ import { EVENTS, getEventById } from './data/events'
 // Constants
 // ---------------------------------------------------------------------------
 
-export const MAX_ROUNDS = 7
+export const MAX_ROUNDS = 15
 export const MAX_ALLIES = 4
 
 /** 라운드별 적 등장 수 */
 const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
-  1: 1,
-  2: 2,
-  3: 2,
-  4: 3,
-  5: 3,
-  6: 2,
-  7: 1, // 보스전
+  1:  1,
+  2:  2,
+  3:  2,
+  4:  2,
+  5:  2,  // 엘리트
+  6:  3,
+  7:  2,
+  8:  3,
+  9:  3,
+  10: 2,  // 엘리트
+  11: 3,
+  12: 3,
+  13: 3,
+  14: 3,
+  15: 1,  // 보스전
 }
 
-/** 라운드 7은 항상 dragon_lord */
+/** 라운드 15은 항상 dragon_lord */
 const BOSS_ENEMY_ID = 'dragon_lord'
 
 /** 엘리트 적이 등장하는 라운드 */
-const ELITE_ROUNDS = new Set([3, 5])
+const ELITE_ROUNDS = new Set([5, 10])
 
 /** 이벤트가 등장하는 라운드 (전투 완료 후 드래프트 전) */
-const EVENT_ROUNDS = new Set([2, 4])
+const EVENT_ROUNDS = new Set([3, 7, 12])
 
 /** 엘리트 스탯 배율 (라운드 스케일링 위에 추가 적용) */
 const ELITE_STAT_MULTIPLIER = 1.2
@@ -162,8 +170,8 @@ export function createBattleEnemy(
     throw new Error(`Unknown enemy: ${enemyDefId}`)
   }
 
-  // 라운드가 높을수록 스탯 강화 (10% per round after round 1)
-  const roundScale = 1 + (round - 1) * 0.1
+  // 라운드가 높을수록 스탯 강화 (5% per round after round 1)
+  const roundScale = 1 + (round - 1) * 0.05
   // 엘리트는 라운드 스케일 위에 추가 배율 적용
   const scale = isElite ? roundScale * ELITE_STAT_MULTIPLIER : roundScale
 

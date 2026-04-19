@@ -50,8 +50,8 @@ run === null
 
 run.phase = 'battle'
   → BattleScreen
-      ├─ onBattleVictory() → run.phase = 'draft'  (round < 7)
-      ├─ onBattleVictory() → run.phase = 'result' (round === 7, isVictory: true)
+      ├─ onBattleVictory() → run.phase = 'draft'  (round < 15)
+      ├─ onBattleVictory() → run.phase = 'result' (round === 15, isVictory: true)
       └─ onBattleDefeat()  → run.phase = 'result' (isVictory: false)
 
 run.phase = 'draft'
@@ -79,8 +79,8 @@ run.phase = 'result'
 
 ### 전투 시스템 핵심 규칙
 
-- **라운드 스케일링**: 적 HP/공격력은 `1 + (round - 1) * 0.1` 배율로 강화 (방어력은 고정)
-- **라운드 7**: 항상 보스 (`dragon_lord`) 단독 등장. 보스는 `cc_immune` 상태로 스폰
+- **라운드 스케일링**: 적 HP/공격력은 `1 + (round - 1) * 0.05` 배율로 강화 (방어력은 고정). 라운드 15 기준 최대 1.70배
+- **라운드 15**: 항상 보스 (`dragon_lord`) 단독 등장. 보스는 `cc_immune` 상태로 스폰
 - **적 행동 패턴**: `EnemyDef.actions` 배열을 순환 (`actionIndex`)
 - **상태이상 `apply_status`**: `targetMode: 'random'`인 경우 플레이어를 타겟으로 삼을 수 있음 (의도된 설계)
 - **드래프트**: 전투 승리 후 스킬/동료/아이템 중 3장 제시. 동료는 최대 4명

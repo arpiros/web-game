@@ -15,7 +15,7 @@
 | 동료 | 12종 (기본 8 + 신규 4) |
 | 아이템 | 27종 (기본 15 + 신규 12) |
 | 상태이상 | 12종 (poison, burn, freeze, stun, shield, regen, powerup, defdown, mana_regen, cc_immune, undying, miss_immune) |
-| 라운드 | 7라운드 (라운드 3·5 엘리트, 라운드 7 보스 dragon_lord) |
+| 라운드 | 15라운드 (라운드 5·10 엘리트, 라운드 15 보스 dragon_lord, 5%/라운드 스케일링) |
 | 드래프트 | 전투 후 3장 선택 (스킬/동료/아이템) + 아이템 조합(Forge) 탭 |
 | MP 시스템 | 자동재생(+3/턴) + 턴 종료보너스(+8) + 킬보너스(+5) + mana_regen + mp_regen 아이템 |
 

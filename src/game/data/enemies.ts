@@ -283,13 +283,14 @@ export const ELITE_ENEMIES: readonly EnemyDef[] = [
 // 라운드에 따른 적 선택 (낮은 라운드 = 약한 적)
 const EARLY_ENEMY_IDS = ['goblin', 'fire_imp', 'shadow_wolf', 'skeleton_archer']
 const MID_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'cursed_knight', 'demon_mage', 'flame_phoenix', 'dark_vampire']
-const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'dragon_lord', 'frost_giant', 'poison_hydra', 'void_lord']
+// dragon_lord는 보스 전용 — 일반 풀에서 제외
+const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'frost_giant', 'poison_hydra', 'void_lord']
 
 export function getEnemyPoolForRound(round: number): readonly EnemyDef[] {
-  if (round <= 2) {
+  if (round <= 4) {
     return ENEMIES.filter(e => EARLY_ENEMY_IDS.includes(e.id))
   }
-  if (round <= 5) {
+  if (round <= 9) {
     return ENEMIES.filter(e => [...EARLY_ENEMY_IDS, ...MID_ENEMY_IDS].includes(e.id))
   }
   return ENEMIES.filter(e => MID_ENEMY_IDS.includes(e.id) || LATE_ENEMY_IDS.includes(e.id))
