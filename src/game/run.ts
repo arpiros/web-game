@@ -707,6 +707,12 @@ const DRAFT_COUNT = 3
 
 // 캐릭터 원소와 스킬/동료 원소가 일치할 때 적용되는 가중치 배율
 const ELEMENT_MATCH_WEIGHT = 3
+
+const EARLY_SURVIVAL_BONUS_ITEMS = new Set([
+  'vitality_gem', 'tough_armor', 'mana_crystal', 'iron_ring',
+])
+const EARLY_SURVIVAL_ROUND_CAP = 4
+const EARLY_SURVIVAL_WEIGHT_BONUS = 2
 // 캐릭터 원소와 관련 있는 원소 쌍 (예: dark <-> physical, fire <-> light 반대)
 const ELEMENT_AFFINITY: Readonly<Record<string, readonly string[]>> = {
   fire:     ['fire'],
@@ -719,6 +725,7 @@ const ELEMENT_AFFINITY: Readonly<Record<string, readonly string[]>> = {
 function getDraftWeight(
   option: DraftOption,
   characterDef: CharacterDef,
+  round: number,
 ): number {
   const affinity = ELEMENT_AFFINITY[characterDef.element] ?? [characterDef.element]
   const weights = characterDef.draftWeights ?? {}
@@ -736,7 +743,11 @@ function getDraftWeight(
   }
 
   if (option.type === 'item') {
-    if (weights[option.itemId] !== undefined) return weights[option.itemId]
+    const base = weights[option.itemId] ?? 1
+    const bonus = round <= EARLY_SURVIVAL_ROUND_CAP && EARLY_SURVIVAL_BONUS_ITEMS.has(option.itemId)
+      ? EARLY_SURVIVAL_WEIGHT_BONUS
+      : 0
+    return base + bonus
   }
 
   return 1
@@ -779,7 +790,7 @@ export function generateDraftOptions(
   }
 
   const characterDef = getCharacterById(runState.character.defId) ?? { element: runState.character.element, draftWeights: {} } as CharacterDef
-  const weights = pool.map(option => getDraftWeight(option, characterDef))
+  const weights = pool.map(option => getDraftWeight(option, characterDef, runState.round))
 
   const [picked, nextRng] = pickNWeighted(rng, pool, weights, Math.min(count, pool.length))
   return [picked, nextRng]
