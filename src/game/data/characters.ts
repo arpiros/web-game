@@ -60,14 +60,14 @@ export const CHARACTERS: readonly CharacterDef[] = [
     title: '신의 방패',
     element: 'light',
     baseStats: {
-      maxHp: 1350,
-      attack: 165,
+      maxHp: 1400,
+      attack: 185,
       defense: 110,
-      speed: 50,
-      maxMp: 120,
+      speed: 55,
+      maxMp: 130,
     },
     innateSkillId: 'holy_strike',
-    startingSkillIds: ['divine_heal', 'barrier', 'basic_glimmer', 'smite'],
+    startingSkillIds: ['divine_heal', 'basic_glimmer', 'smite'],
     lore: '신의 가호를 받은 성기사. 굳건한 방어와 회복 능력으로 파티를 지킨다.',
     draftWeights: {
       // 스킬
