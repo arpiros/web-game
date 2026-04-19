@@ -326,10 +326,8 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
     }}>
 
       {/* ── HUD ── */}
-      <div style={{
+      <div className="altar-hud" style={{
         height: 'var(--hud-height)', flexShrink: 0,
-        borderBottom: '1px solid var(--color-border-subtle)',
-        background: 'var(--color-bg-surface)',
         display: 'flex', alignItems: 'center',
         padding: '0 var(--space-5)', gap: 'var(--space-4)',
       }}>
@@ -422,9 +420,8 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
           overflow: 'hidden auto',
           padding: 'var(--space-3)', gap: 'var(--space-2)',
         }}>
-          <div style={{
-            fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)',
-            letterSpacing: '0.08em', marginBottom: 'var(--space-1)',
+          <div className="latin-label" style={{
+            marginBottom: 'var(--space-1)',
           }}>
             PARTY
           </div>
@@ -449,9 +446,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
 
           {bs.items.length > 0 && (
             <>
-              <div style={{
-                fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)',
-                letterSpacing: '0.08em',
+              <div className="latin-label" style={{
                 marginTop: 'var(--space-2)',
                 paddingTop: 'var(--space-2)',
                 borderTop: '1px solid var(--color-border-subtle)',
@@ -668,6 +663,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
       disabled={!isTargetable}
       style={{
         width: '140px',
+        position: 'relative',
         background: 'var(--color-bg-elevated)',
         border: `1px solid ${isTargetable ? elColor : 'var(--color-border-subtle)'}`,
         borderRadius: 'var(--radius-lg)',
@@ -769,12 +765,15 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
 
       {/* Targeting indicator */}
       {isTargetable && (
-        <div style={{
-          fontSize: '0.6rem', color: elColor, textAlign: 'center',
-          fontWeight: 'var(--weight-bold)', letterSpacing: '0.05em',
-        }}>
-          ▼ 타겟
-        </div>
+        <>
+          <div className="target-reticle" />
+          <div style={{
+            fontSize: '0.6rem', color: elColor, textAlign: 'center',
+            fontWeight: 'var(--weight-bold)', letterSpacing: '0.05em',
+          }}>
+            ▼ 타겟
+          </div>
+        </>
       )}
     </button>
   )
@@ -1034,14 +1033,14 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
     }
   }, [entries.length])
 
-  function entryColor(kind: string): string {
+  function entryClass(kind: string): string {
     switch (kind) {
-      case 'system':       return 'var(--color-accent)'
-      case 'death':        return 'var(--color-hp-low)'
-      case 'heal':         return 'var(--color-hp-high)'
-      case 'status_apply': return 'var(--color-status-burn)'
-      case 'status_expire':return 'var(--color-text-muted)'
-      default:             return 'var(--color-text-secondary)'
+      case 'damage':
+      case 'death':  return 'battle-log-entry battle-log-entry--damage'
+      case 'heal':   return 'battle-log-entry battle-log-entry--heal'
+      case 'crit':   return 'battle-log-entry battle-log-entry--crit'
+      case 'system': return 'battle-log-entry battle-log-entry--system'
+      default:       return 'battle-log-entry'
     }
   }
 
@@ -1060,14 +1059,7 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
       }}
     >
       {[...entries].slice(-30).reverse().map(entry => (
-        <div
-          key={entry.id}
-          style={{
-            color: entryColor(entry.kind),
-            lineHeight: 'var(--leading-normal)',
-            padding: '1px 0',
-          }}
-        >
+        <div key={entry.id} className={entryClass(entry.kind)}>
           {entry.text}
         </div>
       ))}

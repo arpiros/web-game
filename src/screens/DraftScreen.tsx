@@ -313,12 +313,8 @@ function SectionHeader({ label, dimmed }: { label: string; dimmed?: boolean }) {
       gap: 'var(--space-3)',
     }}>
       <div style={{ flex: 1, height: '1px', background: 'var(--color-border-subtle)' }} />
-      <span style={{
-        fontSize: 'var(--text-xs)',
-        color: dimmed ? 'var(--color-text-muted)' : 'var(--color-text-secondary)',
-        fontWeight: 'var(--weight-semibold)',
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
+      <span className="section-header" style={{
+        color: dimmed ? 'var(--color-text-muted)' : undefined,
         whiteSpace: 'nowrap',
         opacity: dimmed ? 0.6 : 1,
       }}>
@@ -634,11 +630,11 @@ function CardWrapper({ rarity, element, typeLabel, onSelect, children }: CardWra
   return (
     <button
       onClick={onSelect}
+      className={`tarot-card${rarity !== 'common' ? ` tarot-card--${rarity}` : ''}`}
       style={{
         width: '220px',
         minHeight: '260px',
         flex: 1,
-        background: 'var(--color-bg-surface)',
         border: `1px solid var(--color-border-subtle)`,
         borderTop: `3px solid ${rarityColor}`,
         borderRadius: 'var(--radius-lg)',
