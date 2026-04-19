@@ -340,8 +340,28 @@ function applyDamageToAlly(
   const newHp = Math.max(0, target.stats.hp - remaining)
   const actualDamage = remaining + absorbed
 
+  const wouldDie = newHp <= 0
+  const hasUndying = hasStatus(target.statusEffects, 'undying')
+  const hasRevive = hasStatus(target.statusEffects, 'revive')
+
   const next = updateAlly(state, targetId, a => {
     const afterShield = absorbed > 0 ? removeStatus(a.statusEffects, 'shield') : a.statusEffects
+    if (wouldDie && hasUndying) {
+      return {
+        ...a,
+        stats: { ...a.stats, hp: 1 },
+        statusEffects: removeStatus(afterShield, 'undying'),
+        isAlive: true,
+      }
+    }
+    if (wouldDie && hasRevive) {
+      return {
+        ...a,
+        stats: { ...a.stats, hp: Math.round(a.stats.maxHp * 0.3) },
+        statusEffects: removeStatus(afterShield, 'revive'),
+        isAlive: true,
+      }
+    }
     return {
       ...a,
       stats: { ...a.stats, hp: newHp },
