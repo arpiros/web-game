@@ -481,7 +481,7 @@ function SpeedControl({ speed, onSetSpeed }: {
           onClick={() => onSetSpeed(s)}
           style={{
             padding: '2px 6px',
-            fontSize: '0.6rem',
+            fontSize: 'var(--text-xxs)',
             fontWeight: s === speed ? 'var(--weight-bold)' : 'var(--weight-normal)',
             background: s === speed
               ? 'color-mix(in oklch, var(--color-accent) 25%, transparent)'
@@ -616,11 +616,11 @@ function EnemyIntentBadge({ action, enemy, party }: {
     }}>
       <span style={{ fontSize: '0.65rem', flexShrink: 0 }}>{icon}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
-        <span style={{ fontSize: '0.6rem', fontWeight: 'var(--weight-semibold)', color, lineHeight: 1 }}>
+        <span style={{ fontSize: 'var(--text-xxs)', fontWeight: 'var(--weight-semibold)', color, lineHeight: 1 }}>
           {label}
         </span>
         {sublabel && (
-          <span style={{ fontSize: '0.55rem', color: 'var(--color-text-muted)', lineHeight: 1 }}>
+          <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)', lineHeight: 1 }}>
             {sublabel}
           </span>
         )}
@@ -680,7 +680,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
       {/* Boss phase badge */}
       {enemy.isBoss && enemy.bossCurrentPhase !== undefined && (
         <div style={{
-          fontSize: '0.55rem', fontWeight: 'var(--weight-bold)', textAlign: 'center',
+          fontSize: 'var(--text-xxs)', fontWeight: 'var(--weight-bold)', textAlign: 'center',
           padding: '2px 6px', borderRadius: 'var(--radius-sm)',
           background: enemy.bossCurrentPhase === 3
             ? 'oklch(40% 0.25 20)'
@@ -701,7 +701,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
       {/* Elite badge */}
       {enemy.isElite && (
         <div style={{
-          fontSize: '0.55rem', fontWeight: 'var(--weight-bold)', textAlign: 'center',
+          fontSize: 'var(--text-xxs)', fontWeight: 'var(--weight-bold)', textAlign: 'center',
           padding: '2px 6px', borderRadius: 'var(--radius-sm)',
           background: 'oklch(35% 0.18 60)',
           color: 'oklch(90% 0.18 60)',
@@ -713,7 +713,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
 
       {/* Element + name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-        <span style={{ fontSize: '0.6rem', color: elColor, fontWeight: 'var(--weight-bold)' }}>
+        <span style={{ fontSize: 'var(--text-xxs)', color: elColor, fontWeight: 'var(--weight-bold)' }}>
           [{elLabel}]
         </span>
         <span style={{
@@ -728,7 +728,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
       {/* HP bar */}
       <div>
         <div style={{
-          height: '5px', background: 'var(--color-border-subtle)',
+          height: '8px', background: 'var(--color-border-subtle)',
           borderRadius: 'var(--radius-full)', overflow: 'hidden',
         }}>
           <div style={{
@@ -738,7 +738,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
           }} />
         </div>
         <div style={{
-          fontSize: '0.6rem', color: 'var(--color-text-muted)',
+          fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)',
           textAlign: 'right', marginTop: '2px',
         }}>
           {enemy.stats.hp.toLocaleString()} / {enemy.stats.maxHp.toLocaleString()}
@@ -768,7 +768,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
         <>
           <div className="target-reticle" />
           <div style={{
-            fontSize: '0.6rem', color: elColor, textAlign: 'center',
+            fontSize: 'var(--text-xxs)', color: elColor, textAlign: 'center',
             fontWeight: 'var(--weight-bold)', letterSpacing: '0.05em',
           }}>
             ▼ 타겟
@@ -824,7 +824,7 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battl
         }}>
           {entity.name}
         </span>
-        <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)' }}>
+        <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
           ATK {entity.stats.attack}
         </span>
       </div>
@@ -881,7 +881,7 @@ function ItemCard({ item }: { item: ItemDef }) {
         {item.name}
       </div>
       <div style={{
-        fontSize: '0.6rem', color: 'var(--color-text-muted)',
+        fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)',
         lineHeight: 'var(--leading-relaxed)',
       }}>
         {item.description}
@@ -901,8 +901,8 @@ function ResourceBar({ current, max, color, label }: {
   return (
     <div style={{ marginBottom: '4px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-        <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)' }}>{label}</span>
-        <span style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)' }}>
+        <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>{label}</span>
+        <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-secondary)' }}>
           {current} / {max}
         </span>
       </div>
@@ -1005,7 +1005,7 @@ function StatusBadge({ effect }: { effect: StatusEffect }) {
         }}
         style={{
           display: 'inline-block',
-          fontSize: '0.55rem', padding: '1px 4px',
+          fontSize: 'var(--text-xxs)', padding: '1px 4px',
           borderRadius: 'var(--radius-sm)',
           background: `color-mix(in oklch, ${color} 20%, transparent)`,
           color,
@@ -1029,7 +1029,7 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
 
   useEffect(() => {
     if (ref.current) {
-      ref.current.scrollTop = 0
+      ref.current.scrollTop = ref.current.scrollHeight
     }
   }, [entries.length])
 
@@ -1058,7 +1058,7 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
         scrollBehavior: 'smooth',
       }}
     >
-      {[...entries].slice(-30).reverse().map(entry => (
+      {[...entries].slice(-30).map(entry => (
         <div key={entry.id} className={entryClass(entry.kind)}>
           {entry.text}
         </div>
@@ -1121,7 +1121,7 @@ function SkillTooltip({ skill, character, enemies, items, x, y }: {
       fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)',
     }}>
       <div style={{ marginBottom: 'var(--space-1)' }}>
-        <span style={{ color: elColor, fontSize: '0.6rem', fontWeight: 'var(--weight-bold)' }}>
+        <span style={{ color: elColor, fontSize: 'var(--text-xxs)', fontWeight: 'var(--weight-bold)' }}>
           [{elLabel}]
         </span>
         {' '}
@@ -1253,7 +1253,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
             {/* MP cost */}
             {skill.mpCost > 0 && (
               <span style={{
-                fontSize: '0.6rem',
+                fontSize: 'var(--text-xxs)',
                 color: cannotAfford ? 'var(--color-hp-low)' : 'var(--color-mp)',
               }}>
                 {skill.mpCost} MP
@@ -1262,12 +1262,12 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
 
             {/* Cooldown or element */}
             {isOnCooldown ? (
-              <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)' }}>
+              <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
                 CD {cooldown}
               </span>
             ) : (
               <span style={{
-                fontSize: '0.55rem',
+                fontSize: 'var(--text-xxs)',
                 color: elColor, opacity: 0.8,
               }}>
                 {ELEMENT_LABEL[skill.element] ?? skill.element}

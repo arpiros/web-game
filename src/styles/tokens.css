@@ -86,6 +86,7 @@
   /* ★ 세리프 보정된 스케일 — 모두 한 단계 키움.
      세리프 폰트는 산세리프 대비 같은 px에서 ~15% 작아 보이므로
      최소값을 0.85rem(13.6px)로 끌어올려 수치 가독성 확보 */
+  --text-xxs: clamp(0.6rem, 0.55rem + 0.2vw, 0.7rem);     /* 극소 레이블 (뱃지·HUD 수치 등) */
   --text-xs: clamp(0.82rem, 0.72rem + 0.25vw, 0.92rem);   /* 기존 0.625~0.75 → 상향 */
   --text-sm: clamp(0.92rem, 0.82rem + 0.3vw, 1.05rem);
   --text-base: clamp(1.02rem, 0.92rem + 0.3vw, 1.15rem);
