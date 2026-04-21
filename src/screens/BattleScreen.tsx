@@ -988,7 +988,7 @@ function StatusTooltip({ effect, x, y }: { effect: StatusEffect; x: number; y: n
           {label}
         </span>
         {effect.duration > 0 && (
-          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.6rem' }}>
+          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xxs)' }}>
             {effect.duration}턴 남음
           </span>
         )}

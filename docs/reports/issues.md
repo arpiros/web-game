@@ -7,42 +7,41 @@
 
 ## 추가 버그 메모
 
-- 스킬 성스러운 오라와 마나 집중의 재생효과가 발동하지 않음
+- ~~스킬 성스러운 오라와 마나 집중의 재생효과가 발동하지 않음~~ ✅ **확인 완료** — `tickAllStatusEffects`에서 `regen`/`mana_regen` 정상 처리 중
 
 ---
 
 ## BUG — 버그 (게임 동작 오류)
 
-### BUG-01 · `barrier` 스킬 속성 오류
+### ~~BUG-01 · `barrier` 스킬 속성 오류~~ ✅ 완료
 - **심각도**: Medium
 - **파일**: `src/game/data/skills.ts` (barrier 정의)
 - **증상**: 성기사 스킬 `barrier`의 `element`가 `'water'`로 설정되어 있으나 성기사 캐릭터의 원소는 `'light'`다. 이로 인해 내부 속성 상성 계산 시 의도치 않은 결과가 발생할 수 있음.
 - **재현**: 성기사로 barrier 시전 후 적에게 물 속성 적이 있는 경우 배율 미스매치.
-- **수정 방향**: `element: 'water'` → `element: 'light'` (또는 속성 없는 `'physical'`)
+- **수정**: `element: 'water'` → `element: 'light'`
 
 ---
 
-### BUG-02 · 전투 로그 상태이상 이름이 영어로 출력
+### ~~BUG-02 · 전투 로그 상태이상 이름이 영어로 출력~~ ✅ 완료
 - **심각도**: Medium
-- **파일**: `src/game/combat.ts` (약 721, 798, 1334, 1378, 1398번째 줄 로그 생성 부분)
-- **증상**: 전투 로그에 상태이상 이름이 한국어가 아닌 영문 ID로 표시됨. 예: `"불꽃의 마법사에게 poison 부여."`, `"goblin의 burn이 해제됨."` 등.
-- **원인**: `BattleScreen.tsx`에 `STATUS_LABEL` 맵(`poison: '독'` 등)이 존재하지만, `combat.ts`의 로그 생성 코드는 `effect.status` 원시 값을 직접 사용.
-- **수정 방향**: `combat.ts`에 `STATUS_NAME_KO` 상수 맵 추가 후, 로그 생성 시 `STATUS_NAME_KO[effect.status] ?? effect.status` 형태로 치환.
+- **파일**: `src/game/combat.ts`
+- **증상**: 전투 로그에 상태이상 이름이 한국어가 아닌 영문 ID로 표시됨.
+- **수정**: `combat.ts`에 `STATUS_NAME_KO` 상수 맵 추가, 로그 생성 시 `STATUS_NAME_KO[effect.status] ?? effect.status` 형태로 치환.
 
 ---
 
-### BUG-03 · 사망 애니메이션 중 적 타겟 선택 허용
+### ~~BUG-03 · 사망 애니메이션 중 적 타겟 선택 허용~~ ✅ 완료
 - **심각도**: Low
-- **파일**: `src/screens/BattleScreen.tsx` (EnemyCard `isTargetable` prop 전달부)
-- **증상**: 적이 사망 처리되어 `isDying` 상태인데도 타겟으로 선택 가능한 시각적 피드백(하이라이트, ▼ 타겟 텍스트)이 남아 있음.
-- **수정 방향**: `isTargetable` 조건에 `!enemy.isDying` 가드 추가.
+- **파일**: `src/screens/BattleScreen.tsx`
+- **증상**: 적이 사망 처리되어 `isDying` 상태인데도 타겟으로 선택 가능한 시각적 피드백이 남아 있음.
+- **수정**: `isTargetable` 조건에 `!dyingIds.has(enemy.id)` 가드 추가.
 
 ---
 
-### BUG-04 · `tide_dancer` 물 원소 스킬 속성 상성 미반영 가능성
-- **심각도**: Low (검증 필요)
-- **파일**: `src/game/data/skills.ts` (파도 무희 스킬 정의)
-- **증상**: `maelstrom` 스킬 등 일부 스킬에서 element가 지정되지 않은 경우, 속성 보너스를 받지 못할 수 있음. 파도 무희가 물 속성 캐릭터임에도 스킬 element가 `'water'`로 명시되지 않은 케이스 확인 필요.
+### ~~BUG-04 · `tide_dancer` 물 원소 스킬 속성 상성 미반영 가능성~~ ✅ 완료
+- **심각도**: Low
+- **파일**: `src/game/data/skills.ts`
+- **수정**: 파도 무희 모든 공격 스킬에 `element: 'water'` 명시 확인 완료.
 
 ---
 
@@ -120,10 +119,9 @@
 
 ---
 
-### LOW-03 · `광전사(berserker)` HP 스케일 스킬 UI 설명 부족
-- **파일**: `src/game/data/skills.ts`, `src/screens/BattleScreen.tsx`
-- **증상**: `damage_hp_scale` 효과를 가진 스킬(`bloodthirst` 등)의 현재 예상 데미지가 툴팁에 표시되지 않아, HP가 낮을 때 배율이 오르는 핵심 메카닉을 파악하기 어려움.
-- **수정 방향**: 스킬 툴팁에 현재 HP 기준 예상 데미지 표시 (다른 스킬과 동일하게).
+### ~~LOW-03 · `광전사(berserker)` HP 스케일 스킬 UI 설명 부족~~ ✅ 완료
+- **파일**: `src/screens/BattleScreen.tsx`
+- **수정**: `estimateDamage()`가 `damage_hp_scale` 처리, 툴팁에 현재 HP% 및 환산 배율 표시 추가.
 
 ---
 
@@ -138,14 +136,18 @@
 
 | ID | 심각도 | 예상 난이도 | 설명 |
 |----|--------|------------|------|
-| BUG-01 | Medium | 쉬움 | `barrier` element 수정 (1줄) |
-| BUG-02 | Medium | 쉬움 | 상태이상 이름 한국어 변환 (상수 맵 추가) |
+| ~~BUG-01~~ ✅ | Medium | 쉬움 | `barrier` element 수정 (1줄) |
+| ~~BUG-02~~ ✅ | Medium | 쉬움 | 상태이상 이름 한국어 변환 (상수 맵 추가) |
 | UX-01 | Medium | 쉬움 | 적 선택 유도 안내 텍스트 |
-| BUG-03 | Low | 쉬움 | 사망 중 타겟 선택 방지 |
+| ~~BUG-03~~ ✅ | Low | 쉬움 | 사망 중 타겟 선택 방지 |
 | UX-02 | Low | 쉬움 | 파티 패널에 DEF 표시 |
 | UX-03 | Low | 쉬움 | 캐릭터 선택 화면 SPD 추가 |
 | UX-05 | Low | 보통 | 사망 적 카드 제거 |
 | UX-04 | Low | 보통 | 엘리트 전투 사전 경고 |
 | UX-07 | Low | 보통 | 보스 페이즈 전환 연출 |
 | UX-06 | Low | 보통 | 이벤트 선택지 효과 미리보기 |
-| LOW-01~04 | Low | 다양 | 기타 개선 사항 |
+| ~~BUG-04~~ ✅ | Low | 쉬움 | tide_dancer 물 원소 스킬 확인 |
+| ~~LOW-03~~ ✅ | Low | 쉬움 | HP 스케일 툴팁 추가 |
+| LOW-01 | Low | 다양 | 스킬 쿨다운/MP 부족 시각 피드백 개선 |
+| LOW-02 | Low | 쉬움 | 드래프트 동료 스탯 표시 |
+| LOW-04 | Low | 보통 | 결과 화면 라운드별 기록 |

@@ -57,12 +57,12 @@
 | B-1 | SkillBar 컨테이너 `height: 140px`, 버튼은 `88px` — 52px 낭비 | SkillBar 컴포넌트 |
 | B-2 | 스킬 이름 `maxWidth: '80px'` + ellipsis — 이름이 잘림 | SkillButton 내부 |
 | B-3 | EnemyCard 고정 `140px` — 적이 많아지면 UI 압박 | EnemyCard |
-| B-4 | 적 HP 바 두께 `5px` — 시각적으로 너무 얇음 | EnemyCard HP bar |
+| ~~B-4~~ ✅ | ~~적 HP 바 두께 `5px` — 시각적으로 너무 얇음~~ → `8px`로 수정 완료 | EnemyCard HP bar |
 | B-5 | EnemyIntentBadge 폰트 `0.55rem` / `0.6rem` — 토큰 미사용 raw 값 | IntentBadge |
 | B-6 | ResourceBar 레이블 `0.6rem` — 가독성 위험 | ResourceBar |
 | B-7 | DamagePopup `bottom: '30%'` 절대 위치 — 카드 내용과 겹칠 수 있음 | DamagePopup |
 | B-8 | 상태이상 툴팁 `position: 'fixed'` — 경계 근처에서 화면 밖으로 나감 | StatusTooltip |
-| B-9 | BattleLog가 업데이트 시 상단으로 스크롤 — 최신 로그가 위(직관과 반대) | BattleLog |
+| ~~B-9~~ ✅ | ~~BattleLog가 업데이트 시 상단으로 스크롤 — 최신 로그가 위(직관과 반대)~~ → 하단 자동 스크롤 수정 완료 | BattleLog |
 | B-10 | SpeedControl 폰트 `0.6rem` — 토큰 미사용 | SpeedControl |
 | B-11 | 15라운드(보스) 진입 시 시각적 알림 없음 | BattleScreen 전환부 |
 | B-12 | 스킬 쿨다운 표시 방식 불명확 (숫자 오버레이만) | SkillButton |
@@ -142,15 +142,10 @@
 
 ## 7. 공통/횡단 이슈
 
-### 7-1. 토큰 미활용 — raw 폰트 사이즈
+### ~~7-1. 토큰 미활용 — raw 폰트 사이즈~~ ✅ 완료
 
-컴포넌트 전반에 `0.55rem`, `0.6rem`, `0.7rem` 등의 raw 값이 산발적으로 사용됨.
-`tokens.css`에 `--text-xxs: 0.6rem` 토큰을 추가하고 일원화 권장.
-
-```css
-/* tokens.css 추가 제안 */
---text-xxs: clamp(0.6rem, 0.55rem + 0.2vw, 0.7rem);
-```
+~~컴포넌트 전반에 `0.55rem`, `0.6rem`, `0.7rem` 등의 raw 값이 산발적으로 사용됨.~~
+`tokens.css`에 `--text-xxs: clamp(0.6rem, 0.55rem + 0.2vw, 0.7rem)` 추가, 전체 raw 사용처를 토큰으로 일원화 완료.
 
 ### 7-2. Hover 상태를 JS로 처리
 
@@ -179,9 +174,9 @@ CSS 클래스 + 토큰 조합으로 점진적 전환 권장.
 
 | 순위 | 항목 | 임팩트 | 난이도 |
 |------|------|--------|--------|
-| 🔴 High | B-9 BattleLog 스크롤 방향 | UX 혼란 | 낮음 |
-| 🔴 High | B-4 HP 바 두께 | 가독성 | 낮음 |
-| 🔴 High | 7-1 `--text-xxs` 토큰 통일 | 일관성 | 낮음 |
+| ~~🔴 High~~ ✅ | ~~B-9 BattleLog 스크롤 방향~~ | UX 혼란 | 낮음 |
+| ~~🔴 High~~ ✅ | ~~B-4 HP 바 두께~~ | 가독성 | 낮음 |
+| ~~🔴 High~~ ✅ | ~~7-1 `--text-xxs` 토큰 통일~~ | 일관성 | 낮음 |
 | 🟡 Medium | B-11 보스 진입 연출 | 몰입도 | 중간 |
 | 🟡 Medium | C-2 캐릭터 초상화 | 시각 식별 | 중간 |
 | 🟡 Medium | R-2 결과 화면 애니메이션 | 감성 | 중간 |
