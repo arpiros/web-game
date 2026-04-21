@@ -6,6 +6,7 @@ import { getItemById } from '../game/data/items'
 import { getAvailableRecipes } from '../game/craft'
 import { RECIPES } from '../game/data/recipes'
 import { SYNERGIES, type Synergy } from '../game/synergy'
+import { ELITE_ROUNDS, MAX_ROUNDS } from '../game/run'
 import { useRunStore } from '../state/runStore'
 
 // ---------------------------------------------------------------------------
@@ -55,6 +56,8 @@ export function DraftScreen() {
   const craftAndAdvance    = useRunStore(s => s.craftAndAdvance)
   const rerollDraft        = useRunStore(s => s.rerollDraft)
 
+  const skipDraftForHeal  = useRunStore(s => s.skipDraftForHeal)
+
   const [tab, setTab] = useState<DraftTab>('reward')
 
   if (!run || run.phase !== 'draft') return null
@@ -103,8 +106,29 @@ export function DraftScreen() {
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
           marginBottom: 'var(--space-2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-3)',
         }}>
           라운드 {run.round - 1} 클리어
+          {run.round === MAX_ROUNDS && (
+            <span style={{
+              fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
+              color: 'var(--color-blood)', background: 'color-mix(in oklch, var(--color-blood) 15%, var(--color-bg-elevated))',
+              border: '1px solid var(--color-blood)', borderRadius: 'var(--radius-sm)',
+              padding: '2px 8px', letterSpacing: '0.15em', textTransform: 'uppercase',
+            }}>
+              ⚔ 보스전
+            </span>
+          )}
+          {ELITE_ROUNDS.has(run.round) && (
+            <span style={{
+              fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
+              color: 'var(--color-gold)', background: 'color-mix(in oklch, var(--color-gold) 12%, var(--color-bg-elevated))',
+              border: '1px solid var(--color-gold)', borderRadius: 'var(--radius-sm)',
+              padding: '2px 8px', letterSpacing: '0.15em', textTransform: 'uppercase',
+            }}>
+              ⚠ 엘리트
+            </span>
+          )}
         </div>
         <h2 style={{
           fontFamily: 'var(--font-heading)',
@@ -166,24 +190,36 @@ export function DraftScreen() {
       {tab === 'reward' ? (
         <div style={{
           display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
           gap: 'var(--space-6)',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          alignItems: 'stretch',
         }}>
-          {run.draftOptions.map((opt, i) => (
-            <DraftCard
-              key={i}
-              option={opt}
-              index={i}
-              onSelect={handleSelect}
-              onReroll={rerollDraft}
-              rerollsRemaining={run.rerollsRemaining}
-              ownedSkillIds={run.character.skillIds}
-              ownedItemIds={run.acquiredItemIds}
-              getNewSynergies={getNewSynergies}
-            />
-          ))}
+          <div style={{
+            display: 'flex',
+            gap: 'var(--space-6)',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            alignItems: 'stretch',
+          }}>
+            {run.draftOptions.map((opt, i) => (
+              <DraftCard
+                key={i}
+                option={opt}
+                index={i}
+                onSelect={handleSelect}
+                onReroll={rerollDraft}
+                rerollsRemaining={run.rerollsRemaining}
+                ownedSkillIds={run.character.skillIds}
+                ownedItemIds={run.acquiredItemIds}
+                getNewSynergies={getNewSynergies}
+                playerAtk={run.character.stats.attack}
+              />
+            ))}
+          </div>
+          <HealSkipCard
+            character={run.character}
+            onSkip={skipDraftForHeal}
+          />
         </div>
       ) : (
         <CraftTab
@@ -525,9 +561,10 @@ interface DraftCardProps {
   ownedSkillIds: readonly string[]
   ownedItemIds: readonly string[]
   getNewSynergies: (element: Element) => readonly Synergy[]
+  playerAtk: number
 }
 
-function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedSkillIds, ownedItemIds, getNewSynergies }: DraftCardProps) {
+function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedSkillIds, ownedItemIds, getNewSynergies, playerAtk }: DraftCardProps) {
   const canReroll = rerollsRemaining > 0
 
   function RerollButton() {
@@ -595,7 +632,7 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
     const newSynergies = getNewSynergies(ally.element)
     return (
       <div style={wrapperStyle}>
-        <AllyCard ally={ally} onSelect={() => onSelect(index)} newSynergies={newSynergies} />
+        <AllyCard ally={ally} onSelect={() => onSelect(index)} newSynergies={newSynergies} playerAtk={playerAtk} />
         <RerollButton />
       </div>
     )
@@ -818,7 +855,7 @@ function allyActionLabel(action: AllyAction): string {
   }
 }
 
-function AllyCard({ ally, onSelect, newSynergies = [] }: { ally: AllyDef; onSelect: () => void; newSynergies?: readonly Synergy[] }) {
+function AllyCard({ ally, onSelect, newSynergies = [], playerAtk = 0 }: { ally: AllyDef; onSelect: () => void; newSynergies?: readonly Synergy[]; playerAtk?: number }) {
   const elColor = ELEMENT_COLORS[ally.element]
   const elLabel = ELEMENT_LABELS[ally.element]
 
@@ -880,6 +917,11 @@ function AllyCard({ ally, onSelect, newSynergies = [] }: { ally: AllyDef; onSele
           <span style={{ color: 'var(--color-text-muted)' }}>행동</span>
           <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--weight-medium)', textAlign: 'right' }}>
             {allyActionLabel(ally.action)}
+            {ally.action.type === 'attack' && playerAtk > 0 && (
+              <span style={{ color: 'var(--color-element-fire)', marginLeft: 'var(--space-1)', fontSize: 'var(--text-xs)' }}>
+                (~{Math.round(ally.action.multiplier * playerAtk)})
+              </span>
+            )}
           </span>
         </div>
       </div>
@@ -917,6 +959,91 @@ function ItemCard({ item, onSelect, isOwned }: { item: ItemDef; onSelect: () => 
         {item.description}
       </p>
     </CardWrapper>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// HealSkipCard — 드래프트 건너뛰고 HP 회복
+// ---------------------------------------------------------------------------
+
+const HEAL_RATIO = 0.30
+
+interface HealSkipCardProps {
+  character: { stats: { hp: number; maxHp: number } }
+  onSkip: () => void
+}
+
+function HealSkipCard({ character, onSkip }: HealSkipCardProps) {
+  const { hp, maxHp } = character.stats
+  const healAmount = Math.floor(maxHp * HEAL_RATIO)
+  const afterHp = Math.min(maxHp, hp + healAmount)
+  const isFullHp = hp >= maxHp
+
+  return (
+    <button
+      onClick={onSkip}
+      disabled={isFullHp}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-4)',
+        padding: 'var(--space-4) var(--space-6)',
+        background: isFullHp
+          ? 'color-mix(in oklch, var(--color-bg-surface) 80%, transparent)'
+          : 'color-mix(in oklch, var(--color-hp-high) 8%, var(--color-bg-surface))',
+        border: `1px solid ${isFullHp ? 'var(--color-border-subtle)' : 'color-mix(in oklch, var(--color-hp-high) 30%, transparent)'}`,
+        borderRadius: 'var(--radius-lg)',
+        cursor: isFullHp ? 'not-allowed' : 'pointer',
+        color: isFullHp ? 'var(--color-text-muted)' : 'var(--color-text-secondary)',
+        fontSize: 'var(--text-sm)',
+        opacity: isFullHp ? 0.5 : 1,
+        transition: 'background var(--duration-fast), border-color var(--duration-fast)',
+        maxWidth: '480px',
+        width: '100%',
+      }}
+      onMouseEnter={e => {
+        if (isFullHp) return
+        ;(e.currentTarget as HTMLButtonElement).style.background =
+          'color-mix(in oklch, var(--color-hp-high) 15%, var(--color-bg-surface))'
+      }}
+      onMouseLeave={e => {
+        if (isFullHp) return
+        ;(e.currentTarget as HTMLButtonElement).style.background =
+          'color-mix(in oklch, var(--color-hp-high) 8%, var(--color-bg-surface))'
+      }}
+    >
+      <span style={{ fontSize: 'var(--text-xl)' }}>🩹</span>
+      <div style={{ textAlign: 'left', flex: 1 }}>
+        <div style={{
+          fontWeight: 'var(--weight-semibold)',
+          color: isFullHp ? 'var(--color-text-muted)' : 'var(--color-hp-high)',
+          marginBottom: '2px',
+        }}>
+          보상 건너뛰고 회복
+        </div>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+          {isFullHp
+            ? 'HP가 이미 최대입니다'
+            : `HP ${hp} → ${afterHp} (+${afterHp - hp}) / 최대 HP의 ${Math.round(HEAL_RATIO * 100)}% 회복`
+          }
+        </div>
+      </div>
+      {!isFullHp && (
+        <span style={{
+          fontSize: 'var(--text-xs)',
+          padding: '2px var(--space-3)',
+          background: 'color-mix(in oklch, var(--color-hp-high) 18%, transparent)',
+          border: '1px solid color-mix(in oklch, var(--color-hp-high) 35%, transparent)',
+          borderRadius: 'var(--radius-sm)',
+          color: 'var(--color-hp-high)',
+          fontWeight: 'var(--weight-semibold)',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}>
+          선택
+        </span>
+      )}
+    </button>
   )
 }
 

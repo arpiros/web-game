@@ -136,18 +136,22 @@ function DamagePopup({ popup, battleSpeed }: { popup: PopupEntry; battleSpeed: n
 interface AnimationState {
   shakingIds: ReadonlySet<string>
   dyingIds: ReadonlySet<string>
+  removedIds: ReadonlySet<string>
   flashingIds: ReadonlySet<string>
   popups: PopupEntry[]
+  bossPhaseFlash: 0 | 2 | 3
 }
 
 function useBattleAnimations(
   bs: { log: readonly BattleLogEntry[]; enemies: readonly BattleEnemy[] } | null | undefined,
   battleSpeed: number,
 ): AnimationState {
-  const [shakingIds, setShakingIds]   = useState<Set<string>>(new Set())
-  const [dyingIds, setDyingIds]       = useState<Set<string>>(new Set())
-  const [flashingIds, setFlashingIds] = useState<Set<string>>(new Set())
-  const [popups, setPopups]           = useState<PopupEntry[]>([])
+  const [shakingIds, setShakingIds]         = useState<Set<string>>(new Set())
+  const [dyingIds, setDyingIds]             = useState<Set<string>>(new Set())
+  const [removedIds, setRemovedIds]         = useState<Set<string>>(new Set())
+  const [flashingIds, setFlashingIds]       = useState<Set<string>>(new Set())
+  const [bossPhaseFlash, setBossPhaseFlash] = useState<0 | 2 | 3>(0)
+  const [popups, setPopups]                 = useState<PopupEntry[]>([])
   const prevLogLen    = useRef<number | null>(null)
   const shakeTimers   = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const flashTimers   = useRef(new Map<string, ReturnType<typeof setTimeout>>())
@@ -164,6 +168,13 @@ function useBattleAnimations(
     prevLogLen.current = bs.log.length
 
     for (const entry of newEntries) {
+      // Boss phase transition flash
+      if (entry.kind === 'system' && entry.text.includes('[페이즈')) {
+        const phase = entry.text.includes('[페이즈 3') ? 3 : 2
+        setBossPhaseFlash(phase as 2 | 3)
+        setTimeout(() => setBossPhaseFlash(0), Math.round(1200 / battleSpeed))
+      }
+
       // Shake / death animations
       if (entry.kind === 'death' && entry.targetId) {
         const id = entry.targetId
@@ -178,6 +189,7 @@ function useBattleAnimations(
         setTimeout(() => {
           dyingRef.current.delete(id)
           setDyingIds(prev => { const next = new Set(prev); next.delete(id); return next })
+          setRemovedIds(prev => new Set([...prev, id]))
         }, Math.round(600 / battleSpeed))
       } else if ((entry.kind === 'damage' || entry.kind === 'crit') && entry.targetId) {
         const id = entry.targetId
@@ -246,7 +258,7 @@ function useBattleAnimations(
     }
   }, [])
 
-  return { shakingIds, dyingIds, flashingIds, popups }
+  return { shakingIds, dyingIds, removedIds, flashingIds, popups, bossPhaseFlash }
 }
 
 // ---------------------------------------------------------------------------
@@ -269,7 +281,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   const isPlayerTurn = bs?.phase === 'player_turn'
   const isEnding     = bs?.phase === 'victory' || bs?.phase === 'defeat'
 
-  const { shakingIds, dyingIds, flashingIds, popups } = useBattleAnimations(bs, battleSpeed)
+  const { shakingIds, dyingIds, removedIds, flashingIds, popups, bossPhaseFlash } = useBattleAnimations(bs, battleSpeed)
 
   useEffect(() => {
     if (!bs) return
@@ -391,11 +403,41 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
             background: 'linear-gradient(to bottom, oklch(6% 0.025 268), transparent)',
             borderRadius: 'var(--radius-lg)',
           }}>
-            {bs.enemies.map(enemy => (
+            {bossPhaseFlash !== 0 && (
+              <div style={{
+                position: 'absolute', inset: 0, zIndex: 20,
+                pointerEvents: 'none',
+                borderRadius: 'var(--radius-lg)',
+                background: bossPhaseFlash === 3
+                  ? 'radial-gradient(ellipse at center, oklch(25% 0.18 15 / 0.85) 0%, oklch(10% 0.12 10 / 0.95) 100%)'
+                  : 'radial-gradient(ellipse at center, oklch(30% 0.16 35 / 0.80) 0%, oklch(12% 0.10 20 / 0.90) 100%)',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)',
+                animation: `boss-phase-in ${Math.round(1200 / battleSpeed)}ms ease-out forwards`,
+              }}>
+                <span style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: 'var(--text-2xl)',
+                  color: bossPhaseFlash === 3 ? 'oklch(75% 0.22 15)' : 'oklch(78% 0.20 45)',
+                  letterSpacing: '0.12em',
+                  textShadow: `0 0 24px ${bossPhaseFlash === 3 ? 'oklch(55% 0.28 15 / 0.9)' : 'oklch(60% 0.24 40 / 0.9)'}`,
+                }}>
+                  {bossPhaseFlash === 3 ? '최종 형태' : '페이즈 2 전환'}
+                </span>
+                <span style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'oklch(70% 0.04 268)',
+                  letterSpacing: '0.06em',
+                }}>
+                  {bossPhaseFlash === 3 ? '▸ 보스가 극한의 힘을 해방한다' : '▸ 보스가 형태를 바꾼다'}
+                </span>
+              </div>
+            )}
+            {bs.enemies.filter(e => !removedIds.has(e.id)).map(enemy => (
               <EnemyCard
                 key={enemy.id}
                 enemy={enemy}
-                isTargetable={isPlayerTurn && !!selectedSkillId && enemy.isAlive}
+                isTargetable={isPlayerTurn && !!selectedSkillId && enemy.isAlive && !dyingIds.has(enemy.id)}
                 onClick={() => handleEnemyClick(enemy.id)}
                 party={[...bs.party, ...bs.allies]}
                 isShaking={shakingIds.has(enemy.id)}
@@ -825,7 +867,7 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battl
           {entity.name}
         </span>
         <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
-          ATK {entity.stats.attack}
+          ATK {entity.stats.attack} · DEF {entity.stats.defense}
         </span>
       </div>
 
@@ -1217,15 +1259,18 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
               gap: '3px', padding: 'var(--space-2)',
               background: isSelected
                 ? `color-mix(in oklch, ${elColor} 28%, var(--color-bg-elevated))`
-                : 'var(--color-bg-elevated)',
+                : cannotAfford && !isOnCooldown
+                  ? 'color-mix(in oklch, var(--color-hp-low) 8%, var(--color-bg-elevated))'
+                  : 'var(--color-bg-elevated)',
               border: `1px solid ${
                 isSelected    ? elColor :
                 isOnCooldown  ? 'var(--color-border-subtle)' :
+                cannotAfford  ? 'color-mix(in oklch, var(--color-hp-low) 50%, var(--color-border-subtle))' :
                 rarityColor
               }`,
               borderRadius: 'var(--radius-md)',
               cursor: isDisabled ? 'not-allowed' : 'pointer',
-              opacity: isDisabled ? 0.4 : 1,
+              opacity: !isPlayerTurn ? 0.4 : isOnCooldown ? 0.35 : cannotAfford ? 0.6 : 1,
               transition: 'all var(--duration-fast)',
               boxShadow: isSelected ? `0 0 14px ${elColor}50` : 'none',
               transform: isSelected ? 'translateY(-3px)' : 'none',
@@ -1276,6 +1321,17 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
           </button>
         )
       })}
+
+      {selectedSkillId && needsEnemyTarget(selectedSkillId) && (
+        <span style={{
+          marginLeft: 'auto', marginRight: 'var(--space-3)',
+          color: 'var(--color-accent)', fontSize: 'var(--text-xs)',
+          whiteSpace: 'nowrap', opacity: 0.85,
+          animation: 'pulse 1.2s ease-in-out infinite',
+        }}>
+          ▲ 적을 선택하여 스킬을 사용하세요
+        </span>
+      )}
 
       {/* End Turn button — always available on player turn */}
       <button

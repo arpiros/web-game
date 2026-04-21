@@ -1,6 +1,7 @@
 import { useRunStore } from '../state/runStore'
 import { getSkillById } from '../game/data/skills'
 import { getItemById } from '../game/data/items'
+import { MAX_ROUNDS } from '../game/run'
 
 export function ResultScreen() {
   const run      = useRunStore(s => s.run)
@@ -23,6 +24,19 @@ export function ResultScreen() {
   // 획득 아이템 목록
   const acquiredItems = run.acquiredItemIds
     .map(id => getItemById(id)?.name ?? id)
+
+  // 보유 스킬 전체
+  const allSkills = run.character.skillIds
+    .map(id => getSkillById(id))
+    .filter(Boolean) as NonNullable<ReturnType<typeof getSkillById>>[]
+
+  // 동료 목록
+  const acquiredAllies = run.allies.map(a => a.name)
+
+  // 클리어 라운드 텍스트
+  const roundText = isVictory
+    ? `${MAX_ROUNDS} / ${MAX_ROUNDS} 완주`
+    : `${run.round - 1} / ${MAX_ROUNDS} 클리어`
 
   return (
     <div style={{
@@ -81,7 +95,7 @@ export function ResultScreen() {
         width: '100%',
         maxWidth: '600px',
       }}>
-        <StatBlock label="라운드" value={String(run.round)} accent={accentColor} />
+        <StatBlock label="라운드" value={roundText} accent={accentColor} />
         <StatBlock label="누적 피해" value={run.totalDamage.toLocaleString()} accent={accentColor} />
         <StatBlock label="클리어 등급" value={clearRating(isVictory, run.totalDamage, run.round)} accent={accentColor} />
         <StatBlock label="최고 단타" value={run.maxSingleDamage.toLocaleString()} accent={accentColor} />
@@ -168,6 +182,78 @@ export function ResultScreen() {
                 color: 'var(--color-text-secondary)',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--color-border-subtle)',
+              }}>
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 보유 스킬 */}
+      {allSkills.length > 0 && (
+        <div style={{
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border-subtle)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-4) var(--space-6)',
+          width: '100%',
+          maxWidth: '600px',
+        }}>
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: 'var(--space-3)',
+          }}>
+            보유 스킬 ({allSkills.length})
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            {allSkills.map(skill => (
+              <span key={skill.id} style={{
+                fontSize: 'var(--text-xs)',
+                padding: '2px 8px',
+                background: 'color-mix(in oklch, var(--color-accent) 10%, transparent)',
+                color: 'var(--color-accent)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid color-mix(in oklch, var(--color-accent) 30%, transparent)',
+              }}>
+                {skill.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 동료 목록 */}
+      {acquiredAllies.length > 0 && (
+        <div style={{
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border-subtle)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-4) var(--space-6)',
+          width: '100%',
+          maxWidth: '600px',
+        }}>
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: 'var(--space-3)',
+          }}>
+            동료 ({acquiredAllies.length})
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            {acquiredAllies.map((name, i) => (
+              <span key={i} style={{
+                fontSize: 'var(--text-xs)',
+                padding: '2px 8px',
+                background: 'color-mix(in oklch, var(--color-element-light) 10%, transparent)',
+                color: 'var(--color-element-light)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid color-mix(in oklch, var(--color-element-light) 30%, transparent)',
               }}>
                 {name}
               </span>
