@@ -202,7 +202,7 @@ export const SKILLS: readonly SkillDef[] = [
     mpCost: 25,
     cooldown: 3,
     effects: [{ type: 'shield', amount: 1.5 }],
-    element: 'water',
+    element: 'light',
     rarity: 'rare',
   },
 

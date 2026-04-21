@@ -55,7 +55,7 @@ const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
 const BOSS_ENEMY_ID = 'dragon_lord'
 
 /** 엘리트 적이 등장하는 라운드 */
-const ELITE_ROUNDS = new Set([5, 10])
+export const ELITE_ROUNDS = new Set([5, 10])
 
 /** 이벤트가 등장하는 라운드 (전투 완료 후 드래프트 전) */
 const EVENT_ROUNDS = new Set([3, 7, 12])
@@ -468,6 +468,29 @@ export function completeBattle(
     },
     nextRng,
   ]
+}
+
+// ---------------------------------------------------------------------------
+// 드래프트 건너뛰고 HP 회복
+// ---------------------------------------------------------------------------
+
+const SKIP_DRAFT_HEAL_RATIO = 0.30
+
+export function skipDraftForHeal(run: RunState): RunState {
+  const healAmount = Math.floor(run.character.stats.maxHp * SKIP_DRAFT_HEAL_RATIO)
+  const healedCharacter = {
+    ...run.character,
+    stats: {
+      ...run.character.stats,
+      hp: Math.min(run.character.stats.maxHp, run.character.stats.hp + healAmount),
+    },
+  }
+  return {
+    ...run,
+    character: healedCharacter,
+    phase: 'battle',
+    battleState: null,
+  }
 }
 
 // ---------------------------------------------------------------------------

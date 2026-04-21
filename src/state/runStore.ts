@@ -16,6 +16,7 @@ import {
   applyEventChoice,
   handleDefeat,
   rerollDraftOption,
+  skipDraftForHeal,
 } from '../game/run'
 import { battleReducer } from '../game/combat'
 
@@ -61,6 +62,9 @@ export interface RunStore {
 
   /** 드래프트 카드 1장 리롤 */
   rerollDraft: (targetIndex: number) => void
+
+  /** 드래프트를 건너뛰고 HP 30% 회복 후 다음 전투로 진행 */
+  skipDraftForHeal: () => void
 
   /** 런 초기화 (타이틀로 돌아가기) */
   resetRun: () => void
@@ -159,6 +163,15 @@ export const useRunStore = create<RunStore>((set, get) => ({
 
     const [newRun, nextRng] = rerollDraftOption(run, rng, targetIndex)
     set({ run: newRun, rng: nextRng })
+  },
+
+  skipDraftForHeal: () => {
+    const { run, rng } = get()
+    if (!run || run.phase !== 'draft') return
+
+    const healedRun = skipDraftForHeal(run)
+    const [battleState, nextRng] = startBattle(healedRun, rng)
+    set({ run: { ...healedRun, battleState }, rng: nextRng })
   },
 
   resetRun: () => {

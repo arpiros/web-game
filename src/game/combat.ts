@@ -35,6 +35,22 @@ const END_TURN_MP_BONUS = 8
 /** 적에게 부여하는 디버프 목록. 이 외의 apply_status는 시전자 자신에게 적용 */
 const DEBUFF_STATUSES = new Set<StatusEffectKind>(['poison', 'burn', 'freeze', 'stun', 'defdown'])
 
+/** 전투 로그용 상태이상 한국어 이름 */
+const STATUS_NAME_KO: Record<string, string> = {
+  poison:   '독',
+  burn:     '화상',
+  freeze:   '빙결',
+  stun:     '기절',
+  shield:   '방어막',
+  regen:    '재생',
+  powerup:  '공격력 강화',
+  defdown:  '방어력 약화',
+  mana_regen: '마나 재생',
+  cc_immune: 'CC 면역',
+  revive:   '부활',
+  undying:  '불사',
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -738,7 +754,7 @@ function applySkillEffect(
       const targetName = isDebuff && isEnemyTarget
         ? findEnemy(next, targetId)?.name
         : findCharacter(next, actorId)?.name
-      newLogs.push(log('status_apply', `${targetName ?? '?'}에게 ${effect.status} 부여.`, {
+      newLogs.push(log('status_apply', `${targetName ?? '?'}에게 ${STATUS_NAME_KO[effect.status] ?? effect.status} 부여.`, {
         sourceId: actorId, targetId: applyTargetId,
       }))
       return { state: next, newLogs, totalDamage }
@@ -749,7 +765,7 @@ function applySkillEffect(
         ...c,
         statusEffects: removeStatus(c.statusEffects, effect.status),
       }))
-      newLogs.push(log('status_expire', `${effect.status} 상태이상이 해제됐다.`, { sourceId: actorId }))
+      newLogs.push(log('status_expire', `${STATUS_NAME_KO[effect.status] ?? effect.status} 상태이상이 해제됐다.`, { sourceId: actorId }))
       return { state: next, newLogs, totalDamage }
     }
 
@@ -815,7 +831,7 @@ function applySkillEffect(
           statusEffects: addStatus(c.statusEffects, newStatus),
         }))
       }
-      newLogs.push(log('status_apply', `파티 전체에 ${effect.status} 부여.`, { sourceId: actorId }))
+      newLogs.push(log('status_apply', `파티 전체에 ${STATUS_NAME_KO[effect.status] ?? effect.status} 부여.`, { sourceId: actorId }))
       return { state: next, newLogs, totalDamage }
     }
 
@@ -1196,7 +1212,7 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
           if (isStatusImmune) {
             current = {
               ...current,
-              log: [...current.log, log('system', `${t.name}의 면역으로 ${action.status} 부여 차단!`, { targetId: t.id })],
+              log: [...current.log, log('system', `${t.name}의 면역으로 ${STATUS_NAME_KO[action.status] ?? action.status} 부여 차단!`, { targetId: t.id })],
             }
             continue
           }
@@ -1212,7 +1228,7 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
           }))
           current = {
             ...current,
-            log: [...current.log, log('status_apply', `${t.name}에게 ${action.status} 부여!`, {
+            log: [...current.log, log('status_apply', `${t.name}에게 ${STATUS_NAME_KO[action.status] ?? action.status} 부여!`, {
               sourceId: enemy.id, targetId: t.id,
             })],
           }
@@ -1249,7 +1265,7 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
         }))
         current = {
           ...current,
-          log: [...current.log, log('system', `${enemy.name}이(가) ${action.status} 버프 획득!`, {
+          log: [...current.log, log('system', `${enemy.name}이(가) ${STATUS_NAME_KO[action.status] ?? action.status} 버프 획득!`, {
             sourceId: enemy.id,
           })],
         }
@@ -1351,7 +1367,7 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
         }))
         current = {
           ...current,
-          log: [...current.log, log('status_apply', `${ally.name}이(가) ${target.name}에게 ${action.status} 부여!`, {
+          log: [...current.log, log('status_apply', `${ally.name}이(가) ${target.name}에게 ${STATUS_NAME_KO[action.status] ?? action.status} 부여!`, {
             sourceId: ally.id, targetId: target.id,
           })],
         }
@@ -1395,7 +1411,7 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
         }
         current = {
           ...current,
-          log: [...current.log, log('status_apply', `${ally.name}이(가) 전체 적에게 ${action.status} 부여!`, { sourceId: ally.id })],
+          log: [...current.log, log('status_apply', `${ally.name}이(가) 전체 적에게 ${STATUS_NAME_KO[action.status] ?? action.status} 부여!`, { sourceId: ally.id })],
         }
         break
       }
@@ -1415,7 +1431,7 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
         }
         current = {
           ...current,
-          log: [...current.log, log('status_apply', `${ally.name}이(가) 파티 전체에 ${action.status} 부여!`, { sourceId: ally.id })],
+          log: [...current.log, log('status_apply', `${ally.name}이(가) 파티 전체에 ${STATUS_NAME_KO[action.status] ?? action.status} 부여!`, { sourceId: ally.id })],
         }
         break
       }
@@ -1550,7 +1566,7 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
                   ...c,
                   statusEffects: addStatus(c.statusEffects, newSt),
                 }))
-                newLogs.push(log('status_apply', `위기 발동! ${item.name}: ${innerEff.status} 부여.`, { sourceId: char.id }))
+                newLogs.push(log('status_apply', `위기 발동! ${item.name}: ${STATUS_NAME_KO[innerEff.status] ?? innerEff.status} 부여.`, { sourceId: char.id }))
               }
             }
           }

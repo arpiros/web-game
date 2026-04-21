@@ -143,6 +143,7 @@ function CharacterCard({ character, onSelect }: { character: CharacterDef; onSel
         <StatItem label="HP" value={character.baseStats.maxHp} />
         <StatItem label="공격" value={character.baseStats.attack} />
         <StatItem label="방어" value={character.baseStats.defense} />
+        <StatItem label="속도" value={character.baseStats.speed} />
         <StatItem label="MP" value={character.baseStats.maxMp} />
       </div>
 
