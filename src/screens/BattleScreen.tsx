@@ -1120,13 +1120,29 @@ function estimateDamage(
   items: readonly ItemDef[],
 ): number | null {
   const dmgEffect = skill.effects.find(
-    e => e.type === 'damage' || e.type === 'damage_all',
+    e => e.type === 'damage' || e.type === 'damage_all' || e.type === 'damage_hp_scale',
   )
-  if (!dmgEffect || (dmgEffect.type !== 'damage' && dmgEffect.type !== 'damage_all')) return null
+  if (!dmgEffect) return null
+  if (dmgEffect.type !== 'damage' && dmgEffect.type !== 'damage_all' && dmgEffect.type !== 'damage_hp_scale') return null
   const target = enemies[0]
   if (!target) return null
   const itemElemMult = getItemElementMultiplier(items, dmgEffect.element)
   const powerupBonus = getStatusBonus(character.statusEffects, 'powerup')
+
+  if (dmgEffect.type === 'damage_hp_scale') {
+    const missingHpRatio = 1 - character.stats.hp / character.stats.maxHp
+    const scaledMultiplier = dmgEffect.baseMultiplier * (1 + missingHpRatio)
+    return calcDamage({
+      attack: character.stats.attack,
+      defense: target.stats.defense,
+      multiplier: scaledMultiplier,
+      attackElement: dmgEffect.element,
+      defenderElement: target.element,
+      itemElementMultiplier: itemElemMult,
+      powerupBonus,
+    })
+  }
+
   return calcDamage({
     attack: character.stats.attack,
     defense: target.stats.defense,
@@ -1146,10 +1162,14 @@ function SkillTooltip({ skill, character, enemies, items, x, y }: {
   x: number
   y: number
 }) {
-  const elColor   = ELEMENT_COLOR[skill.element] ?? 'var(--color-accent)'
-  const elLabel   = ELEMENT_LABEL[skill.element] ?? skill.element
-  const hasDmgAll = skill.effects.some(e => e.type === 'damage_all')
-  const dmg       = estimateDamage(skill, character, enemies, items)
+  const elColor      = ELEMENT_COLOR[skill.element] ?? 'var(--color-accent)'
+  const elLabel      = ELEMENT_LABEL[skill.element] ?? skill.element
+  const hasDmgAll    = skill.effects.some(e => e.type === 'damage_all')
+  const isHpScale    = skill.effects.some(e => e.type === 'damage_hp_scale')
+  const dmg          = estimateDamage(skill, character, enemies, items)
+  const hpPct        = character.stats.maxHp > 0
+    ? Math.round((character.stats.hp / character.stats.maxHp) * 100)
+    : 100
 
   return (
     <div style={{
@@ -1189,6 +1209,16 @@ function SkillTooltip({ skill, character, enemies, items, x, y }: {
           <span style={{ color: 'var(--color-accent)', marginTop: '2px' }}>
             예상 데미지: ~{dmg.toLocaleString()}
             {hasDmgAll ? ' (전체)' : ' (첫 번째 적)'}
+          </span>
+        )}
+        {isHpScale && (
+          <span style={{ color: 'var(--color-hp-low)', marginTop: '2px', fontStyle: 'italic' }}>
+            HP 스케일 (현재 {hpPct}% → 배율 {(() => {
+              const e = skill.effects.find(x => x.type === 'damage_hp_scale')
+              if (!e || e.type !== 'damage_hp_scale') return ''
+              const scaled = (e.baseMultiplier * (1 + (100 - hpPct) / 100)).toFixed(1)
+              return `${scaled}x`
+            })()})
           </span>
         )}
       </div>
