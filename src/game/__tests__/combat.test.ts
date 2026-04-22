@@ -1279,7 +1279,7 @@ describe('apply_status_party 스킬 효과', () => {
     const result = useSkill(state, 'char-1', 'enemy-1', 'current_step', [])
     expect(result.party[0].statusEffects.some(e => e.kind === 'powerup')).toBe(true)
     expect(result.party[1].statusEffects.some(e => e.kind === 'powerup')).toBe(true)
-    const statusLog = result.log.find(e => e.text.includes('powerup'))
+    const statusLog = result.log.find(e => e.text.includes('공격력 강화'))
     expect(statusLog).toBeTruthy()
   })
 })
