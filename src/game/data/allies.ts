@@ -109,6 +109,62 @@ export const ALLIES: readonly AllyDef[] = [
     baseStats: { maxHp: 680, attack: 100, defense: 50, speed: 75 },
     action: { type: 'buff_party', status: 'powerup', duration: 2, value: 30 },
   },
+
+  // ── 신규 동료 ──────────────────────────────────────────────────
+  {
+    id: 'deep_hunter',
+    name: '심해 사냥꾼',
+    description: '심해에서 단련된 전사. 수계 공격으로 빠르게 적을 제압한다.',
+    element: 'water',
+    rarity: 'rare',
+    baseStats: { maxHp: 620, attack: 140, defense: 35, speed: 95 },
+    action: { type: 'attack', element: 'water', multiplier: 1.1 },
+  },
+  {
+    id: 'war_herald',
+    name: '전쟁의 전령',
+    description: '전투 전 파티 전원을 강화하는 지원 전문가.',
+    element: 'physical',
+    rarity: 'epic',
+    baseStats: { maxHp: 750, attack: 90, defense: 80, speed: 65 },
+    action: { type: 'buff_party', status: 'powerup', duration: 3, value: 50 },
+  },
+  {
+    id: 'cursed_witch',
+    name: '저주받은 마녀',
+    description: '저주의 힘으로 적의 방어력을 무너뜨린다.',
+    element: 'dark',
+    rarity: 'rare',
+    baseStats: { maxHp: 560, attack: 130, defense: 30, speed: 85 },
+    action: { type: 'apply_status', status: 'defdown', duration: 2, value: 30 },
+  },
+  {
+    id: 'thunder_lord',
+    name: '번개의 군주',
+    description: '신성한 번개로 적을 강타하는 전설의 영웅.',
+    element: 'light',
+    rarity: 'legendary',
+    baseStats: { maxHp: 1000, attack: 210, defense: 90, speed: 75 },
+    action: { type: 'attack', element: 'light', multiplier: 1.6 },
+  },
+  {
+    id: 'revival_shrine',
+    name: '부활의 신전',
+    description: '쓰러진 동료를 되살리는 신성한 존재.',
+    element: 'light',
+    rarity: 'epic',
+    baseStats: { maxHp: 850, attack: 105, defense: 75, speed: 55 },
+    action: { type: 'revive_party', healPercent: 0.35 },
+  },
+  {
+    id: 'frost_guardian',
+    name: '서리 수호자',
+    description: '얼음으로 만들어진 방어막으로 파티를 보호한다.',
+    element: 'water',
+    rarity: 'rare',
+    baseStats: { maxHp: 950, attack: 85, defense: 140, speed: 45 },
+    action: { type: 'shield_party', amount: 70 },
+  },
 ]
 
 export function getAllyById(id: string): AllyDef | undefined {

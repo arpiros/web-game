@@ -277,6 +277,111 @@ export const ITEMS: readonly ItemDef[] = [
       { type: 'elemental_damage', element: 'physical', multiplier: 1.25 },
     ],
   },
+
+  // ── 신규 아이템 ────────────────────────────────────────────────
+  {
+    id: 'sacred_lance',
+    name: '신성한 창',
+    description: '빛 속성 공격의 피해가 30% 증가하고 공격력이 60 증가한다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'elemental_damage', element: 'light', multiplier: 1.30 },
+      { type: 'stat_boost', stat: 'attack', amount: 60 },
+    ],
+  },
+  {
+    id: 'glacial_crown',
+    name: '빙하의 왕관',
+    description: '수계 속성 공격의 피해가 40% 증가하고 물리 속성 공격의 피해가 20% 증가한다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'elemental_damage', element: 'water', multiplier: 1.40 },
+      { type: 'elemental_damage', element: 'physical', multiplier: 1.20 },
+    ],
+  },
+  {
+    id: 'bloodstone_ring',
+    name: '혈석 반지',
+    description: '공격력이 40 증가하고 어둠 속성 공격 시 피해의 15%를 HP로 흡수한다.',
+    rarity: 'epic',
+    effects: [
+      { type: 'stat_boost', stat: 'attack', amount: 40 },
+      { type: 'lifesteal', element: 'dark', percent: 0.15 },
+    ],
+  },
+  {
+    id: 'speed_talisman',
+    name: '속도의 부적',
+    description: '속도가 30 증가하고 치명타 확률이 7% 증가한다.',
+    rarity: 'rare',
+    effects: [
+      { type: 'stat_boost', stat: 'speed', amount: 30 },
+      { type: 'crit_chance_bonus', amount: 0.07 },
+    ],
+  },
+  {
+    id: 'champion_belt',
+    name: '챔피언의 허리띠',
+    description: '최대 HP가 250 증가하고 공격력이 30 증가한다.',
+    rarity: 'rare',
+    effects: [
+      { type: 'stat_boost', stat: 'maxHp', amount: 250 },
+      { type: 'stat_boost', stat: 'attack', amount: 30 },
+    ],
+  },
+  {
+    id: 'grand_tome',
+    name: '대마법서',
+    description: '매 턴 MP가 12 회복되고 스킬 쿨다운이 1 감소한다.',
+    rarity: 'epic',
+    effects: [
+      { type: 'mp_regen', amount: 12 },
+      { type: 'skill_cooldown_reduce', amount: 1 },
+    ],
+  },
+  {
+    id: 'stun_ward',
+    name: '기절 방어부',
+    description: '방어력이 30 증가하고 기절 및 방어력 감소 상태이상에 면역이 된다.',
+    rarity: 'rare',
+    effects: [
+      { type: 'stat_boost', stat: 'defense', amount: 30 },
+      { type: 'status_immunity', statuses: ['stun', 'defdown'] },
+    ],
+  },
+  {
+    id: 'warrior_seal',
+    name: '전사의 인장',
+    description: '공격력이 60 증가하지만 매 턴 HP가 10 감소한다.',
+    rarity: 'epic',
+    effects: [
+      { type: 'stat_boost', stat: 'attack', amount: 60 },
+      { type: 'hp_drain_per_turn', amount: 10 },
+    ],
+  },
+  {
+    id: 'ancient_seal',
+    name: '고대의 봉인',
+    description: '모든 속성 공격의 피해가 20% 증가한다.',
+    rarity: 'legendary',
+    effects: [
+      { type: 'elemental_damage', element: 'physical', multiplier: 1.20 },
+      { type: 'elemental_damage', element: 'fire', multiplier: 1.20 },
+      { type: 'elemental_damage', element: 'water', multiplier: 1.20 },
+      { type: 'elemental_damage', element: 'dark', multiplier: 1.20 },
+      { type: 'elemental_damage', element: 'light', multiplier: 1.20 },
+    ],
+  },
+  {
+    id: 'void_crystal',
+    name: '공허의 수정',
+    description: '어둠 속성 공격의 피해가 30% 증가하고 스킬 사용 시 8% 확률로 MP를 소모하지 않는다.',
+    rarity: 'epic',
+    effects: [
+      { type: 'elemental_damage', element: 'dark', multiplier: 1.30 },
+      { type: 'free_skill_chance', chance: 0.08 },
+    ],
+  },
 ]
 
 export function getItemById(id: string): ItemDef | undefined {

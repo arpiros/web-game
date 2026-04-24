@@ -279,25 +279,131 @@ export const ELITE_ENEMIES: readonly EnemyDef[] = [
     ],
     lore: '화산 심층에서 서식하는 아룡. 화염 브레스로 적을 소각시킨다.',
   },
+  {
+    id: 'storm_giant',
+    name: '폭풍 거인',
+    description: '번개를 휘두르는 거대한 엘리트 존재.',
+    element: 'light',
+    tier: 'elite',
+    baseStats: { maxHp: 1200, attack: 175, defense: 85, speed: 70 },
+    actions: [
+      { type: 'attack_all', element: 'light', multiplier: 1.1 },
+      { type: 'apply_status', status: 'stun', duration: 1, value: 0, targetMode: 'all' },
+      { type: 'attack', element: 'light', multiplier: 1.9, targetMode: 'random' },
+    ],
+    lore: '폭풍의 화신. 그 일격은 천지를 가른다.',
+  },
+  {
+    id: 'corrupted_paladin',
+    name: '타락한 성기사',
+    description: '어둠에 물든 성기사. 강력한 암흑 공격과 자기 치유를 겸비한다.',
+    element: 'dark',
+    tier: 'elite',
+    baseStats: { maxHp: 1100, attack: 180, defense: 90, speed: 65 },
+    actions: [
+      { type: 'attack', element: 'dark', multiplier: 1.5, targetMode: 'highest_attack' },
+      { type: 'apply_status', status: 'defdown', duration: 2, value: 35, targetMode: 'random' },
+      { type: 'heal_self', multiplier: 0.4 },
+      { type: 'buff_self', status: 'powerup', duration: 2, value: 40 },
+    ],
+    lore: '성전의 영웅이었으나 금단의 힘에 손을 뻗었다.',
+  },
 ]
+
+// ── 신규 일반 적 ────────────────────────────────────────────────
+const ENEMIES_EXTRA: readonly EnemyDef[] = [
+  {
+    id: 'thunder_drake',
+    name: '번개 드래곤',
+    description: '번개를 뿜어내는 소형 용족.',
+    element: 'fire',
+    tier: 'normal',
+    baseStats: { maxHp: 1100, attack: 200, defense: 70, speed: 90 },
+    actions: [
+      { type: 'attack', element: 'fire', multiplier: 1.4, targetMode: 'random' },
+      { type: 'attack_all', element: 'fire', multiplier: 0.9 },
+      { type: 'apply_status', status: 'burn', duration: 2, value: 18, targetMode: 'all' },
+    ],
+    lore: '화염과 번개를 동시에 내뿜는 희귀한 용족.',
+  },
+  {
+    id: 'sea_serpent',
+    name: '바다 뱀',
+    description: '심해에서 올라온 거대한 수계 괴수.',
+    element: 'water',
+    tier: 'normal',
+    baseStats: { maxHp: 1400, attack: 175, defense: 110, speed: 70 },
+    actions: [
+      { type: 'attack', element: 'water', multiplier: 1.3, targetMode: 'random' },
+      { type: 'apply_status', status: 'freeze', duration: 1, value: 0, targetMode: 'all' },
+      { type: 'attack_all', element: 'water', multiplier: 0.8 },
+    ],
+    lore: '고대 해저에서 깨어난 뱀. 보는 이를 공포에 빠뜨린다.',
+  },
+  {
+    id: 'abyssal_horror',
+    name: '심연의 공포',
+    description: '심연에서 태어난 어둠의 존재. 전체 공격과 방어력 감소를 구사한다.',
+    element: 'dark',
+    tier: 'normal',
+    baseStats: { maxHp: 1800, attack: 220, defense: 90, speed: 55 },
+    actions: [
+      { type: 'attack_all', element: 'dark', multiplier: 1.1 },
+      { type: 'apply_status', status: 'defdown', duration: 3, value: 40, targetMode: 'all' },
+      { type: 'attack', element: 'dark', multiplier: 2.2, targetMode: 'lowest_hp' },
+    ],
+    lore: '어둠 그 자체가 형상을 이룬 것. 이름을 부르면 반응한다.',
+  },
+  {
+    id: 'celestial_sentinel',
+    name: '천상의 파수꾼',
+    description: '빛의 신전을 지키는 불사의 전사.',
+    element: 'light',
+    tier: 'normal',
+    baseStats: { maxHp: 1600, attack: 190, defense: 130, speed: 50 },
+    actions: [
+      { type: 'attack', element: 'light', multiplier: 1.5, targetMode: 'highest_attack' },
+      { type: 'buff_self', status: 'powerup', duration: 2, value: 50 },
+      { type: 'heal_self', multiplier: 0.4 },
+    ],
+    lore: '신성한 성역의 수호자. 침입자를 용서하지 않는다.',
+  },
+  {
+    id: 'bone_colossus',
+    name: '뼈 거신',
+    description: '무수한 뼈로 이루어진 거대한 언데드. 압도적인 체력과 방어력을 자랑한다.',
+    element: 'physical',
+    tier: 'normal',
+    baseStats: { maxHp: 2200, attack: 210, defense: 120, speed: 35 },
+    actions: [
+      { type: 'attack', element: 'physical', multiplier: 1.8, targetMode: 'random' },
+      { type: 'attack_all', element: 'physical', multiplier: 0.9 },
+      { type: 'buff_self', status: 'powerup', duration: 2, value: 60 },
+    ],
+    lore: '전쟁터에 쌓인 영혼들이 하나의 거구를 이루었다.',
+  },
+]
+
+// 모든 일반 적 = 기존 ENEMIES + 신규
+const ALL_ENEMIES: readonly EnemyDef[] = [...ENEMIES, ...ENEMIES_EXTRA]
 
 // 라운드에 따른 적 선택 (낮은 라운드 = 약한 적)
 const EARLY_ENEMY_IDS = ['goblin', 'fire_imp', 'shadow_wolf', 'skeleton_archer']
-const MID_EASY_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'flame_phoenix']
+const MID_EASY_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'flame_phoenix', 'thunder_drake', 'sea_serpent']
 const MID_HARD_ENEMY_IDS = ['cursed_knight', 'demon_mage', 'dark_vampire']
-const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'frost_giant', 'poison_hydra', 'void_lord', 'dragon_lord']
+const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'frost_giant', 'poison_hydra', 'void_lord', 'dragon_lord', 'abyssal_horror', 'celestial_sentinel', 'bone_colossus']
 
 export function getEnemyPoolForRound(round: number): readonly EnemyDef[] {
   if (round <= 2) {
-    return ENEMIES.filter(e => EARLY_ENEMY_IDS.includes(e.id))
+    return ALL_ENEMIES.filter(e => EARLY_ENEMY_IDS.includes(e.id))
   }
   if (round === 3) {
-    return ENEMIES.filter(e => [...EARLY_ENEMY_IDS, ...MID_EASY_ENEMY_IDS].includes(e.id))
+    return ALL_ENEMIES.filter(e => [...EARLY_ENEMY_IDS, ...MID_EASY_ENEMY_IDS].includes(e.id))
   }
   if (round <= 5) {
-    return ENEMIES.filter(e => [...EARLY_ENEMY_IDS, ...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS].includes(e.id))
+    return ALL_ENEMIES.filter(e => [...EARLY_ENEMY_IDS, ...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS].includes(e.id))
   }
-  return ENEMIES.filter(e => [...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS, ...LATE_ENEMY_IDS].includes(e.id))
+  return ALL_ENEMIES.filter(e => [...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS, ...LATE_ENEMY_IDS].includes(e.id))
 }
 
 export function getEliteEnemyPool(): readonly EnemyDef[] {
@@ -305,5 +411,5 @@ export function getEliteEnemyPool(): readonly EnemyDef[] {
 }
 
 export function getEnemyById(id: string): EnemyDef | undefined {
-  return ENEMIES.find(e => e.id === id) ?? ELITE_ENEMIES.find(e => e.id === id)
+  return ALL_ENEMIES.find(e => e.id === id) ?? ELITE_ENEMIES.find(e => e.id === id)
 }
