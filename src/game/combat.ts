@@ -49,6 +49,7 @@ const STATUS_NAME_KO: Record<string, string> = {
   cc_immune: 'CC 면역',
   revive:   '부활',
   undying:  '불사',
+  defend:   '방어 태세',
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +252,23 @@ function regenPartyMp(state: BattleState, amount: number, logMessage: string): B
   return next
 }
 
+function applyDefendToParty(state: BattleState): BattleState {
+  let next = state
+  for (const char of state.party) {
+    if (!char.isAlive) continue
+    next = updateCharacter(next, char.id, c => ({
+      ...c,
+      statusEffects: addStatus(c.statusEffects, {
+        kind: 'defend',
+        duration: 1,
+        value: 0,
+        sourceId: 'system',
+      }),
+    }))
+  }
+  return next
+}
+
 function updateEnemy(
   state: BattleState,
   id: EntityId,
@@ -288,8 +306,10 @@ function applyDamageToCharacter(
   const shield = getStatusBonus(target.statusEffects, 'shield')
   const absorbed = Math.min(shield, damage)
   const remaining = damage - absorbed
-  const newHp = Math.max(0, target.stats.hp - remaining)
-  const actualDamage = remaining + absorbed
+  const isDefending = hasStatus(target.statusEffects, 'defend')
+  const afterDefend = isDefending ? Math.max(1, Math.round(remaining * 0.7)) : remaining
+  const newHp = Math.max(0, target.stats.hp - afterDefend)
+  const actualDamage = afterDefend + absorbed
 
   const wouldDie = newHp <= 0
   const hasUndying = hasStatus(target.statusEffects, 'undying')
@@ -353,8 +373,10 @@ function applyDamageToAlly(
   const shield = getStatusBonus(target.statusEffects, 'shield')
   const absorbed = Math.min(shield, damage)
   const remaining = damage - absorbed
-  const newHp = Math.max(0, target.stats.hp - remaining)
-  const actualDamage = remaining + absorbed
+  const isDefending = hasStatus(target.statusEffects, 'defend')
+  const afterDefend = isDefending ? Math.max(1, Math.round(remaining * 0.7)) : remaining
+  const newHp = Math.max(0, target.stats.hp - afterDefend)
+  const actualDamage = afterDefend + absorbed
 
   const wouldDie = newHp <= 0
   const hasUndying = hasStatus(target.statusEffects, 'undying')
@@ -1727,12 +1749,12 @@ export function battleReducer(state: BattleState, action: BattleAction): BattleS
 
     case 'END_PLAYER_TURN': {
       if (state.phase !== 'player_turn') return state
-      const afterEndBonus = regenPartyMp(
+      const afterMp = regenPartyMp(
         { ...state, phase: 'enemy_turn' },
         END_TURN_MP_BONUS,
-        `턴 종료 보너스! MP +${END_TURN_MP_BONUS}`,
+        `방어 태세! MP +${END_TURN_MP_BONUS}`,
       )
-      return afterEndBonus
+      return applyDefendToParty(afterMp)
     }
 
     case 'PROCESS_ENEMY_TURN': {

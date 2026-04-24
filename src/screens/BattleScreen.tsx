@@ -53,12 +53,14 @@ const STATUS_COLOR: Record<string, string> = {
   regen:  'var(--color-status-buff)',
   powerup: 'var(--color-status-buff)',
   defdown: 'var(--color-status-debuff)',
+  defend: 'var(--color-status-buff)',
 }
 
 const STATUS_LABEL: Record<string, string> = {
   poison: '독', burn: '화상', freeze: '빙결', stun: '기절',
   shield: '방막', regen: '재생', powerup: '강화', defdown: '방↓',
   mana_regen: 'MP재생', cc_immune: 'CC면역', revive: '부활대기', undying: '불사',
+  defend: '방어중',
 }
 
 interface StatusDesc {
@@ -79,6 +81,7 @@ const STATUS_DESCRIPTION: Record<string, StatusDesc> = {
   cc_immune:  { summary: '기절·빙결 등 행동 불능 효과가 무효화된다',       detail: () => null },
   revive:     { summary: '사망 시 HP 30%로 1회 부활한다',                 detail: () => null },
   undying:    { summary: '사망 직전 HP 1로 1회 버틴다',                   detail: () => null },
+  defend:     { summary: '받는 데미지가 30% 감소한다',                    detail: () => '-30% 피해' },
 }
 
 function hpColor(ratio: number): string {
@@ -1382,13 +1385,13 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
           marginLeft: 'var(--space-2)',
         }}
       >
-        <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>⏭</span>
+        <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🛡</span>
         <span style={{
           fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
           color: 'var(--color-text-secondary)', textAlign: 'center',
           lineHeight: 1.2,
         }}>
-          턴 종료
+          방어하기
         </span>
       </button>
     </div>

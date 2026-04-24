@@ -859,7 +859,7 @@ describe('MP 재생 시스템', () => {
         party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 } })],
       })
       const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
-      const hasMpLog = result.log.some(e => e.text.includes('턴 종료 보너스'))
+      const hasMpLog = result.log.some(e => e.text.includes('방어 태세'))
       expect(hasMpLog).toBe(false)
     })
 
@@ -874,13 +874,33 @@ describe('MP 재생 시스템', () => {
       expect(result.party[0].stats.mp).toBe(20) // 변화 없음
     })
 
+    it('방어하기 시 살아있는 파티원에게 defend 상태가 부여된다', () => {
+      const state = makeBattleState({ phase: 'player_turn' })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      const defendEffect = result.party[0].statusEffects.find(e => e.kind === 'defend')
+      expect(defendEffect).toBeDefined()
+      expect(defendEffect?.duration).toBe(1)
+    })
+
+    it('사망한 파티원에게는 defend 상태가 부여되지 않는다', () => {
+      const deadChar = makeCharacter({
+        id: 'char-dead',
+        isAlive: false,
+        stats: { maxHp: 1000, hp: 0, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 20 },
+      })
+      const state = makeBattleState({ phase: 'player_turn', party: [deadChar] })
+      const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
+      const defendEffect = result.party[0].statusEffects.find(e => e.kind === 'defend')
+      expect(defendEffect).toBeUndefined()
+    })
+
     it('턴 종료 MP 보너스 발생 시 배틀 로그에 기록된다', () => {
       const state = makeBattleState({
         phase: 'player_turn',
         party: [makeCharacter({ stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 0 } })],
       })
       const result = battleReducer(state, { type: 'END_PLAYER_TURN' })
-      const hasLog = result.log.some(e => e.text.includes('턴 종료 보너스'))
+      const hasLog = result.log.some(e => e.text.includes('방어 태세'))
       expect(hasLog).toBe(true)
     })
   })
