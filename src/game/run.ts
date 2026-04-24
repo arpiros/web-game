@@ -186,7 +186,7 @@ export function createBattleEnemy(
   }
 
   // 라운드가 높을수록 스탯 강화 (5% per round after round 1)
-  const roundScale = 1 + (round - 1) * 0.05
+  const roundScale = 1 + (round - 1) * 0.03
   // 엘리트는 라운드 스케일 위에 추가 배율 적용
   const scale = isElite ? roundScale * ELITE_STAT_MULTIPLIER : roundScale
 
@@ -437,7 +437,7 @@ export function completeBattle(
   const [draftOptions, nextRng] = generateDraftOptions(runState, rng, draftCount)
 
   // 전투 클리어 보상: 최대 HP의 35% 회복
-  const VICTORY_HEAL_RATIO = 0.35
+  const VICTORY_HEAL_RATIO = 0.40
   const survivingChar = battleState.party[0]
   const victoryHeal = Math.floor(survivingChar.stats.maxHp * VICTORY_HEAL_RATIO)
   const healedCharacter = {
