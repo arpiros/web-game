@@ -521,6 +521,20 @@ function applySkillEffect(
           baseDmg = Math.round(baseDmg * 1.5)
         }
       }
+      // 불꽃 전사 시너지: 물리 스킬이 화상 상태인 적을 공격할 때 +50% 피해
+      if (effect.element === 'physical' && hasSynergy(currentState.party, currentState.allies, 'blazing_warrior')) {
+        const burnTarget = findEnemy(currentState, targetId)
+        if (burnTarget && hasStatus(burnTarget.statusEffects, 'burn')) {
+          baseDmg = Math.round(baseDmg * 1.5)
+        }
+      }
+      // 저주의 화염 시너지: 화염 스킬이 독 상태인 적을 공격할 때 +50% 피해
+      if (effect.element === 'fire' && hasSynergy(currentState.party, currentState.allies, 'cursed_inferno')) {
+        const poisonTarget = findEnemy(currentState, targetId)
+        if (poisonTarget && hasStatus(poisonTarget.statusEffects, 'poison')) {
+          baseDmg = Math.round(baseDmg * 1.5)
+        }
+      }
 
       // 보스 대미지 보너스
       const isEnemy = !!findEnemy(currentState, targetId)
@@ -576,6 +590,45 @@ function applySkillEffect(
           }))
           newLogs.push(log('status_apply', `파멸의 일격! ${target.name}에게 독이 스며든다.`, { sourceId: actorId, targetId }))
         }
+      }
+      // 성스러운 타격 시너지: 물리 크리티컬 발생 시 대상에게 기절(1턴) 자동 부여
+      if (isCrit && isEnemy && effect.element === 'physical' && hasSynergy(nextState.party, nextState.allies, 'holy_strike')) {
+        const stunTarget = findEnemy(nextState, targetId)
+        if (stunTarget?.isAlive) {
+          nextState = updateEnemy(nextState, targetId, e => ({
+            ...e,
+            statusEffects: addStatus(e.statusEffects, { kind: 'stun', duration: 1, value: 1, sourceId: actorId }),
+          }))
+          newLogs.push(log('status_apply', `성스러운 타격! ${target.name}이(가) 기절했다!`, { sourceId: actorId, targetId }))
+        }
+      }
+      // 빙결 방어 시너지: 물리 스킬 사용 시 자신에게 방어막(공격력×0.3) 부여
+      if (isEnemy && effect.element === 'physical' && hasSynergy(nextState.party, nextState.allies, 'frost_guard')) {
+        const shieldAmt = Math.round(actorAttack * 0.3)
+        nextState = updateCharacter(nextState, actorId, c => ({
+          ...c,
+          statusEffects: addStatus(c.statusEffects, { kind: 'shield', duration: 1, value: shieldAmt, sourceId: actorId }),
+        }))
+        newLogs.push(log('system', `빙결 방어: 방어막 ${shieldAmt} 생성.`, { sourceId: actorId }))
+      }
+      // 심연의 파도 시너지: 수계 스킬 적중 시 대상에게 방어력 감소(2턴) 자동 부여
+      if (isEnemy && effect.element === 'water' && hasSynergy(nextState.party, nextState.allies, 'abyssal_wave')) {
+        const waveTarget = findEnemy(nextState, targetId)
+        if (waveTarget?.isAlive) {
+          nextState = updateEnemy(nextState, targetId, e => ({
+            ...e,
+            statusEffects: addStatus(e.statusEffects, { kind: 'defdown', duration: 2, value: 20, sourceId: actorId }),
+          }))
+          newLogs.push(log('status_apply', `심연의 파도! ${target.name}의 방어력이 약해졌다.`, { sourceId: actorId, targetId }))
+        }
+      }
+      // 성화 시너지: 화염 스킬 사용 후 자신에게 재생(3턴) 부여
+      if (isEnemy && effect.element === 'fire' && hasSynergy(nextState.party, nextState.allies, 'sacred_flame')) {
+        nextState = updateCharacter(nextState, actorId, c => ({
+          ...c,
+          statusEffects: addStatus(c.statusEffects, { kind: 'regen', duration: 3, value: Math.round(actorAttack * 0.2), sourceId: actorId }),
+        }))
+        newLogs.push(log('system', `성화: 재생 효과를 얻었다.`, { sourceId: actorId }))
       }
 
       totalDamage += isEnemy ? actualDmg : 0
@@ -660,6 +713,15 @@ function applySkillEffect(
         const isCrit = combatRoll.isCrit
         if (isCrit) baseDmg = Math.round(baseDmg * 1.5)
 
+        // 불꽃 전사 시너지: 물리 스킬이 화상 상태인 적을 공격할 때 +50% 피해
+        if (effect.element === 'physical' && hasSynergy(current.party, current.allies, 'blazing_warrior')) {
+          if (hasStatus(enemy.statusEffects, 'burn')) baseDmg = Math.round(baseDmg * 1.5)
+        }
+        // 저주의 화염 시너지: 화염 스킬이 독 상태인 적을 공격할 때 +50% 피해
+        if (effect.element === 'fire' && hasSynergy(current.party, current.allies, 'cursed_inferno')) {
+          if (hasStatus(enemy.statusEffects, 'poison')) baseDmg = Math.round(baseDmg * 1.5)
+        }
+
         // 보스 대미지 보너스
         if (enemy.isBoss) baseDmg = Math.round(baseDmg * bossMult)
 
@@ -713,6 +775,25 @@ function applySkillEffect(
             }
           }
         }
+        // 심연의 파도 시너지: 수계 스킬 적중 시 대상에게 방어력 감소(2턴) 자동 부여
+        if (effect.element === 'water' && hasSynergy(current.party, current.allies, 'abyssal_wave')) {
+          const liveEnemy = current.enemies.find(e => e.id === enemy.id)
+          if (liveEnemy?.isAlive) {
+            current = updateEnemy(current, enemy.id, e => ({
+              ...e,
+              statusEffects: addStatus(e.statusEffects, { kind: 'defdown', duration: 2, value: 20, sourceId: actorId }),
+            }))
+            newLogs.push(log('status_apply', `심연의 파도! ${enemy.name}의 방어력이 약해졌다.`, { sourceId: actorId, targetId: enemy.id }))
+          }
+        }
+      }
+      // 성화 시너지: 화염 스킬 사용 후 자신에게 재생(3턴) 부여
+      if (effect.element === 'fire' && hasSynergy(current.party, current.allies, 'sacred_flame')) {
+        current = updateCharacter(current, actorId, c => ({
+          ...c,
+          statusEffects: addStatus(c.statusEffects, { kind: 'regen', duration: 3, value: Math.round(actorAttack * 0.2), sourceId: actorId }),
+        }))
+        newLogs.push(log('system', `성화: 재생 효과를 얻었다.`, { sourceId: actorId }))
       }
       return { state: current, newLogs, totalDamage }
     }
