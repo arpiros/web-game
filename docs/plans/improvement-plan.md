@@ -185,6 +185,55 @@ Web Audio API 또는 Howler.js 사용.
 
 ---
 
+---
+
+## 🔴 밸런스 긴급 수정 (2026-04-25 분석)
+
+### URG-01: void_lord / dragon_lord 조기 스폰 차단 ✅ 완료
+- **문제**: `LATE_ENEMY_IDS`에 void_lord·dragon_lord가 포함되어 R6+에서 바로 스폰됨
+  - void_lord ATK 285 × R6 스케일(×1.15) = 327 → fire_mage(DEF 50)에게 218 데미지/턴 → 4턴 사망
+- **수정**: `LATE_BOSS_TIER_IDS = ['void_lord', 'dragon_lord']` 분리, R13+ 분기에만 포함
+- **파일**: `src/game/data/enemies.ts`
+
+### URG-02: CLAUDE.md 라운드 스케일링 수치 오기 ✅ 완료
+- **문제**: CLAUDE.md에 `0.05` 기재, 실제 코드(`run.ts`)는 `0.03`
+- **수정**: `0.05` → `0.03`, 라운드 15 최댓값 1.70 → 1.42로 정정
+- **파일**: `CLAUDE.md`
+
+---
+
+## 🟠 밸런스 높음 우선순위
+
+### HIGH-01: dragon_lord Phase3 전환 경고 UI 부재
+- Phase3 진입 시(`hp < 30%`) 플레이어가 패턴 변화를 인지하기 어려움
+- `dragon_lord.bossPhases.phase3HpThreshold` 이하 진입 시 배틀 로그에 경고 메시지 + 화면 플래시
+
+### HIGH-02: 기본 공격 배율 하향 (0MP 스킬 페널티 과도)
+- `basic_ember` / `basic_splash` / `basic_glimmer` 배율 60~65% → 75~80% 상향 권장
+- MP 고갈 페널티가 너무 가혹해 포기 플레이 유발
+
+### HIGH-03: 엘리트 라운드 보상 불균형
+- 엘리트(R3·R5) 드래프트 4장인데 일반 전투 클리어 HP 25% 회복이 없음
+- 엘리트 처치 후 HP 소량(최대 HP의 10%) 회복 추가 검토
+
+---
+
+## 🟡 밸런스 중간 우선순위
+
+### MED-01: chaos 시너지 Math.random() → 시드 RNG 교체
+- `src/game/synergy.ts`의 chaos 시너지가 `Math.random()` 사용 → 재현 불가
+- `RngState` 시드 RNG(`roll`)로 교체 필요
+
+### MED-02: 물/빛 원소 적 부족
+- 현재 적 풀: fire/dark 비중 과다, water/light 적 희소
+- 원소 시너지 다양성 위해 water·light 속성 적 1~2종 추가 검토
+
+### MED-03: 동료 revive_party 발동 조건 모호
+- `revive_party` AllyAction이 파티 전멸 직전에만 실질 의미 — 발동 타이밍 표시 없음
+- 배틀 로그에 "부활 준비 중" 상태 표시 권장
+
+---
+
 ## 우선순위 요약 (미완료)
 
 | 우선순위 | 항목 | 예상 난이도 | 기대 효과 |

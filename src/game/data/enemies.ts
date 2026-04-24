@@ -391,7 +391,9 @@ const ALL_ENEMIES: readonly EnemyDef[] = [...ENEMIES, ...ENEMIES_EXTRA]
 const EARLY_ENEMY_IDS = ['goblin', 'fire_imp', 'shadow_wolf', 'skeleton_archer']
 const MID_EASY_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'flame_phoenix', 'thunder_drake', 'sea_serpent']
 const MID_HARD_ENEMY_IDS = ['cursed_knight', 'demon_mage', 'dark_vampire']
-const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'frost_giant', 'poison_hydra', 'void_lord', 'dragon_lord', 'abyssal_horror', 'celestial_sentinel', 'bone_colossus']
+const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'frost_giant', 'poison_hydra', 'abyssal_horror', 'celestial_sentinel', 'bone_colossus']
+// void_lord·dragon_lord는 R13+ 전용 — 조기 스폰 시 R6 스케일(×1.15)에서 즉사 위험
+const LATE_BOSS_TIER_IDS = ['void_lord', 'dragon_lord']
 
 export function getEnemyPoolForRound(round: number): readonly EnemyDef[] {
   if (round <= 2) {
@@ -402,6 +404,9 @@ export function getEnemyPoolForRound(round: number): readonly EnemyDef[] {
   }
   if (round <= 5) {
     return ALL_ENEMIES.filter(e => [...EARLY_ENEMY_IDS, ...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS].includes(e.id))
+  }
+  if (round >= 13) {
+    return ALL_ENEMIES.filter(e => [...MID_HARD_ENEMY_IDS, ...LATE_ENEMY_IDS, ...LATE_BOSS_TIER_IDS].includes(e.id))
   }
   return ALL_ENEMIES.filter(e => [...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS, ...LATE_ENEMY_IDS].includes(e.id))
 }
