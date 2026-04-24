@@ -574,9 +574,7 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
         disabled={!canReroll}
         title={canReroll ? '이 카드를 리롤' : '리롤 횟수 없음'}
         style={{
-          position: 'absolute',
-          bottom: 'var(--space-2)',
-          right: 'var(--space-2)',
+          alignSelf: 'flex-end',
           padding: '3px 8px',
           fontSize: '10px',
           fontWeight: 'var(--weight-semibold)',
@@ -588,7 +586,6 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
           borderRadius: 'var(--radius-sm)',
           cursor: canReroll ? 'pointer' : 'not-allowed',
           opacity: canReroll ? 1 : 0.45,
-          zIndex: 1,
           letterSpacing: '0.04em',
           transition: 'background var(--duration-fast)',
         }}
@@ -609,9 +606,9 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
   }
 
   const wrapperStyle: React.CSSProperties = {
-    position: 'relative',
     display: 'flex',
     flexDirection: 'column',
+    gap: 'var(--space-1)',
   }
 
   if (option.type === 'skill') {
