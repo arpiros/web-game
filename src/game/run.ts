@@ -29,7 +29,7 @@ import { EVENTS, getEventById } from './data/events'
 // Constants
 // ---------------------------------------------------------------------------
 
-export const MAX_ROUNDS = 15
+export const MAX_ROUNDS = 30
 export const MAX_ALLIES = 4
 
 /** 라운드별 적 등장 수 */
@@ -48,17 +48,32 @@ const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
   12: 3,
   13: 3,
   14: 3,
-  15: 1,  // 보스전
+  15: 2,  // 엘리트
+  16: 3,
+  17: 2,
+  18: 3,
+  19: 3,
+  20: 2,  // 엘리트
+  21: 3,
+  22: 3,
+  23: 3,
+  24: 3,
+  25: 2,  // 엘리트
+  26: 3,
+  27: 3,
+  28: 3,
+  29: 3,
+  30: 1,  // 보스전
 }
 
-/** 라운드 15은 항상 dragon_lord */
+/** 라운드 30은 항상 dragon_lord */
 const BOSS_ENEMY_ID = 'dragon_lord'
 
 /** 엘리트 적이 등장하는 라운드 */
-export const ELITE_ROUNDS = new Set([5, 10])
+export const ELITE_ROUNDS = new Set([5, 10, 15, 20, 25])
 
 /** 이벤트가 등장하는 라운드 (전투 완료 후 드래프트 전) */
-const EVENT_ROUNDS = new Set([3, 7, 12])
+const EVENT_ROUNDS = new Set([3, 7, 12, 18, 24])
 
 /** 엘리트 스탯 배율 (라운드 스케일링 위에 추가 적용) */
 const ELITE_STAT_MULTIPLIER = 1.2
