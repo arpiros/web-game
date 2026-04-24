@@ -96,10 +96,10 @@
   --text-2xl: clamp(2.1rem, 1.7rem + 1.5vw, 2.8rem);
   --text-hero: clamp(2.9rem, 2.3rem + 3vw, 4.5rem);
 
-  --weight-normal: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
+  --weight-normal: 500;
+  --weight-medium: 600;
+  --weight-semibold: 700;
+  --weight-bold: 800;
 
   --leading-tight: 1.2;
   --leading-normal: 1.55;   /* 세리프는 좀 더 여유 있게 */
