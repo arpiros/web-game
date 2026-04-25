@@ -519,6 +519,7 @@ function applySkillEffect(
         const frozenEnemy = findEnemy(currentState, targetId)
         if (frozenEnemy && hasStatus(frozenEnemy.statusEffects, 'freeze')) {
           baseDmg = Math.round(baseDmg * 1.5)
+          newLogs.push(log('system', '【증기 폭발】 빙결된 적에게 화염 공격 — 피해 +50%!', { sourceId: actorId }))
         }
       }
       // 불꽃 전사 시너지: 물리 스킬이 화상 상태인 적을 공격할 때 +50% 피해
@@ -526,6 +527,7 @@ function applySkillEffect(
         const burnTarget = findEnemy(currentState, targetId)
         if (burnTarget && hasStatus(burnTarget.statusEffects, 'burn')) {
           baseDmg = Math.round(baseDmg * 1.5)
+          newLogs.push(log('system', '【불꽃 전사】 화상 상태 적에게 물리 공격 — 피해 +50%!', { sourceId: actorId }))
         }
       }
       // 저주의 화염 시너지: 화염 스킬이 독 상태인 적을 공격할 때 +50% 피해
@@ -533,6 +535,7 @@ function applySkillEffect(
         const poisonTarget = findEnemy(currentState, targetId)
         if (poisonTarget && hasStatus(poisonTarget.statusEffects, 'poison')) {
           baseDmg = Math.round(baseDmg * 1.5)
+          newLogs.push(log('system', '【저주의 화염】 독 상태 적에게 화염 공격 — 피해 +50%!', { sourceId: actorId }))
         }
       }
 
@@ -807,6 +810,7 @@ function applySkillEffect(
       // 성수 시너지: 회복 스킬 효과 +30%
       if (hasSynergy(state.party, state.allies, 'holy_water')) {
         healAmount = Math.round(healAmount * 1.3)
+        newLogs.push(log('system', '【성수】 회복량 +30%!', { sourceId: actorId }))
       }
       const next = applyHealToCharacter(state, actorId, healAmount)
       newLogs.push(log('heal', `HP를 ${healAmount} 회복했다.`, {

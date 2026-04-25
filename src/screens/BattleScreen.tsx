@@ -14,6 +14,7 @@ import { getSkillById } from '../game/data/skills'
 import { MAX_ROUNDS } from '../game/run'
 import { calcDamage, getItemElementMultiplier, getStatusBonus } from '../game/combat'
 import { getActiveSynergies } from '../game/synergy'
+import type { Synergy } from '../game/synergy'
 import { useRunStore } from '../state/runStore'
 
 // ---------------------------------------------------------------------------
@@ -357,15 +358,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
           턴 {bs.turnCount + 1}
         </span>
         {getActiveSynergies(bs.party, bs.allies).map(s => (
-          <span key={s.id} title={s.description} style={{
-            fontSize: 'var(--text-xs)', padding: '2px 6px',
-            borderRadius: 'var(--radius-sm)',
-            background: 'color-mix(in oklch, var(--color-accent) 20%, transparent)',
-            color: 'var(--color-accent)',
-            border: '1px solid color-mix(in oklch, var(--color-accent) 40%, transparent)',
-          }}>
-            {s.name}
-          </span>
+          <SynergyBadge key={s.id} synergy={s} />
         ))}
         <span style={{ flex: 1 }} />
         <SpeedControl speed={battleSpeed} onSetSpeed={setBattleSpeed} />
@@ -503,6 +496,25 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
               ))}
             </>
           )}
+
+          {(() => {
+            const synergies = getActiveSynergies(bs.party, bs.allies)
+            if (synergies.length === 0) return null
+            return (
+              <>
+                <div className="latin-label" style={{
+                  marginTop: 'var(--space-2)',
+                  paddingTop: 'var(--space-2)',
+                  borderTop: '1px solid var(--color-border-subtle)',
+                }}>
+                  SYNERGIES
+                </div>
+                {synergies.map(s => (
+                  <SynergyPanelCard key={s.id} synergy={s} />
+                ))}
+              </>
+            )
+          })()}
         </div>
       </div>
     </div>
@@ -1062,6 +1074,112 @@ function StatusBadge({ effect }: { effect: StatusEffect }) {
         {label}{effect.duration > 0 ? ` ${effect.duration}` : ''}
       </span>
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SynergyTooltip / SynergyBadge / SynergyPanelCard
+// ---------------------------------------------------------------------------
+
+function SynergyTooltip({ synergy, x, y }: { synergy: Synergy; x: number; y: number }) {
+  return (
+    <div style={{
+      position: 'fixed', top: y, left: x,
+      width: '220px', padding: 'var(--space-3)',
+      background: 'var(--color-bg-elevated)',
+      border: '1px solid var(--color-border-default)',
+      borderRadius: 'var(--radius-md)',
+      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.5)',
+      zIndex: 200, pointerEvents: 'none',
+      fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+        <span style={{ color: 'var(--color-accent)', fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>
+          {synergy.name}
+        </span>
+        <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xxs)' }}>
+          {synergy.elements.join(' + ')}
+        </span>
+      </div>
+      <p style={{ margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
+        {synergy.description}
+      </p>
+    </div>
+  )
+}
+
+function SynergyBadge({ synergy }: { synergy: Synergy }) {
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
+
+  return (
+    <>
+      {tooltipPos && <SynergyTooltip synergy={synergy} x={tooltipPos.x} y={tooltipPos.y} />}
+      <span
+        role="button"
+        tabIndex={0}
+        onPointerEnter={e => {
+          if (e.pointerType === 'touch') return
+          const rect = e.currentTarget.getBoundingClientRect()
+          setTooltipPos({ x: rect.left, y: rect.bottom + 4 })
+        }}
+        onPointerLeave={e => {
+          if (e.pointerType === 'touch') return
+          setTooltipPos(null)
+        }}
+        onClick={e => {
+          e.stopPropagation()
+          const rect = e.currentTarget.getBoundingClientRect()
+          setTooltipPos(prev => prev ? null : { x: rect.left, y: rect.bottom + 4 })
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Escape') setTooltipPos(null)
+        }}
+        style={{
+          fontSize: 'var(--text-xs)', padding: '2px 6px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'color-mix(in oklch, var(--color-accent) 20%, transparent)',
+          color: 'var(--color-accent)',
+          border: '1px solid color-mix(in oklch, var(--color-accent) 40%, transparent)',
+          cursor: 'help',
+          userSelect: 'none',
+        }}
+      >
+        {synergy.name}
+      </span>
+    </>
+  )
+}
+
+function SynergyPanelCard({ synergy }: { synergy: Synergy }) {
+  return (
+    <div style={{
+      padding: 'var(--space-2) var(--space-3)',
+      borderRadius: 'var(--radius-sm)',
+      background: 'color-mix(in oklch, var(--color-accent) 8%, transparent)',
+      border: '1px solid color-mix(in oklch, var(--color-accent) 25%, transparent)',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+        marginBottom: 'var(--space-1)',
+      }}>
+        <span style={{
+          fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
+          color: 'var(--color-accent)',
+        }}>
+          {synergy.name}
+        </span>
+        <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
+          {synergy.elements.join(' + ')}
+        </span>
+      </div>
+      <p style={{
+        margin: 0,
+        fontSize: 'var(--text-xxs)', color: 'var(--color-text-secondary)',
+        lineHeight: 'var(--leading-relaxed)',
+      }}>
+        {synergy.description}
+      </p>
+    </div>
   )
 }
 
