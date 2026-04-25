@@ -33,3 +33,11 @@ coverage/
 BUG_REPORT.md
 game-test.mjs
 개선사항.md
+battle-snapshot.md
+docs/work-log.md
+
+# Claude Code
+.claude/
+
+# Test results
+test-results/

@@ -37,9 +37,11 @@ src/styles/      ← CSS 디자인 토큰 (OKLCH 기반)
 
 - **`types.ts`** — 전체 도메인 타입 정의. `RunState`, `BattleState`, `BattleAction`, `SkillEffect`, `AllyAction`, `ItemEffect` 등 모든 타입의 단일 진실 공급원
 - **`combat.ts`** — `battleReducer(state, action) → state` 패턴의 순수 함수. 스킬 사용, 적 턴, 상태이상 틱 처리. `calcDamage`, `rollCombat`, `getItemElementMultiplier`, `getStatusBonus` export
-- **`run.ts`** — 런 생명주기 순수 함수: `createRun`, `startBattle`, `completeBattle`, `applyDraftChoice`, `handleDefeat`
+- **`run.ts`** — 런 생명주기 순수 함수: `createRun`, `startBattle`, `completeBattle`, `applyDraftChoice`, `applyCraftChoice`, `applyEventChoice`, `rerollDraftOption`, `skipDraftForHeal`, `handleDefeat`
 - **`rng.ts`** — 시드 기반 결정론적 RNG (`RngState` 불변 값 타입). `roll`, `pickN`, `pickNWeighted`, `shuffle`
-- **`data/`** — 정적 데이터 정의 (skills, characters, allies, items, enemies)
+- **`synergy.ts`** — 파티+동료 원소 기반 10종 시너지 계산. `getActiveElements`, `getActiveSynergies`, `hasSynergy`
+- **`craft.ts`** — 스킬/아이템 조합 순수 함수. `getAvailableRecipes(ownedSkillIds, ownedItemIds)`, `applyCraft(recipe, skillIds, itemIds)`
+- **`data/`** — 정적 데이터 정의 (skills, characters, allies, items, enemies, events, recipes)
 
 ### State Machine (런 흐름)
 
@@ -50,13 +52,22 @@ run === null
 
 run.phase = 'battle'
   → BattleScreen
-      ├─ onBattleVictory() → run.phase = 'draft'  (round < 15)
-      ├─ onBattleVictory() → run.phase = 'result' (round === 15, isVictory: true)
+      ├─ onBattleVictory() → run.phase = 'event' (EVENT_ROUNDS: 3,7,12,18,24)
+      ├─ onBattleVictory() → run.phase = 'draft'  (그 외, round < 30)
+      ├─ onBattleVictory() → run.phase = 'result' (round === 30, isVictory: true)
       └─ onBattleDefeat()  → run.phase = 'result' (isVictory: false)
+
+run.phase = 'event'
+  → EventScreen
+      └─ resolveEvent(choiceId) → run.phase = 'draft'
 
 run.phase = 'draft'
   → DraftScreen
-      └─ selectDraft() + advanceToNextBattle() → run.phase = 'battle'
+      ├─ selectDraft(optionIndex) → 아이템/스킬/동료 획득
+      ├─ craftAndAdvance(recipeId) → 조합 수행 후 바로 battle로 전환
+      ├─ rerollDraft(targetIndex) → 카드 1장 리롤 (rerollsRemaining 소모)
+      ├─ skipDraftForHeal() → 드래프트 건너뛰고 HP 30% 회복 → battle로 전환
+      └─ advanceToNextBattle() → run.phase = 'battle'
 
 run.phase = 'result'
   → ResultScreen
@@ -73,17 +84,21 @@ run.phase = 'result'
 - 전투 액션은 모두 `dispatchBattle(action: BattleAction)`으로 처리
 - 조건부 렌더링 분기 내에서는 `useRunStore.getState()`로 콜백 추출 (React Hook Rules 준수)
 
+주요 store 액션: `startRun`, `dispatchBattle`, `onBattleVictory`, `onBattleDefeat`, `selectDraft`, `advanceToNextBattle`, `craftAndAdvance`, `resolveEvent`, `rerollDraft`, `skipDraftForHeal`, `resetRun`, `setBattleSpeed`
+
 ### 화면 라우팅 (`src/App.tsx`)
 
 `run.phase`로 화면을 전환한다. `run === null`일 때 `showCharSelect` 로컬 상태로 타이틀 ↔ 캐릭터 선택 전환.
 
 ### 전투 시스템 핵심 규칙
 
-- **라운드 스케일링**: 적 HP/공격력은 `1 + (round - 1) * 0.03` 배율로 강화 (방어력은 고정). 라운드 15 기준 최대 1.42배
-- **라운드 15**: 항상 보스 (`dragon_lord`) 단독 등장. 보스는 `cc_immune` 상태로 스폰
+- **라운드 스케일링**: 적 HP/공격력은 `1 + (round - 1) * 0.03` 배율로 강화 (방어력은 고정). 라운드 30 기준 최대 1.87배
+- **라운드 30**: `MAX_ROUNDS = 30`. 항상 보스 (`dragon_lord`, `BOSS_ENEMY_ID`) 단독 등장. 보스는 `cc_immune` 상태로 스폰
+- **엘리트 라운드**: `ELITE_ROUNDS = new Set([5, 10, 15, 20, 25])`. 엘리트 1마리 (`ELITE_STAT_MULTIPLIER = 1.2`) + 나머지 일반 적 조합
+- **보스티어 적 스폰**: `void_lord`·`dragon_lord`는 R13+ 전용 (`LATE_BOSS_TIER_IDS`). R6에서 해당 적이 스폰되면 스케일 ×1.15에서도 즉사 위험
 - **적 행동 패턴**: `EnemyDef.actions` 배열을 순환 (`actionIndex`)
 - **상태이상 `apply_status`**: `targetMode: 'random'`인 경우 플레이어를 타겟으로 삼을 수 있음 (의도된 설계)
-- **드래프트**: 전투 승리 후 스킬/동료/아이템 중 3장 제시. 동료는 최대 4명
+- **드래프트**: 전투 승리 후 스킬/동료/아이템 중 3장 제시. 동료는 최대 4명 (`MAX_ALLIES = 4`). `CRAFT_RESULT_IDS`는 드래프트 풀에서 제외됨
 - **데미지 공식**: `rawAttack * elementMult * (100 / (100 + defense))`, 최소 1
 
 ### apply_status 타겟 규칙 (중요)
@@ -155,6 +170,42 @@ shield_party | buff_party | revive_party
 
 `revive_party`: 첫 번째 사망한 파티원을 `healPercent * maxHp`로 부활. `processAllyActions`에서 `aliveParty.length === 0` 가드가 이 케이스를 막지 않도록 예외 처리되어 있음.
 
+### 이벤트 시스템 (`src/game/data/events.ts`)
+
+`EVENT_ROUNDS = new Set([3, 7, 12, 18, 24])` 라운드 승리 후 draft 전에 event 화면 삽입.
+
+- **4종 이벤트**: `abandoned_campfire`(야영지 HP회복), `cursed_altar`(저주 제단 스킬획득/패널티), `wandering_merchant`(상인 아이템), `ancient_library`(스킬 or 강화)
+- 각 이벤트는 선택지 2개(`EventChoice`)를 제공하며 선택에 따라 `EventEffect`가 적용됨
+- **`EventEffect` 타입**: `heal_hp`(HP% 회복), `gain_skill`(희귀도 기반 스킬 획득), `gain_item`(아이템 획득), `stat_change`(영구 스탯 변경), `nothing`
+
+### 시너지 시스템 (`src/game/synergy.ts`)
+
+파티+동료 원소 구성에 따라 자동 계산되는 10종 시너지:
+
+| 시너지 | 조건 | 효과 |
+|--------|------|------|
+| `steam_explosion` | fire + water | 상태이상 적 추가 피해 |
+| `chaos` | 4종 원소 이상 보유 | 랜덤 추가 효과 |
+| `doom_strike` | dark + physical | 실명/약화 부여 확률 |
+| `holy_water` | water + light | 힐 시 쉴드 부여 |
+| `blazing_warrior` | fire + physical | 치명타 확률 증가 |
+| `frost_guard` | water + (defense) | 받는 피해 감소 |
+| `holy_strike` | light + physical | 공격 시 HP 회복 |
+| `cursed_inferno` | dark + fire | 독/화상 강화 |
+| `sacred_flame` | light + fire | 힐량 증가 |
+| `abyssal_wave` | dark + water | MP 회복 증가 |
+
+> `chaos` 시너지는 현재 `Math.random()` 사용 (MED-01 이슈 — 시드 RNG로 교체 필요)
+
+### 크래프트(조합) 시스템 (`src/game/craft.ts`, `src/game/data/recipes.ts`)
+
+스킬 2개 또는 아이템 2개를 재료로 새 스킬/아이템을 생성. `CRAFT_RESULT_IDS`에 포함된 결과물은 드래프트 풀에서 제외됨.
+
+- **레시피 수**: 스킬 9개, 아이템 8개 (총 17개)
+- `getAvailableRecipes(ownedSkillIds, ownedItemIds)` — 보유 재료로 만들 수 있는 레시피 목록
+- `applyCraft(recipe, skillIds, itemIds)` — 재료 2개 제거 후 결과물 1개 추가. `category: 'skill' | 'item'`으로 분기
+- store에서 `craftAndAdvance(recipeId)`로 호출 → 조합 즉시 다음 전투로 진행
+
 ### startBattle 특수 처리
 
 `death_prevention` 아이템 보유 시: `startBattle`이 파티 전원에게 `undying` 상태(HP 1 유지)를 부여한 뒤 전투를 시작한다. 아이템 효과가 런타임 상태에 직접 반영되는 유일한 케이스.
@@ -172,10 +223,14 @@ export function battleReducer(state: BattleState, action: BattleAction): BattleS
 // run.ts exports
 export function createBattleCharacter(defId, skillIds, itemIds): BattleCharacter
 export function createBattleAlly(allyDefId, index): BattleAlly
-export function createBattleEnemy(enemyDefId, round, index): BattleEnemy
+export function createBattleEnemy(enemyDefId, round, index, isElite?): BattleEnemy
 export function startBattle(run, rng): [BattleState, RngState]
 export function completeBattle(run, battleState, rng): [RunState, RngState]
 export function applyDraftChoice(run, optionIndex): RunState
+export function applyCraftChoice(run, recipeId): RunState
+export function applyEventChoice(run, choiceId, rng): [RunState, RngState]
+export function rerollDraftOption(run, rng, targetIndex): [RunState, RngState]
+export function skipDraftForHeal(run): RunState
 export function handleDefeat(run, battleState): RunState
 
 // rng.ts exports
