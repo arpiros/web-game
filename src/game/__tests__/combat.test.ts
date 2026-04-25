@@ -1678,3 +1678,488 @@ describe('processEnemyTurn — 동료 타겟팅', () => {
     expect(result.allies[0].stats.hp).toBeLessThan(500)
   })
 })
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects — regen HP 재생
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — regen HP 재생', () => {
+  it('regen 상태이상이 HP를 회복시킨다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 700, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [{ kind: 'regen', duration: 3, value: 50, sourceId: 'char-1' }],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+    expect(result.party[0].stats.hp).toBe(750)
+    expect(result.log.some(e => e.text.includes('재생됐다'))).toBe(true)
+  })
+
+  it('regen은 maxHp를 초과하지 않는다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 990, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [{ kind: 'regen', duration: 3, value: 50, sourceId: 'char-1' }],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+    expect(result.party[0].stats.hp).toBe(1000)
+  })
+
+  it('HP가 이미 maxHp이면 heal 로그가 추가되지 않는다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [{ kind: 'regen', duration: 3, value: 50, sourceId: 'char-1' }],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+    expect(result.log.some(e => e.kind === 'heal' && e.text.includes('재생됐다'))).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects — on_low_hp 아이템
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — on_low_hp 아이템', () => {
+  const lowHpItem: ItemDef = {
+    id: 'test_low_hp',
+    name: '위기 발동 아이템',
+    description: '',
+    rarity: 'rare',
+    effects: [{ type: 'on_low_hp', threshold: 0.3, effect: { type: 'apply_status', status: 'powerup', duration: 2, value: 50 } }],
+  }
+
+  it('HP가 threshold 미만일 때 powerup 상태이상을 부여한다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 200, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [],
+    })
+    const state = makeBattleState({ party: [char], items: [lowHpItem] })
+    const result = tickAllStatusEffects(state)
+    expect(hasStatus(result.party[0].statusEffects, 'powerup')).toBe(true)
+    expect(result.log.some(e => e.text.includes('위기 발동'))).toBe(true)
+  })
+
+  it('HP가 threshold 이상이면 상태이상을 부여하지 않는다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 500, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [],
+    })
+    const state = makeBattleState({ party: [char], items: [lowHpItem] })
+    const result = tickAllStatusEffects(state)
+    expect(hasStatus(result.party[0].statusEffects, 'powerup')).toBe(false)
+  })
+
+  it('이미 해당 상태이상이 있으면 중복 부여하지 않는다', () => {
+    const existing: StatusEffect = { kind: 'powerup', duration: 5, value: 100, sourceId: 'char-1' }
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 200, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [existing],
+    })
+    const state = makeBattleState({ party: [char], items: [lowHpItem] })
+    const result = tickAllStatusEffects(state)
+    const powerups = result.party[0].statusEffects.filter(s => s.kind === 'powerup')
+    expect(powerups.length).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 시너지 — steam_explosion
+// ---------------------------------------------------------------------------
+
+describe('시너지 — steam_explosion', () => {
+  it('화염 스킬이 빙결된 적을 공격할 때 피해 +50%', () => {
+    const fireChar = makeCharacter({
+      element: 'fire',
+      skillIds: ['flame_strike'],
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 60 },
+    })
+    const waterAlly = makeAlly({ id: 'ally-1', element: 'water' })
+    const frozenEnemy = makeEnemy({ id: 'enemy-1', statusEffects: [{ kind: 'freeze', duration: 2, value: 1, sourceId: 'char-1' }] })
+    const normalEnemy = makeEnemy({ id: 'enemy-1' })
+
+    const stateWith = makeBattleState({ party: [fireChar], allies: [waterAlly], enemies: [frozenEnemy] })
+    const stateWithout = makeBattleState({ party: [{ ...fireChar }], allies: [], enemies: [normalEnemy] })
+
+    const resultWith = useSkill(stateWith, 'char-1', 'enemy-1', 'flame_strike', [])
+    const resultWithout = useSkill(stateWithout, 'char-1', 'enemy-1', 'flame_strike', [])
+
+    const dmgWith = frozenEnemy.stats.hp - resultWith.enemies[0].stats.hp
+    const dmgWithout = normalEnemy.stats.hp - resultWithout.enemies[0].stats.hp
+    expect(dmgWith).toBeGreaterThan(dmgWithout)
+    expect(resultWith.log.some(e => e.text.includes('증기 폭발'))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 시너지 — blazing_warrior
+// ---------------------------------------------------------------------------
+
+describe('시너지 — blazing_warrior', () => {
+  it('물리 스킬이 화상 상태인 적을 공격할 때 피해 +50%', () => {
+    const physChar = makeCharacter({ element: 'physical', skillIds: ['slash'] })
+    const fireAlly = makeAlly({ id: 'ally-1', element: 'fire' })
+    const burnedEnemy = makeEnemy({ id: 'enemy-1', statusEffects: [{ kind: 'burn', duration: 2, value: 30, sourceId: 'char-1' }] })
+    const normalEnemy = makeEnemy({ id: 'enemy-1' })
+
+    const stateWith = makeBattleState({ party: [physChar], allies: [fireAlly], enemies: [burnedEnemy] })
+    const stateWithout = makeBattleState({ party: [{ ...physChar }], allies: [], enemies: [normalEnemy] })
+
+    const resultWith = useSkill(stateWith, 'char-1', 'enemy-1', 'slash', [])
+    const resultWithout = useSkill(stateWithout, 'char-1', 'enemy-1', 'slash', [])
+
+    const dmgWith = burnedEnemy.stats.hp - resultWith.enemies[0].stats.hp
+    const dmgWithout = normalEnemy.stats.hp - resultWithout.enemies[0].stats.hp
+    expect(dmgWith).toBeGreaterThan(dmgWithout)
+    expect(resultWith.log.some(e => e.text.includes('불꽃 전사'))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 시너지 — cursed_inferno
+// ---------------------------------------------------------------------------
+
+describe('시너지 — cursed_inferno', () => {
+  it('화염 스킬이 독 상태인 적을 공격할 때 피해 +50%', () => {
+    const fireChar = makeCharacter({
+      element: 'fire',
+      skillIds: ['flame_strike'],
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 60 },
+    })
+    const darkAlly = makeAlly({ id: 'ally-1', element: 'dark' })
+    const poisonedEnemy = makeEnemy({ id: 'enemy-1', statusEffects: [{ kind: 'poison', duration: 2, value: 10, sourceId: 'char-1' }] })
+    const normalEnemy = makeEnemy({ id: 'enemy-1' })
+
+    const stateWith = makeBattleState({ party: [fireChar], allies: [darkAlly], enemies: [poisonedEnemy] })
+    const stateWithout = makeBattleState({ party: [{ ...fireChar }], allies: [], enemies: [normalEnemy] })
+
+    const resultWith = useSkill(stateWith, 'char-1', 'enemy-1', 'flame_strike', [])
+    const resultWithout = useSkill(stateWithout, 'char-1', 'enemy-1', 'flame_strike', [])
+
+    const dmgWith = poisonedEnemy.stats.hp - resultWith.enemies[0].stats.hp
+    const dmgWithout = normalEnemy.stats.hp - resultWithout.enemies[0].stats.hp
+    expect(dmgWith).toBeGreaterThan(dmgWithout)
+    expect(resultWith.log.some(e => e.text.includes('저주의 화염'))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 시너지 — holy_water
+// ---------------------------------------------------------------------------
+
+describe('시너지 — holy_water', () => {
+  it('heal 스킬 사용 시 회복량이 30% 증가한다', () => {
+    const waterChar = makeCharacter({
+      element: 'water',
+      skillIds: ['heal_water'],
+      stats: { maxHp: 1000, hp: 300, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+    })
+    const lightAlly = makeAlly({ id: 'ally-1', element: 'light' })
+
+    const stateWith = makeBattleState({ party: [waterChar], allies: [lightAlly] })
+    const stateWithout = makeBattleState({ party: [{ ...waterChar }], allies: [] })
+
+    const resultWith = useSkill(stateWith, 'char-1', 'char-1', 'heal_water', [])
+    const resultWithout = useSkill(stateWithout, 'char-1', 'char-1', 'heal_water', [])
+
+    expect(resultWith.party[0].stats.hp - 300).toBeGreaterThan(resultWithout.party[0].stats.hp - 300)
+    expect(resultWith.log.some(e => e.text.includes('성수'))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects — chaos 시너지
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — chaos 시너지', () => {
+  it('dark+light 파티는 매 틱 랜덤 적에게 최대 HP 15% 피해를 준다', () => {
+    const darkChar = makeCharacter({ id: 'char-1', element: 'dark' })
+    const lightAlly = makeAlly({ id: 'ally-1', element: 'light' })
+    const enemy = makeEnemy({ stats: { maxHp: 1000, hp: 1000, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+
+    const state = makeBattleState({ party: [darkChar], allies: [lightAlly], enemies: [enemy] })
+    const result = tickAllStatusEffects(state)
+
+    expect(result.enemies[0].stats.hp).toBe(1000 - Math.round(1000 * 0.15))
+    expect(result.log.some(e => e.text.includes('카오스'))).toBe(true)
+  })
+
+  it('생존한 적이 없으면 chaos 피해가 발생하지 않는다', () => {
+    const darkChar = makeCharacter({ id: 'char-1', element: 'dark' })
+    const lightAlly = makeAlly({ id: 'ally-1', element: 'light' })
+    const deadEnemy = makeEnemy({
+      isAlive: false,
+      stats: { maxHp: 1000, hp: 0, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 },
+    })
+
+    const state = makeBattleState({ party: [darkChar], allies: [lightAlly], enemies: [deadEnemy] })
+    const result = tickAllStatusEffects(state)
+
+    expect(result.log.some(e => e.text.includes('카오스'))).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useSkill — damage_all (cleave)
+// ---------------------------------------------------------------------------
+
+describe('useSkill — damage_all (cleave)', () => {
+  it('살아있는 모든 적에게 피해를 준다', () => {
+    const char = makeCharacter({ skillIds: ['cleave', 'slash'] })
+    const enemy1 = makeEnemy({ id: 'enemy-1', stats: { maxHp: 400, hp: 400, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const enemy2 = makeEnemy({ id: 'enemy-2', stats: { maxHp: 400, hp: 400, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const state = makeBattleState({ party: [char], enemies: [enemy1, enemy2] })
+
+    for (let seed = 0; seed < 200; seed++) {
+      const result = useSkill({ ...state, rng: createRng(seed) }, 'char-1', 'enemy-1', 'cleave', [])
+      if (result.enemies[0].stats.hp < 400 && result.enemies[1].stats.hp < 400) {
+        expect(result.enemies[0].stats.hp).toBeLessThan(400)
+        expect(result.enemies[1].stats.hp).toBeLessThan(400)
+        return
+      }
+    }
+    throw new Error('200 시드 내에서 전체 적 피해를 확인하지 못했다')
+  })
+
+  it('죽은 적에게는 피해를 주지 않는다', () => {
+    const char = makeCharacter({ skillIds: ['cleave', 'slash'] })
+    const aliveEnemy = makeEnemy({ id: 'enemy-1', stats: { maxHp: 400, hp: 400, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const deadEnemy = makeEnemy({ id: 'enemy-2', isAlive: false, stats: { maxHp: 400, hp: 0, attack: 80, defense: 0, speed: 90, maxMp: 0, mp: 0 } })
+    const state = makeBattleState({ party: [char], enemies: [aliveEnemy, deadEnemy] })
+
+    for (let seed = 0; seed < 200; seed++) {
+      const result = useSkill({ ...state, rng: createRng(seed) }, 'char-1', 'enemy-1', 'cleave', [])
+      if (result.enemies[0].stats.hp < 400) {
+        expect(result.enemies[1].stats.hp).toBe(0)
+        return
+      }
+    }
+    throw new Error('200 시드 내에서 피해를 확인하지 못했다')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useSkill — heal_mp (meditate)
+// ---------------------------------------------------------------------------
+
+describe('useSkill — heal_mp (meditate)', () => {
+  it('MP를 지정된 양만큼 회복한다', () => {
+    const char = makeCharacter({
+      skillIds: ['meditate', 'slash'],
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 50 },
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'meditate', [])
+
+    expect(result.party[0].stats.mp).toBe(75)
+  })
+
+  it('maxMp를 초과하지 않는다', () => {
+    const char = makeCharacter({
+      skillIds: ['meditate', 'slash'],
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 90 },
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'meditate', [])
+
+    expect(result.party[0].stats.mp).toBe(100)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useSkill — remove_status (cleanse)
+// ---------------------------------------------------------------------------
+
+describe('useSkill — remove_status (cleanse)', () => {
+  it('poison 상태이상을 제거한다', () => {
+    const char = makeCharacter({
+      skillIds: ['cleanse', 'slash'],
+      statusEffects: [{ kind: 'poison', value: 10, duration: 3 }],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'cleanse', [])
+
+    expect(hasStatus(result.party[0].statusEffects, 'poison')).toBe(false)
+  })
+
+  it('burn 상태이상을 제거한다', () => {
+    const char = makeCharacter({
+      skillIds: ['cleanse', 'slash'],
+      statusEffects: [{ kind: 'burn', value: 50, duration: 3 }],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'cleanse', [])
+
+    expect(hasStatus(result.party[0].statusEffects, 'burn')).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useSkill — shield (barrier)
+// ---------------------------------------------------------------------------
+
+describe('useSkill — shield (barrier)', () => {
+  it('attack * amount 만큼의 shield 상태를 부여한다', () => {
+    const char = makeCharacter({
+      skillIds: ['barrier', 'slash'],
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'barrier', [])
+
+    expect(hasStatus(result.party[0].statusEffects, 'shield')).toBe(true)
+    expect(getStatusBonus(result.party[0].statusEffects, 'shield')).toBe(300)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useSkill — charge (charge_strike)
+// ---------------------------------------------------------------------------
+
+describe('useSkill — charge (charge_strike)', () => {
+  it('multiplier * 100 퍼센트의 powerup 상태를 부여한다', () => {
+    const char = makeCharacter({
+      skillIds: ['charge_strike', 'slash'],
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'charge_strike', [])
+
+    expect(hasStatus(result.party[0].statusEffects, 'powerup')).toBe(true)
+    expect(getStatusBonus(result.party[0].statusEffects, 'powerup')).toBe(350)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useSkill — spend_hp_gain_mp (blood_pact)
+// ---------------------------------------------------------------------------
+
+describe('useSkill — spend_hp_gain_mp (blood_pact)', () => {
+  it('HP를 소모하고 MP를 획득한다', () => {
+    const char = makeCharacter({
+      skillIds: ['blood_pact', 'slash'],
+      stats: { maxHp: 1000, hp: 1000, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 60 },
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'blood_pact', [])
+
+    expect(result.party[0].stats.hp).toBe(900)
+    expect(result.party[0].stats.mp).toBe(100)
+  })
+
+  it('HP가 낮으면 최소 1로 유지된다', () => {
+    const char = makeCharacter({
+      skillIds: ['blood_pact', 'slash'],
+      stats: { maxHp: 1000, hp: 50, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 60 },
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = useSkill(state, 'char-1', 'char-1', 'blood_pact', [])
+
+    expect(result.party[0].stats.hp).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects — undying + poison
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — undying + poison', () => {
+  it('undying 상태에서 치명적인 poison 피해를 받으면 hp=1을 유지하고 undying이 제거된다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 1, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [
+        { kind: 'undying', value: 1, duration: 1 },
+        { kind: 'poison', value: 30, duration: 3 },
+      ],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+
+    expect(result.party[0].stats.hp).toBe(1)
+    expect(result.party[0].isAlive).toBe(true)
+    expect(hasStatus(result.party[0].statusEffects, 'undying')).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects — revive + poison
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — revive + poison', () => {
+  it('revive 상태에서 치명적인 poison 피해를 받으면 부활하고 revive가 제거된다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 1, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [
+        { kind: 'revive', value: 30, duration: 1 },
+        { kind: 'poison', value: 30, duration: 3 },
+      ],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+
+    expect(result.party[0].stats.hp).toBe(Math.round(1000 * 0.3))
+    expect(result.party[0].isAlive).toBe(true)
+    expect(hasStatus(result.party[0].statusEffects, 'revive')).toBe(false)
+  })
+
+  it('poison으로 부활 시 부활 로그가 기록된다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 1, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [
+        { kind: 'revive', value: 30, duration: 1 },
+        { kind: 'poison', value: 30, duration: 3 },
+      ],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+
+    expect(result.log.some(e => e.text.includes('불사조'))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects — undying + burn
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — undying + burn', () => {
+  it('undying 상태에서 치명적인 burn 피해를 받으면 hp=1을 유지한다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 1, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [
+        { kind: 'undying', value: 1, duration: 1 },
+        { kind: 'burn', value: 500, duration: 3 },
+      ],
+    })
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state)
+
+    expect(result.party[0].stats.hp).toBe(1)
+    expect(result.party[0].isAlive).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAllStatusEffects — hp_drain_per_turn item + undying
+// ---------------------------------------------------------------------------
+
+describe('tickAllStatusEffects — hp_drain_per_turn + undying', () => {
+  it('아이템 hp_drain이 치명적일 때 undying이 발동하면 hp=1을 유지한다', () => {
+    const char = makeCharacter({
+      stats: { maxHp: 1000, hp: 1, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      statusEffects: [{ kind: 'undying', value: 1, duration: 1 }],
+    })
+    const drainItem: ItemDef = {
+      id: 'drain_test',
+      name: '테스트 드레인',
+      description: '',
+      rarity: 'common',
+      element: 'physical',
+      effects: [{ type: 'hp_drain_per_turn', amount: 500 }],
+    }
+    const state = makeBattleState({ party: [char] })
+    const result = tickAllStatusEffects(state, [drainItem])
+
+    expect(result.party[0].stats.hp).toBe(1)
+    expect(result.party[0].isAlive).toBe(true)
+  })
+})

@@ -6,11 +6,16 @@ import {
   applyDraftChoice,
   handleDefeat,
   generateDraftOptions,
+  rerollDraftOption,
   createBattleCharacter,
   createBattleAlly,
   createBattleEnemy,
+  skipDraftForHeal,
+  applyEventChoice,
+  applyCraftChoice,
   MAX_ROUNDS,
   MAX_ALLIES,
+  ELITE_ROUNDS,
 } from '../run'
 import { createRng } from '../rng'
 import type { RunState, BattleState } from '../types'
@@ -408,5 +413,272 @@ describe('generateDraftOptions', () => {
     const run: RunState = { ...makeRun(), allies: fullAllies }
     const [options] = generateDraftOptions(run, makeRng())
     expect(options.some(o => o.type === 'ally')).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// rerollDraftOption
+// ---------------------------------------------------------------------------
+
+describe('rerollDraftOption', () => {
+  it('rerollsRemaining이 0이면 상태 변경 없이 반환한다', () => {
+    const rng = makeRng()
+    const runWithDraft: RunState = {
+      ...makeRun(),
+      draftOptions: [{ type: 'skill', skillId: 'slash' }],
+      rerollsRemaining: 0,
+    }
+    const [result] = rerollDraftOption(runWithDraft, rng, 0)
+    expect(result).toBe(runWithDraft)
+  })
+
+  it('유효하지 않은 targetIndex면 상태 변경 없이 반환한다', () => {
+    const rng = makeRng()
+    const runWithDraft: RunState = {
+      ...makeRun(),
+      draftOptions: [{ type: 'skill', skillId: 'slash' }],
+      rerollsRemaining: 1,
+    }
+    const [result] = rerollDraftOption(runWithDraft, rng, 99)
+    expect(result).toBe(runWithDraft)
+  })
+
+  it('성공 시 rerollsRemaining이 1 감소한다', () => {
+    const rng = makeRng()
+    const runWithDraft: RunState = {
+      ...makeRun(),
+      draftOptions: [
+        { type: 'skill', skillId: 'slash' },
+        { type: 'skill', skillId: 'shadow_strike' },
+        { type: 'skill', skillId: 'flame_strike' },
+      ],
+      rerollsRemaining: 3,
+    }
+    const [result] = rerollDraftOption(runWithDraft, rng, 0)
+    expect(result.rerollsRemaining).toBe(2)
+  })
+
+  it('성공 시 draftOptions 배열의 길이가 유지된다', () => {
+    const rng = makeRng()
+    const runWithDraft: RunState = {
+      ...makeRun(),
+      draftOptions: [
+        { type: 'skill', skillId: 'slash' },
+        { type: 'skill', skillId: 'shadow_strike' },
+        { type: 'skill', skillId: 'flame_strike' },
+      ],
+      rerollsRemaining: 3,
+    }
+    const [result] = rerollDraftOption(runWithDraft, rng, 0)
+    expect(result.draftOptions.length).toBe(3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// startBattle — 엘리트 라운드
+// ---------------------------------------------------------------------------
+
+describe('startBattle — 엘리트 라운드', () => {
+  it('ELITE_ROUNDS에 해당하는 라운드에서 엘리트 적이 등장한다', () => {
+    const eliteRound = [...ELITE_ROUNDS][0]
+    const run = { ...makeRun(), round: eliteRound }
+    const [battleState] = startBattle(run, makeRng())
+
+    expect(battleState.enemies.some(e => e.isElite)).toBe(true)
+  })
+
+  it('일반 라운드에서는 엘리트 적이 등장하지 않는다', () => {
+    const normalRound = 1
+    const run = { ...makeRun(), round: normalRound }
+    const [battleState] = startBattle(run, makeRng())
+
+    expect(battleState.enemies.some(e => e.isElite)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// startBattle — death_prevention 아이템
+// ---------------------------------------------------------------------------
+
+describe('startBattle — death_prevention 아이템', () => {
+  it('revival_potion 보유 시 파티원에게 undying 상태가 부여된다', () => {
+    const run = { ...makeRun(), acquiredItemIds: ['revival_potion'] }
+    const [battleState] = startBattle(run, makeRng())
+
+    expect(battleState.party[0].statusEffects.some(s => s.kind === 'undying')).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// completeBattle — 이벤트 라운드
+// ---------------------------------------------------------------------------
+
+describe('completeBattle — 이벤트 라운드', () => {
+  it('EVENT_ROUNDS(3,7,12,18,24)에 해당하는 라운드 승리 후 phase=event로 전환된다', () => {
+    const run = { ...makeRun(), round: 3 }
+    const battleState: BattleState = {
+      phase: 'victory',
+      party: [createBattleCharacter('dark_knight', ['slash'], [])],
+      allies: [],
+      enemies: [],
+      log: [],
+      turn: 1,
+      rng: makeRng(),
+      items: [],
+      totalDamageDealt: 0,
+    }
+    const [result] = completeBattle(run, battleState, makeRng())
+
+    expect(result.phase).toBe('event')
+    expect(result.currentEventId).toBeDefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// skipDraftForHeal
+// ---------------------------------------------------------------------------
+
+describe('skipDraftForHeal', () => {
+  it('HP를 maxHp의 30%만큼 회복하고 phase=battle로 전환된다', () => {
+    const run = {
+      ...makeRun(),
+      phase: 'draft' as const,
+      character: {
+        ...createBattleCharacter('dark_knight', ['slash'], []),
+        stats: { maxHp: 1000, hp: 500, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      },
+    }
+    const result = skipDraftForHeal(run)
+
+    expect(result.character.stats.hp).toBe(800)
+    expect(result.phase).toBe('battle')
+  })
+
+  it('HP가 이미 최대치에 가까우면 maxHp를 초과하지 않는다', () => {
+    const run = {
+      ...makeRun(),
+      phase: 'draft' as const,
+      character: {
+        ...createBattleCharacter('dark_knight', ['slash'], []),
+        stats: { maxHp: 1000, hp: 900, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      },
+    }
+    const result = skipDraftForHeal(run)
+
+    expect(result.character.stats.hp).toBe(1000)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyCraftChoice
+// ---------------------------------------------------------------------------
+
+describe('applyCraftChoice', () => {
+  it('재료 스킬 2개를 소모하고 결과 스킬을 획득한다', () => {
+    const run = {
+      ...makeRun(),
+      character: {
+        ...createBattleCharacter('dark_knight', ['shadow_strike', 'annihilation', 'slash'], []),
+      },
+    }
+    const result = applyCraftChoice(run, 'recipe_void_annihilation')
+
+    expect(result.character.skillIds).toContain('void_annihilation')
+    expect(result.character.skillIds).not.toContain('shadow_strike')
+    expect(result.character.skillIds).not.toContain('annihilation')
+    expect(result.phase).toBe('battle')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyEventChoice — heal_hp
+// ---------------------------------------------------------------------------
+
+describe('applyEventChoice — heal_hp', () => {
+  it('rest_fully 선택 시 HP가 회복되고 phase=draft로 전환된다', () => {
+    const run = {
+      ...makeRun(),
+      phase: 'event' as const,
+      currentEventId: 'abandoned_campfire',
+      character: {
+        ...createBattleCharacter('dark_knight', ['slash'], []),
+        stats: { maxHp: 1000, hp: 400, attack: 200, defense: 50, speed: 70, maxMp: 100, mp: 100 },
+      },
+    }
+    const [result] = applyEventChoice(run, 'rest_fully', makeRng())
+
+    expect(result.character.stats.hp).toBeGreaterThan(400)
+    expect(result.phase).toBe('draft')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyEventChoice — stat_change
+// ---------------------------------------------------------------------------
+
+describe('applyEventChoice — stat_change', () => {
+  it('meditate 선택 시 attack이 영구적으로 증가한다', () => {
+    const run = {
+      ...makeRun(),
+      phase: 'event' as const,
+      currentEventId: 'abandoned_campfire',
+    }
+    const originalAttack = run.character.stats.attack
+    const [result] = applyEventChoice(run, 'meditate', makeRng())
+
+    expect(result.character.stats.attack).toBe(originalAttack + 25)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyEventChoice — gain_skill
+// ---------------------------------------------------------------------------
+
+describe('applyEventChoice — gain_skill', () => {
+  it('accept_curse 선택 시 스킬이 추가된다', () => {
+    const run = {
+      ...makeRun(),
+      phase: 'event' as const,
+      currentEventId: 'cursed_altar',
+    }
+    const originalSkillCount = run.character.skillIds.length
+    const [result] = applyEventChoice(run, 'accept_curse', makeRng())
+
+    expect(result.character.skillIds.length).toBeGreaterThan(originalSkillCount)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyEventChoice — gain_item
+// ---------------------------------------------------------------------------
+
+describe('applyEventChoice — gain_item', () => {
+  it('buy_item 선택 시 아이템이 추가된다', () => {
+    const run = {
+      ...makeRun(),
+      phase: 'event' as const,
+      currentEventId: 'wandering_merchant',
+    }
+    const originalItemCount = run.acquiredItemIds.length
+    const [result] = applyEventChoice(run, 'buy_item', makeRng())
+
+    expect(result.acquiredItemIds.length).toBeGreaterThan(originalItemCount)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyEventChoice — currentEventId 없을 때
+// ---------------------------------------------------------------------------
+
+describe('applyEventChoice — currentEventId 없을 때', () => {
+  it('currentEventId가 없으면 phase=draft로만 전환된다', () => {
+    const run = {
+      ...makeRun(),
+      phase: 'event' as const,
+      currentEventId: undefined,
+    }
+    const [result] = applyEventChoice(run, 'rest_fully', makeRng())
+
+    expect(result.phase).toBe('draft')
   })
 })
