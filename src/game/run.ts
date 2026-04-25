@@ -436,10 +436,13 @@ export function completeBattle(
   // 드래프트 옵션 생성
   const [draftOptions, nextRng] = generateDraftOptions(runState, rng, draftCount)
 
-  // 전투 클리어 보상: 최대 HP의 35% 회복
+  // 전투 클리어 보상: 최대 HP의 40% 회복 (엘리트 처치 시 추가 10%)
   const VICTORY_HEAL_RATIO = 0.40
+  const ELITE_BONUS_HEAL_RATIO = 0.10
   const survivingChar = battleState.party[0]
-  const victoryHeal = Math.floor(survivingChar.stats.maxHp * VICTORY_HEAL_RATIO)
+  const victoryHeal =
+    Math.floor(survivingChar.stats.maxHp * VICTORY_HEAL_RATIO) +
+    (hadElite ? Math.floor(survivingChar.stats.maxHp * ELITE_BONUS_HEAL_RATIO) : 0)
   const healedCharacter = {
     ...survivingChar,
     stats: {
