@@ -18,7 +18,7 @@ import type {
   ItemDef,
   Stats,
 } from './types'
-import { roll } from './rng'
+import { roll, pickOne } from './rng'
 import type { RngState } from './rng'
 import { getSkillById } from './data/skills'
 import { hasSynergy } from './synergy'
@@ -1169,7 +1169,8 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
 
     switch (action.type) {
       case 'attack': {
-        const target = selectTarget(aliveTargets, action.targetMode)
+        const [target, rngAfterTarget] = selectTarget(aliveTargets, action.targetMode, current.rng)
+        current = { ...current, rng: rngAfterTarget }
         if (!target) break
 
         const isCharTarget = current.party.some(c => c.id === target.id)
@@ -1311,7 +1312,9 @@ export function processEnemyTurn(state: BattleState, items: readonly ItemDef[]):
       }
 
       case 'apply_status': {
-        const targets = action.targetMode === 'all' ? alivePary : [selectTarget(alivePary, 'random')].filter(Boolean) as BattleCharacter[]
+        const [randomTarget, rngAfterSelect] = selectTarget(alivePary, 'random', current.rng)
+        current = { ...current, rng: rngAfterSelect }
+        const targets = action.targetMode === 'all' ? alivePary : [randomTarget].filter(Boolean) as BattleCharacter[]
         const isStatusImmune = items.some(item =>
           item.effects.some(eff => eff.type === 'status_immunity' && eff.statuses.includes(action.status))
         )
@@ -1718,7 +1721,8 @@ export function tickAllStatusEffects(state: BattleState): BattleState {
   if (hasSynergy(current.party, current.allies, 'chaos')) {
     const aliveEnemies = current.enemies.filter(e => e.isAlive)
     if (aliveEnemies.length > 0) {
-      const chaosTarget = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)]
+      const [chaosTarget, rngAfterChaos] = pickOne(current.rng, aliveEnemies)
+      current = { ...current, rng: rngAfterChaos }
       const chaosDmg = Math.round(chaosTarget.stats.maxHp * 0.15)
       const res = applyDamageToEnemy(current, chaosTarget.id, chaosDmg)
       current = { ...res.state, totalDamageDealt: res.state.totalDamageDealt + chaosDmg }
@@ -1789,17 +1793,20 @@ type CombatTarget = {
 function selectTarget(
   targets: readonly CombatTarget[],
   mode: 'random' | 'lowest_hp' | 'highest_attack',
-): CombatTarget | undefined {
-  if (targets.length === 0) return undefined
+  rng: RngState,
+): [CombatTarget | undefined, RngState] {
+  if (targets.length === 0) return [undefined, rng]
 
   switch (mode) {
     case 'lowest_hp':
-      return [...targets].sort((a, b) => a.stats.hp - b.stats.hp)[0]
+      return [[...targets].sort((a, b) => a.stats.hp - b.stats.hp)[0], rng]
     case 'highest_attack':
-      return [...targets].sort((a, b) => b.stats.attack - a.stats.attack)[0]
+      return [[...targets].sort((a, b) => b.stats.attack - a.stats.attack)[0], rng]
     case 'random':
-    default:
-      return targets[Math.floor(Math.random() * targets.length)]
+    default: {
+      const [picked, nextRng] = pickOne(rng, targets)
+      return [picked, nextRng]
+    }
   }
 }
 
