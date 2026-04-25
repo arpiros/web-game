@@ -195,8 +195,6 @@ shield_party | buff_party | revive_party
 | `sacred_flame` | light + fire | 힐량 증가 |
 | `abyssal_wave` | dark + water | MP 회복 증가 |
 
-> `chaos` 시너지는 현재 `Math.random()` 사용 (MED-01 이슈 — 시드 RNG로 교체 필요)
-
 ### 크래프트(조합) 시스템 (`src/game/craft.ts`, `src/game/data/recipes.ts`)
 
 스킬 2개 또는 아이템 2개를 재료로 새 스킬/아이템을 생성. `CRAFT_RESULT_IDS`에 포함된 결과물은 드래프트 풀에서 제외됨.
