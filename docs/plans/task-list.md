@@ -10,7 +10,7 @@
 |----|------|------|------|
 | HIGH-01 | dragon_lord Phase3 진입 시 배틀 로그 경고 + 화면 플래시 | BattleScreen.tsx, combat.ts | 미완료 |
 | HIGH-02 | 0MP 기본 공격 배율 상향 (65% → 80%) | data/skills.ts | ✅ 완료 |
-| HIGH-03 | 엘리트 처치 후 HP 10% 회복 추가 | run.ts | 미완료 |
+| HIGH-03 | 엘리트 처치 후 HP 10% 회복 추가 | run.ts | ✅ 완료 |
 
 ---
 
@@ -18,11 +18,11 @@
 
 | ID | 항목 | 비고 | 상태 |
 |----|------|------|------|
-| BL-P1 | cursed_knight 힐 너프 (heal 0.5→0.28, 4턴 주기, HP 850, ATK 160) | | 미완료 |
-| BL-P2 | 광전사 시작 스킬에 bloodlust 추가 + cleave MP 25→20 | BAL-05(blood_pact)와 별개 | 미완료 |
-| BL-P3 | 성기사 ATK 185 / maxHp 1400 / speed 55 / maxMp 130 | BAL-04(ATK 165) 이후 추가 버프 | 미완료 |
-| BL-P4 | MID 풀 R3에서 cursed_knight·dark_vampire 미등장 + R3 적 수 2→1 | VICTORY_HEAL 40%는 이미 달성 | 미완료 |
-| BL-P5 | R1~4 생존 아이템 가중치 +2 (run.ts generateDraftOptions) | | 미완료 |
+| BL-P1 | cursed_knight 힐 너프 (heal 0.5→0.28, 4턴 주기, HP 850, ATK 160) | | ✅ 완료 |
+| BL-P2 | 광전사 시작 스킬에 bloodlust 추가 + cleave MP 25→20 | BAL-05(blood_pact)와 별개 | ✅ 완료 |
+| BL-P3 | 성기사 ATK 185 / maxHp 1400 / speed 55 / maxMp 130 | BAL-04(ATK 165) 이후 추가 버프 | ✅ 완료 |
+| BL-P4 | MID 풀 R3에서 cursed_knight·dark_vampire 미등장 + R3 적 수 2→1 | VICTORY_HEAL 40%는 이미 달성 | ✅ 완료 |
+| BL-P5 | R1~4 생존 아이템 가중치 +2 (run.ts generateDraftOptions) | | ✅ 완료 |
 | MED-02 | water/light 속성 적 1~2종 추가 | data/enemies.ts | 미완료 |
 | MED-03 | revive_party 대기 상태 배틀 로그 표시 | combat.ts | 미완료 |
 
