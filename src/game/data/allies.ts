@@ -165,6 +165,24 @@ export const ALLIES: readonly AllyDef[] = [
     baseStats: { maxHp: 950, attack: 85, defense: 140, speed: 45 },
     action: { type: 'shield_party', amount: 70 },
   },
+  {
+    id: 'mana_scholar',
+    name: '마나 학자',
+    description: '파티 전체의 MP를 회복시켜 스킬 사용을 지원한다.',
+    element: 'light',
+    rarity: 'epic',
+    baseStats: { maxHp: 700, attack: 70, defense: 80, speed: 60 },
+    action: { type: 'mp_restore_party', amount: 15 },
+  },
+  {
+    id: 'venom_hydra',
+    name: '독 히드라',
+    description: '강력한 독으로 모든 적을 서서히 갉아먹는다.',
+    element: 'dark',
+    rarity: 'epic',
+    baseStats: { maxHp: 880, attack: 115, defense: 70, speed: 55 },
+    action: { type: 'apply_status_all', status: 'poison', duration: 3, value: 8 },
+  },
 ]
 
 export function getAllyById(id: string): AllyDef | undefined {

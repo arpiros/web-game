@@ -231,7 +231,65 @@ export const ENEMIES: readonly EnemyDef[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// 엘리트 적 (라운드 3, 5에 등장 — 일반 적보다 강하고 보스보다 약함)
+// 미니보스 적 (라운드 8, 14, 19, 27 단독 등장 — 엘리트보다 강하고 보스보다 약함)
+// ---------------------------------------------------------------------------
+
+export const MINI_BOSS_ENEMIES: readonly EnemyDef[] = [
+  {
+    id: 'warlord',
+    name: '전쟁군주',
+    description: '수많은 전장을 누빈 전쟁의 화신. 자신을 강화할수록 위협적으로 변한다.',
+    element: 'physical',
+    tier: 'elite',
+    baseStats: { maxHp: 2200, attack: 190, defense: 90, speed: 75 },
+    actions: [
+      { type: 'attack', element: 'physical', multiplier: 1.8, targetMode: 'highest_attack' },
+      { type: 'buff_self', status: 'powerup', duration: 3, value: 60 },
+      { type: 'attack_all', element: 'physical', multiplier: 1.0 },
+      { type: 'attack', element: 'physical', multiplier: 2.2, targetMode: 'lowest_hp' },
+      { type: 'apply_status', status: 'defdown', duration: 2, value: 40, targetMode: 'all' },
+    ],
+    lore: '패배를 모르는 장수. 피를 볼수록 강해진다.',
+    isBoss: true,
+  },
+  {
+    id: 'plague_witch',
+    name: '역병 마녀',
+    description: '오염된 마법으로 독과 화염을 뒤섞는 어둠의 술사.',
+    element: 'dark',
+    tier: 'elite',
+    baseStats: { maxHp: 1900, attack: 200, defense: 70, speed: 95 },
+    actions: [
+      { type: 'apply_status', status: 'poison', duration: 4, value: 15, targetMode: 'all' },
+      { type: 'attack', element: 'dark', multiplier: 1.6, targetMode: 'random' },
+      { type: 'apply_status', status: 'burn', duration: 3, value: 20, targetMode: 'all' },
+      { type: 'attack_all', element: 'dark', multiplier: 1.2 },
+      { type: 'heal_self', multiplier: 0.3 },
+    ],
+    lore: '세상의 질병을 모두 수집한 마녀. 그녀가 지나간 자리엔 꽃도 피지 않는다.',
+    isBoss: true,
+  },
+  {
+    id: 'frost_wyrm',
+    name: '서리 와이번',
+    description: '빙하를 서식지로 삼는 거대한 냉기 용. 접근을 차단하며 파티를 얼린다.',
+    element: 'water',
+    tier: 'elite',
+    baseStats: { maxHp: 2500, attack: 170, defense: 110, speed: 55 },
+    actions: [
+      { type: 'attack_all', element: 'water', multiplier: 1.1 },
+      { type: 'apply_status', status: 'freeze', duration: 2, value: 0, targetMode: 'random' },
+      { type: 'apply_status', status: 'freeze', duration: 2, value: 0, targetMode: 'random' },
+      { type: 'attack', element: 'water', multiplier: 2.4, targetMode: 'highest_attack' },
+      { type: 'buff_self', status: 'powerup', duration: 2, value: 50 },
+    ],
+    lore: '영원한 겨울을 몰고 다니는 와이번. 그 숨결이 닿으면 모든 것이 얼어붙는다.',
+    isBoss: true,
+  },
+]
+
+// ---------------------------------------------------------------------------
+// 엘리트 적 (라운드 5, 10에 등장 — 일반 적보다 강하고 보스보다 약함)
 // ---------------------------------------------------------------------------
 
 export const ELITE_ENEMIES: readonly EnemyDef[] = [
@@ -449,5 +507,5 @@ export function getEliteEnemyPool(): readonly EnemyDef[] {
 }
 
 export function getEnemyById(id: string): EnemyDef | undefined {
-  return ALL_ENEMIES.find(e => e.id === id) ?? ELITE_ENEMIES.find(e => e.id === id)
+  return ALL_ENEMIES.find(e => e.id === id) ?? ELITE_ENEMIES.find(e => e.id === id) ?? MINI_BOSS_ENEMIES.find(e => e.id === id)
 }

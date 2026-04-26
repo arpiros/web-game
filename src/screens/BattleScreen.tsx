@@ -337,7 +337,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
-      maxWidth: 'var(--battle-max-width)', width: '100%', margin: '0 auto',
+      width: 'min(100%, calc(100dvh * 16 / 9))', margin: '0 auto',
       opacity: isEnding ? 0.75 : 1,
       transition: 'opacity var(--duration-slow)',
     }}>

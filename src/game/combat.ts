@@ -1564,6 +1564,11 @@ function processAllyActions(state: BattleState, _items: readonly ItemDef[]): Bat
         }
         break
       }
+
+      case 'mp_restore_party': {
+        current = regenPartyMp(current, action.amount, `${ally.name}이(가) 파티 전체 MP ${action.amount} 회복!`)
+        break
+      }
     }
   }
 

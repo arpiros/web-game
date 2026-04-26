@@ -146,7 +146,6 @@
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ---------- 레이아웃 ---------- */
-  --battle-max-width: 1280px;
   --panel-width-side: 260px;
   --skill-bar-height: 116px;
   --hud-height: 42px;

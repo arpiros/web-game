@@ -141,10 +141,13 @@ export const SKILLS: readonly SkillDef[] = [
   {
     id: 'basic_splash',
     name: '기본 물방울',
-    description: '단일 적에게 공격력의 80% 수속 피해를 준다. MP 없이 사용 가능.',
+    description: '단일 적에게 공격력의 80% 수속 피해를 주고, 다음 스킬 위력이 40% 증가한다. MP 없이 사용 가능.',
     mpCost: 0,
     cooldown: 0,
-    effects: [{ type: 'damage', element: 'water', multiplier: 0.80 }],
+    effects: [
+      { type: 'damage', element: 'water', multiplier: 0.80 },
+      { type: 'charge', multiplier: 0.4 },
+    ],
     element: 'water',
     rarity: 'common',
   },

@@ -13,11 +13,12 @@ import type {
   DraftOption,
   Stats,
   CharacterDef,
+  EnemyDef,
 } from './types'
 import type { RngState } from './rng'
 import { pickN, pickNWeighted } from './rng'
 import { getCharacterById } from './data/characters'
-import { getEnemyById, getEnemyPoolForRound, getEliteEnemyPool } from './data/enemies'
+import { getEnemyById, getEnemyPoolForRound, getEliteEnemyPool, MINI_BOSS_ENEMIES } from './data/enemies'
 import { getAllyById, ALLIES } from './data/allies'
 import { getItemById, ITEMS } from './data/items'
 import { SKILLS } from './data/skills'
@@ -41,18 +42,18 @@ const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
   5:  2,  // 엘리트
   6:  3,
   7:  2,
-  8:  3,
+  8:  1,  // 미니보스
   9:  3,
   10: 2,  // 엘리트
   11: 3,
   12: 3,
   13: 3,
-  14: 3,
+  14: 1,  // 미니보스
   15: 2,  // 엘리트
   16: 3,
   17: 2,
   18: 3,
-  19: 3,
+  19: 1,  // 미니보스
   20: 2,  // 엘리트
   21: 3,
   22: 3,
@@ -60,7 +61,7 @@ const ENEMY_COUNT_BY_ROUND: Record<number, number> = {
   24: 3,
   25: 2,  // 엘리트
   26: 3,
-  27: 3,
+  27: 1,  // 미니보스
   28: 3,
   29: 3,
   30: 1,  // 보스전
@@ -71,6 +72,9 @@ const BOSS_ENEMY_ID = 'dragon_lord'
 
 /** 엘리트 적이 등장하는 라운드 */
 export const ELITE_ROUNDS = new Set([5, 10, 15, 20, 25])
+
+/** 미니보스가 단독 등장하는 라운드 */
+export const MINI_BOSS_ROUNDS = new Set([8, 14, 19, 27])
 
 /** 이벤트가 등장하는 라운드 (전투 완료 후 드래프트 전) */
 const EVENT_ROUNDS = new Set([3, 7, 12, 18, 24])
@@ -264,6 +268,11 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
   if (round === MAX_ROUNDS) {
     // 보스전
     enemies = [createBattleEnemy(BOSS_ENEMY_ID, round, 0)]
+  } else if (MINI_BOSS_ROUNDS.has(round)) {
+    // 미니보스 라운드: 미니보스 1마리 단독 등장
+    const [pickedMiniBoss, rng2] = pickN(currentRng, MINI_BOSS_ENEMIES as EnemyDef[], 1)
+    currentRng = rng2
+    enemies = [createBattleEnemy(pickedMiniBoss[0].id, round, 0)]
   } else if (ELITE_ROUNDS.has(round)) {
     // 엘리트 라운드: 엘리트 1마리 + 나머지 일반 적
     const elitePool = getEliteEnemyPool()
@@ -329,6 +338,13 @@ export function startBattle(runState: RunState, rng: RngState): [BattleState, Rn
       text: `라운드 ${round} 시작!`,
     },
   ]
+  if (MINI_BOSS_ROUNDS.has(round)) {
+    startLog.push({
+      id: `log-miniboss-${round}`,
+      kind: 'system',
+      text: '💀 미니보스 조우! 강력한 단독 적이 나타났다.',
+    })
+  }
   if (ELITE_ROUNDS.has(round)) {
     startLog.push({
       id: `log-elite-${round}`,

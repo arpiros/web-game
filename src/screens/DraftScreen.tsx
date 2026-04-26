@@ -6,7 +6,7 @@ import { getItemById } from '../game/data/items'
 import { getAvailableRecipes } from '../game/craft'
 import { RECIPES } from '../game/data/recipes'
 import { SYNERGIES, type Synergy } from '../game/synergy'
-import { ELITE_ROUNDS, MAX_ROUNDS } from '../game/run'
+import { ELITE_ROUNDS, MINI_BOSS_ROUNDS, MAX_ROUNDS } from '../game/run'
 import { useRunStore } from '../state/runStore'
 
 // ---------------------------------------------------------------------------
@@ -59,6 +59,7 @@ export function DraftScreen() {
   const skipDraftForHeal  = useRunStore(s => s.skipDraftForHeal)
 
   const [tab, setTab] = useState<DraftTab>('reward')
+  const [confirmRecipeId, setConfirmRecipeId] = useState<string | null>(null)
 
   if (!run || run.phase !== 'draft') return null
 
@@ -81,9 +82,15 @@ export function DraftScreen() {
     advanceToNextBattle()
   }
 
-  function handleCraft(recipeId: string) {
-    craftAndAdvance(recipeId)
+  function requestCraft(recipeId: string) {
+    setConfirmRecipeId(recipeId)
+  }
+
+  function handleCraftConfirm() {
+    if (!confirmRecipeId) return
+    craftAndAdvance(confirmRecipeId)
     advanceToNextBattle()
+    setConfirmRecipeId(null)
   }
 
   const recipes = getAvailableRecipes(run.character.skillIds, run.acquiredItemIds)
@@ -127,6 +134,16 @@ export function DraftScreen() {
               padding: '2px 8px', letterSpacing: '0.15em', textTransform: 'uppercase',
             }}>
               ⚠ 엘리트
+            </span>
+          )}
+          {MINI_BOSS_ROUNDS.has(run.round) && (
+            <span style={{
+              fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
+              color: 'var(--color-element-dark)', background: 'color-mix(in oklch, var(--color-element-dark) 12%, var(--color-bg-elevated))',
+              border: '1px solid var(--color-element-dark)', borderRadius: 'var(--radius-sm)',
+              padding: '2px 8px', letterSpacing: '0.15em', textTransform: 'uppercase',
+            }}>
+              💀 미니보스
             </span>
           )}
         </div>
@@ -227,7 +244,18 @@ export function DraftScreen() {
           availableRecipes={recipes}
           ownedSkillIds={run.character.skillIds}
           ownedItemIds={run.acquiredItemIds}
-          onCraft={handleCraft}
+          onCraft={requestCraft}
+        />
+      )}
+
+      {/* 크래프트 확인 모달 */}
+      {confirmRecipeId && (
+        <CraftConfirmModal
+          recipeId={confirmRecipeId}
+          ownedSkillIds={run.character.skillIds}
+          ownedItemIds={run.acquiredItemIds}
+          onConfirm={handleCraftConfirm}
+          onCancel={() => setConfirmRecipeId(null)}
         />
       )}
     </div>
@@ -849,6 +877,7 @@ function allyActionLabel(action: AllyAction): string {
     case 'shield_party':     return `방막 ${action.amount}`
     case 'buff_party':       return `아군 전체 ${action.status} ${action.duration}턴`
     case 'revive_party':     return `아군 부활 (${Math.round(action.healPercent * 100)}% HP)`
+    case 'mp_restore_party': return `파티 MP +${action.amount}`
   }
 }
 
@@ -1055,6 +1084,169 @@ function MiniStat({ label, value }: { label: string; value: number }) {
       <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--weight-medium)' }}>
         {value.toLocaleString()}
       </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// CraftConfirmModal
+// ---------------------------------------------------------------------------
+
+interface CraftConfirmModalProps {
+  recipeId: string
+  ownedSkillIds: readonly string[]
+  ownedItemIds: readonly string[]
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+function CraftConfirmModal({ recipeId, ownedSkillIds, ownedItemIds, onConfirm, onCancel }: CraftConfirmModalProps) {
+  const recipe = RECIPES.find(r => r.id === recipeId)
+  if (!recipe) return null
+
+  const [a, b] = recipe.ingredients
+  const entityA = getEntityInfo(a)
+  const entityB = getEntityInfo(b)
+
+  const resultSkill = recipe.category === 'skill' ? SKILLS.find(s => s.id === recipe.resultId) : null
+  const resultItem  = recipe.category === 'item'  ? getItemById(recipe.resultId) : null
+  const resultRarity: Rarity = resultSkill?.rarity ?? resultItem?.rarity ?? 'legendary'
+  const resultName  = resultSkill?.name ?? resultItem?.name ?? recipe.resultId
+  const resultDesc  = resultSkill?.description ?? resultItem?.description ?? ''
+  const rarityColor = RARITY_COLORS[resultRarity]
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+        padding: 'var(--space-4)',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--color-bg-surface)',
+          border: `2px solid ${rarityColor}`,
+          borderRadius: 'var(--radius-xl)',
+          padding: 'var(--space-8)',
+          maxWidth: '480px',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-6)',
+        }}
+      >
+        {/* 제목 */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontSize: 'var(--text-lg)',
+            fontWeight: 'var(--weight-bold)',
+            color: 'var(--color-text-primary)',
+          }}>
+            조합 확인
+          </div>
+          <div style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-muted)',
+            marginTop: 'var(--space-1)',
+          }}>
+            조합 후 즉시 다음 전투로 진행됩니다
+          </div>
+        </div>
+
+        {/* 재료 → 결과 */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+        }}>
+          <IngredientChip label={entityA.name} type={entityA.type} owned={isOwned(a, ownedSkillIds, ownedItemIds)} locked={false} />
+          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-lg)' }}>+</span>
+          <IngredientChip label={entityB.name} type={entityB.type} owned={isOwned(b, ownedSkillIds, ownedItemIds)} locked={false} />
+          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-2xl)' }}>→</span>
+          {/* 결과물 */}
+          <div style={{
+            background: `color-mix(in oklch, ${rarityColor} 10%, transparent)`,
+            border: `1px solid color-mix(in oklch, ${rarityColor} 40%, transparent)`,
+            borderRadius: 'var(--radius-md)',
+            padding: 'var(--space-3) var(--space-4)',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              fontSize: 'var(--text-xs)',
+              color: rarityColor,
+              fontWeight: 'var(--weight-semibold)',
+              marginBottom: 'var(--space-1)',
+            }}>
+              {RARITY_LABELS[resultRarity]} {recipe.category === 'skill' ? '스킬' : '아이템'}
+            </div>
+            <div style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--weight-bold)',
+              color: 'var(--color-text-primary)',
+            }}>
+              {resultName}
+            </div>
+          </div>
+        </div>
+
+        {/* 결과물 설명 */}
+        {resultDesc && (
+          <div style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-secondary)',
+            textAlign: 'center',
+            lineHeight: 1.5,
+          }}>
+            {resultDesc}
+          </div>
+        )}
+
+        {/* 버튼 */}
+        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1,
+              padding: 'var(--space-3) var(--space-4)',
+              background: 'transparent',
+              border: '1px solid var(--color-border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--color-text-secondary)',
+              fontWeight: 'var(--weight-medium)',
+              fontSize: 'var(--text-sm)',
+              cursor: 'pointer',
+            }}
+          >
+            취소
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{
+              flex: 2,
+              padding: 'var(--space-3) var(--space-4)',
+              background: `color-mix(in oklch, ${rarityColor} 20%, transparent)`,
+              border: `1px solid color-mix(in oklch, ${rarityColor} 60%, transparent)`,
+              borderRadius: 'var(--radius-md)',
+              color: rarityColor,
+              fontWeight: 'var(--weight-bold)',
+              fontSize: 'var(--text-sm)',
+              cursor: 'pointer',
+            }}
+          >
+            조합하기
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
