@@ -310,6 +310,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
 
   const character    = bs.party[0]
   const aliveEnemies = bs.enemies.filter(e => e.isAlive)
+  const selectedSkill = selectedSkillId ? getSkillById(selectedSkillId) : null
 
   function handleSkillClick(skillId: string) {
     if (!isPlayerTurn) return
@@ -335,7 +336,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   }
 
   return (
-    <div style={{
+    <div className="battle-shell" style={{
       display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
       width: 'min(100%, calc(100dvh * 16 / 9))', margin: '0 auto',
       opacity: isEnding ? 0.75 : 1,
@@ -343,7 +344,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
     }}>
 
       {/* ── HUD ── */}
-      <div className="altar-hud" style={{
+      <div className="altar-hud battle-hud" style={{
         height: 'var(--hud-height)', flexShrink: 0,
         display: 'flex', alignItems: 'center',
         padding: '0 var(--space-5)', gap: 'var(--space-4)',
@@ -368,15 +369,15 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
       </div>
 
       {/* ── Main ── */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="battle-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* Center: enemies + log */}
-        <div style={{
+        <div className="battle-center" style={{
           flex: 1, display: 'flex', flexDirection: 'column',
           overflow: 'hidden', padding: 'var(--space-3)', gap: 'var(--space-3)',
         }}>
           {/* Enemy zone */}
-          <div style={{
+          <div className={`battle-enemy-zone ${aliveEnemies.length <= 1 ? 'battle-enemy-zone--single' : ''}`} style={{
             flex: 1, position: 'relative', minHeight: 0,
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
             gap: 'var(--space-5)',
@@ -384,6 +385,36 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
             background: 'linear-gradient(to bottom, oklch(6% 0.025 268), transparent)',
             borderRadius: 'var(--radius-lg)',
           }}>
+            {selectedSkill && needsEnemyTarget(selectedSkill.id) && (
+              <div style={{
+                position: 'absolute',
+                top: 'var(--space-3)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 15,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                padding: 'var(--space-2) var(--space-4)',
+                border: `1px solid ${ELEMENT_COLOR[selectedSkill.element] ?? 'var(--color-accent)'}`,
+                borderRadius: 'var(--radius-md)',
+                background: 'color-mix(in oklch, var(--color-bg-overlay) 88%, transparent)',
+                color: 'var(--color-text-primary)',
+                boxShadow: `0 0 18px color-mix(in oklch, ${ELEMENT_COLOR[selectedSkill.element] ?? 'var(--color-accent)'} 30%, transparent)`,
+                pointerEvents: 'none',
+              }}>
+                <span style={{
+                  color: ELEMENT_COLOR[selectedSkill.element] ?? 'var(--color-accent)',
+                  fontWeight: 'var(--weight-bold)',
+                  fontSize: 'var(--text-xs)',
+                }}>
+                  TARGET
+                </span>
+                <span style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>
+                  {selectedSkill.name} 대상 선택
+                </span>
+              </div>
+            )}
             {bossPhaseFlash !== 0 && (
               <div style={{
                 position: 'absolute', inset: 0, zIndex: 20,
@@ -435,7 +466,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         </div>
 
         {/* Right: party panel */}
-        <div style={{
+        <div className="battle-party-panel" style={{
           width: 'var(--panel-width-side)', flexShrink: 0,
           borderLeft: '1px solid var(--color-border-subtle)',
           background: 'var(--color-bg-surface)',
@@ -718,6 +749,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
     <button
       onClick={onClick}
       disabled={!isTargetable}
+      className="battle-enemy-card"
       style={{
         width: '140px',
         position: 'relative',
@@ -1392,7 +1424,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
   const [tooltip, setTooltip] = useState<{ skillId: string; x: number; y: number } | null>(null)
 
   return (
-    <div style={{
+    <div className="battle-skill-bar" style={{
       height: 'var(--skill-bar-height)', flexShrink: 0,
       borderTop: '1px solid var(--color-border-subtle)',
       background: 'var(--color-bg-surface)',
@@ -1429,8 +1461,11 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
         return (
           <button
             key={skillId}
+            className="battle-skill-button"
             onClick={() => onSkillClick(skillId)}
             disabled={isDisabled}
+            aria-pressed={isSelected}
+            aria-label={`${skill.name}. ${cannotAfford ? 'MP 부족. ' : ''}${isOnCooldown ? `쿨다운 ${cooldown}턴. ` : ''}${isSelected ? '대상 선택 중.' : ''}`}
             onMouseEnter={e => {
               const rect = e.currentTarget.getBoundingClientRect()
               setTooltip({ skillId, x: rect.left, y: rect.top - 4 })
@@ -1474,7 +1509,10 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
               color: isOnCooldown ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
               textAlign: 'center', lineHeight: 1.2,
               maxWidth: '80px', overflow: 'hidden',
-              textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical' as const,
+              wordBreak: 'keep-all',
             }}>
               {skill.name}
             </span>
@@ -1519,9 +1557,11 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
 
       {/* End Turn button — always available on player turn */}
       <button
+        className="battle-end-turn-button"
         onClick={onEndTurn}
         disabled={!isPlayerTurn}
         title="턴을 종료하고 적 차례로 넘어갑니다"
+        aria-label="방어하고 턴 종료"
         style={{
           minWidth: '72px', height: '88px', flexShrink: 0,
           display: 'flex', flexDirection: 'column',
