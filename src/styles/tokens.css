@@ -9,6 +9,7 @@
   --color-bg-base: oklch(8% 0.015 25);
   --color-bg-surface: oklch(14% 0.018 25);
   --color-bg-elevated: oklch(18% 0.022 25);
+  --color-bg-card: oklch(16% 0.02 25);
   --color-bg-overlay: oklch(6% 0.01 20 / 0.88);
 
   /* 테두리 — 재·그림자 */
@@ -70,6 +71,10 @@
   --color-ember: oklch(68% 0.20 45);         /* 불씨 */
   --color-ash: oklch(32% 0.012 30);          /* 재 */
   --color-ash-dark: oklch(18% 0.01 25);      /* 짙은 재 */
+  --color-effect-positive: oklch(68% 0.18 145);
+  --color-effect-negative: oklch(58% 0.22 25);
+  --color-effect-neutral: oklch(68% 0.12 240);
+  --color-effect-warning: oklch(72% 0.18 70);
 
   /* ---------- 타이포그래피 ---------- */
   /* 영문 장식체 (배너·챕터·버튼) */

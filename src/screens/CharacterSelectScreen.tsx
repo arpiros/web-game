@@ -1,5 +1,7 @@
+import type { CSSProperties } from 'react'
 import type { CharacterDef } from '../game/types'
 import { CHARACTERS } from '../game/data/characters'
+import { getSkillById } from '../game/data/skills'
 import { useRunStore } from '../state/runStore'
 
 const ELEMENT_COLORS: Record<string, string> = {
@@ -26,38 +28,33 @@ export function CharacterSelectScreen({ onBack }: Props) {
   const startRun = useRunStore(s => s.startRun)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: 'var(--space-8)', overflow: 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-8)' }}>
+    <div className="screen-shell character-select-shell" style={{ overflow: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <button
           onClick={onBack}
+          className="ui-button"
           style={{
-            color: 'var(--color-text-secondary)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 'var(--text-base)',
-            padding: 0,
-          }}
+            '--button-accent': 'var(--color-text-muted)',
+            minHeight: '2.25rem',
+            paddingInline: 'var(--space-3)',
+            background: 'transparent',
+          } as CSSProperties}
         >
           ← 뒤로
         </button>
-        <h2 style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: 'var(--text-2xl)',
-          color: 'var(--color-accent)',
-          margin: 0,
-        }}>
-          캐릭터 선택
-        </h2>
+        <div className="screen-header" style={{ marginBottom: 0 }}>
+          <div className="screen-eyebrow">Choose your vessel</div>
+          <h2 className="screen-title">캐릭터 선택</h2>
+        </div>
       </div>
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-6)', marginTop: 0 }}>
+      <p className="screen-copy" style={{ marginBottom: 'var(--space-6)' }}>
         함께할 캐릭터를 선택하세요. 각 캐릭터는 고유한 능력과 스타일을 지닙니다.
       </p>
-      <div style={{
-        display: 'flex',
+      <div className="character-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
         gap: 'var(--space-6)',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
+        alignItems: 'stretch',
       }}>
         {CHARACTERS.map(char => (
           <CharacterCard key={char.id} character={char} onSelect={() => startRun(char.id)} />
@@ -70,52 +67,45 @@ export function CharacterSelectScreen({ onBack }: Props) {
 function CharacterCard({ character, onSelect }: { character: CharacterDef; onSelect: () => void }) {
   const elColor = ELEMENT_COLORS[character.element] ?? 'var(--color-accent)'
   const elLabel = ELEMENT_LABELS[character.element] ?? character.element
+  const innateSkill = getSkillById(character.innateSkillId)
+  const openingSkills = character.startingSkillIds
+    .map(id => getSkillById(id)?.name ?? id)
+    .slice(0, 3)
 
   return (
     <button
       onClick={onSelect}
+      className="ui-card character-card"
       style={{
-        width: '210px',
-        background: 'var(--color-bg-surface)',
-        border: '1px solid var(--color-border-subtle)',
-        borderRadius: 'var(--radius-lg)',
+        '--card-accent': elColor,
+        minHeight: '100%',
         padding: 'var(--space-5)',
-        cursor: 'pointer',
         textAlign: 'left',
         display: 'flex',
         flexDirection: 'column',
-        gap: 'var(--space-3)',
-        transition: 'border-color var(--duration-fast), transform var(--duration-fast)',
-      }}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLButtonElement
-        el.style.borderColor = elColor
-        el.style.transform = 'translateY(-2px)'
-        el.style.boxShadow = `0 8px 24px ${elColor}30`
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLButtonElement
-        el.style.borderColor = 'var(--color-border-subtle)'
-        el.style.transform = 'none'
-        el.style.boxShadow = 'none'
-      }}
+        gap: 'var(--space-4)',
+        position: 'relative',
+      } as CSSProperties}
     >
-      {/* 속성 뱃지 */}
-      <span style={{
-        alignSelf: 'flex-start',
-        fontSize: 'var(--text-xs)',
-        fontWeight: 'var(--weight-semibold)',
-        padding: '2px var(--space-2)',
-        borderRadius: 'var(--radius-sm)',
-        background: `color-mix(in oklch, ${elColor} 20%, transparent)`,
-        color: elColor,
-        border: `1px solid color-mix(in oklch, ${elColor} 40%, transparent)`,
-        letterSpacing: '0.05em',
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 'var(--space-3)',
       }}>
-        {elLabel}
-      </span>
+        <span className="ui-chip" style={{ '--chip-accent': elColor } as CSSProperties}>
+          {elLabel}
+        </span>
+        <span style={{
+          color: 'var(--color-text-muted)',
+          fontFamily: 'var(--font-heading)',
+          fontSize: 'var(--text-xs)',
+          letterSpacing: '0.08em',
+        }}>
+          {character.element.toUpperCase()}
+        </span>
+      </div>
 
-      {/* 이름 + 부제 */}
       <div>
         <div style={{
           fontSize: 'var(--text-md)',
@@ -130,43 +120,74 @@ function CharacterCard({ character, onSelect }: { character: CharacterDef; onSel
         </div>
       </div>
 
-      {/* 스탯 */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '2px var(--space-3)',
-        fontSize: 'var(--text-xs)',
-        padding: 'var(--space-2) 0',
-        borderTop: '1px solid var(--color-border-subtle)',
-        borderBottom: '1px solid var(--color-border-subtle)',
-      }}>
-        <StatItem label="HP" value={character.baseStats.maxHp} />
-        <StatItem label="공격" value={character.baseStats.attack} />
-        <StatItem label="방어" value={character.baseStats.defense} />
-        <StatItem label="속도" value={character.baseStats.speed} />
-        <StatItem label="MP" value={character.baseStats.maxMp} />
+      <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+        <StatItem label="HP" value={character.baseStats.maxHp} max={1400} accent="var(--color-hp-high)" />
+        <StatItem label="공격" value={character.baseStats.attack} max={230} accent="var(--color-hp-low)" />
+        <StatItem label="방어" value={character.baseStats.defense} max={110} accent="var(--color-effect-neutral)" />
+        <StatItem label="속도" value={character.baseStats.speed} max={100} accent="var(--color-element-water)" compactHidden />
+        <StatItem label="MP" value={character.baseStats.maxMp} max={140} accent="var(--color-mp)" compactHidden />
       </div>
 
-      {/* 로어 */}
-      <p style={{
-        fontSize: 'var(--text-xs)',
+      <p className="character-lore" style={{
+        fontSize: 'var(--text-sm)',
         color: 'var(--color-text-muted)',
         lineHeight: 'var(--leading-relaxed)',
         margin: 0,
+        flex: 1,
       }}>
         {character.lore}
       </p>
+
+      <div style={{
+        borderTop: '1px solid var(--color-border-subtle)',
+        paddingTop: 'var(--space-3)',
+        display: 'grid',
+        gap: 'var(--space-2)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
+          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>고유기</span>
+          <span style={{ color: elColor, fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)', textAlign: 'right' }}>
+            {innateSkill?.name ?? character.innateSkillId}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
+          {openingSkills.map(name => (
+            <span key={name} className="ui-chip" style={{ '--chip-accent': 'var(--color-text-muted)' } as CSSProperties}>
+              {name}
+            </span>
+          ))}
+        </div>
+      </div>
     </button>
   )
 }
 
-function StatItem({ label, value }: { label: string; value: number }) {
+function StatItem({
+  label,
+  value,
+  max,
+  accent,
+  compactHidden,
+}: {
+  label: string
+  value: number
+  max: number
+  accent: string
+  compactHidden?: boolean
+}) {
+  const pct = Math.min(100, Math.round((value / max) * 100))
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-1)' }}>
-      <span style={{ color: 'var(--color-text-muted)' }}>{label}</span>
-      <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--weight-medium)' }}>
-        {value.toLocaleString()}
-      </span>
+    <div className="character-stat" data-compact-hidden={compactHidden ? 'true' : undefined} style={{ display: 'grid', gap: '3px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
+        <span style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+        <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'var(--weight-medium)', fontFamily: 'var(--font-mono)' }}>
+          {value.toLocaleString()}
+        </span>
+      </div>
+      <div className="ui-progress" aria-hidden="true">
+        <div className="ui-progress__fill" style={{ '--progress-value': `${pct}%`, '--progress-accent': accent } as CSSProperties} />
+      </div>
     </div>
   )
 }

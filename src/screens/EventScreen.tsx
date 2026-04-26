@@ -3,9 +3,11 @@
    전투 사이 이벤트 화면 (라운드 2·4)
    ========================================================================== */
 
+import type { CSSProperties } from 'react'
 import type { EventEffect, Rarity } from '../game/types'
 import { getEventById } from '../game/data/events'
 import { useRunStore } from '../state/runStore'
+import { MAX_ROUNDS } from '../game/run'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,6 +63,19 @@ function effectColor(effect: EventEffect): string {
   }
 }
 
+function effectTone(effect: EventEffect): string {
+  switch (effect.type) {
+    case 'heal_hp':
+    case 'gain_skill':
+    case 'gain_item':
+      return effectColor(effect)
+    case 'stat_change':
+      return effect.amount >= 0 ? 'var(--color-effect-positive)' : 'var(--color-effect-negative)'
+    case 'nothing':
+      return 'var(--color-text-muted)'
+  }
+}
+
 // ---------------------------------------------------------------------------
 // EventScreen
 // ---------------------------------------------------------------------------
@@ -73,37 +88,22 @@ export function EventScreen() {
 
   const event = getEventById(run.currentEventId)
   if (!event) return null
+  const progress = Math.min(100, Math.round(((run.round - 1) / MAX_ROUNDS) * 100))
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flex: 1,
-      padding: 'var(--space-6)',
-      gap: 'var(--space-6)',
-    }}>
+    <div className="screen-shell screen-shell--center" style={{ gap: 'var(--space-6)' }}>
       {/* 이벤트 헤더 */}
-      <div style={{ textAlign: 'center', maxWidth: '480px' }}>
-        <div style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--color-text-muted)',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          marginBottom: 'var(--space-2)',
-        }}>
+      <div className="screen-header" style={{ textAlign: 'center', maxWidth: '560px', marginBottom: 0 }}>
+        <div className="screen-eyebrow">
           이벤트 — 라운드 {run.round - 1} 클리어
         </div>
-        <h2 style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: 'var(--text-2xl)',
-          color: 'var(--color-accent)',
-          margin: '0 0 var(--space-3)',
-          letterSpacing: '0.04em',
-        }}>
-          {event.name}
-        </h2>
+        <h2 className="screen-title">{event.name}</h2>
+        <div className="ui-progress" aria-label={`진행도 ${progress}%`}>
+          <div
+            className="ui-progress__fill"
+            style={{ '--progress-value': `${progress}%`, '--progress-accent': 'var(--color-accent)' } as CSSProperties}
+          />
+        </div>
         <p style={{
           color: 'var(--color-text-muted)',
           fontStyle: 'italic',
@@ -113,24 +113,18 @@ export function EventScreen() {
         }}>
           "{event.flavor}"
         </p>
-        <p style={{
-          color: 'var(--color-text-secondary)',
-          fontSize: 'var(--text-sm)',
-          margin: 0,
-          lineHeight: 1.6,
-        }}>
+        <p className="screen-copy" style={{ margin: 0 }}>
           {event.description}
         </p>
       </div>
 
       {/* 선택지 카드들 */}
       <div style={{
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         gap: 'var(--space-5)',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
         width: '100%',
-        maxWidth: '720px',
+        maxWidth: '780px',
       }}>
         {event.choices.map(choice => (
           <EventChoiceCard
@@ -158,35 +152,20 @@ interface EventChoiceCardProps {
 }
 
 function EventChoiceCard({ label, description, effects, onSelect }: EventChoiceCardProps) {
+  const primaryColor = effectTone(effects[0])
+
   return (
     <button
       onClick={onSelect}
+      className="ui-card"
       style={{
-        flex: '1 1 260px',
-        maxWidth: '320px',
+        '--card-accent': primaryColor,
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--space-3)',
         padding: 'var(--space-5)',
-        background: 'var(--color-bg-card)',
-        border: '1px solid var(--color-border-default)',
-        borderRadius: 'var(--radius-lg)',
-        cursor: 'pointer',
         textAlign: 'left',
-        transition: 'border-color var(--duration-fast), box-shadow var(--duration-fast), background var(--duration-fast)',
-      }}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLButtonElement
-        el.style.borderColor = 'var(--color-accent)'
-        el.style.boxShadow = '0 0 20px color-mix(in oklch, var(--color-accent) 25%, transparent)'
-        el.style.background = 'color-mix(in oklch, var(--color-bg-card) 90%, var(--color-accent) 10%)'
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLButtonElement
-        el.style.borderColor = 'var(--color-border-default)'
-        el.style.boxShadow = 'none'
-        el.style.background = 'var(--color-bg-card)'
-      }}
+      } as CSSProperties}
     >
       {/* 선택지 제목 */}
       <div style={{
@@ -212,25 +191,19 @@ function EventChoiceCard({ label, description, effects, onSelect }: EventChoiceC
       {/* 효과 목록 */}
       <div style={{
         display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-1)',
+        flexWrap: 'wrap',
+        gap: 'var(--space-2)',
         borderTop: '1px solid var(--color-border-subtle)',
         paddingTop: 'var(--space-3)',
       }}>
         {effects.map((eff, i) => (
-          <div
+          <span
             key={i}
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: effectColor(eff),
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-1)',
-            }}
+            className="ui-chip"
+            style={{ '--chip-accent': effectTone(eff) } as CSSProperties}
           >
-            <span style={{ opacity: 0.7 }}>▸</span>
             {formatEffect(eff)}
-          </div>
+          </span>
         ))}
       </div>
     </button>

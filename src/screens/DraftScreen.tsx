@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import type { DraftOption, SkillDef, AllyDef, ItemDef, CraftRecipe, Rarity, Element, AllyAction } from '../game/types'
+import type { DraftOption, SkillDef, AllyDef, ItemDef, CraftRecipe, Rarity, Element, AllyAction, SkillEffect, ItemEffect } from '../game/types'
 import { getSkillById, SKILLS } from '../game/data/skills'
 import { getAllyById } from '../game/data/allies'
 import { getItemById } from '../game/data/items'
@@ -175,13 +175,7 @@ export function DraftScreen() {
       </div>
 
       {/* 탭 */}
-      <div style={{
-        display: 'flex',
-        gap: 0,
-        border: '1px solid var(--color-border-default)',
-        borderRadius: 'var(--radius-md)',
-        overflow: 'hidden',
-      }}>
+      <div className="ui-tabs" role="tablist" aria-label="보상과 조합">
         <TabButton active={tab === 'reward'} onClick={() => setTab('reward')}>
           보상 선택
         </TabButton>
@@ -212,11 +206,11 @@ export function DraftScreen() {
           gap: 'var(--space-6)',
         }}>
           <div style={{
-            display: 'flex',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
             gap: 'var(--space-6)',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
             alignItems: 'stretch',
+            width: 'min(100%, 820px)',
           }}>
             {run.draftOptions.map((opt, i) => (
               <DraftCard
@@ -278,18 +272,9 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      style={{
-        padding: 'var(--space-2) var(--space-5)',
-        background: active ? 'var(--color-bg-elevated)' : 'transparent',
-        color: active ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: 'var(--text-sm)',
-        fontWeight: active ? 'var(--weight-semibold)' : 'var(--weight-normal)',
-        display: 'flex',
-        alignItems: 'center',
-        transition: 'background var(--duration-fast), color var(--duration-fast)',
-      }}
+      className="ui-tab"
+      role="tab"
+      aria-selected={active}
     >
       {children}
     </button>
@@ -595,44 +580,6 @@ interface DraftCardProps {
 function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedSkillIds, ownedItemIds, getNewSynergies, playerAtk }: DraftCardProps) {
   const canReroll = rerollsRemaining > 0
 
-  function RerollButton() {
-    return (
-      <button
-        onClick={e => { e.stopPropagation(); onReroll(index) }}
-        disabled={!canReroll}
-        title={canReroll ? '이 카드를 리롤' : '리롤 횟수 없음'}
-        style={{
-          alignSelf: 'flex-end',
-          padding: '3px 8px',
-          fontSize: '10px',
-          fontWeight: 'var(--weight-semibold)',
-          background: canReroll
-            ? 'color-mix(in oklch, var(--color-accent) 18%, transparent)'
-            : 'transparent',
-          color: canReroll ? 'var(--color-accent)' : 'var(--color-text-muted)',
-          border: `1px solid ${canReroll ? 'color-mix(in oklch, var(--color-accent) 40%, transparent)' : 'var(--color-border-subtle)'}`,
-          borderRadius: 'var(--radius-sm)',
-          cursor: canReroll ? 'pointer' : 'not-allowed',
-          opacity: canReroll ? 1 : 0.45,
-          letterSpacing: '0.04em',
-          transition: 'background var(--duration-fast)',
-        }}
-        onMouseEnter={e => {
-          if (!canReroll) return
-          ;(e.currentTarget as HTMLButtonElement).style.background =
-            'color-mix(in oklch, var(--color-accent) 30%, transparent)'
-        }}
-        onMouseLeave={e => {
-          if (!canReroll) return
-          ;(e.currentTarget as HTMLButtonElement).style.background =
-            'color-mix(in oklch, var(--color-accent) 18%, transparent)'
-        }}
-      >
-        🔄 리롤
-      </button>
-    )
-  }
-
   const wrapperStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -647,7 +594,7 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
     return (
       <div style={wrapperStyle}>
         <SkillCard skill={skill} onSelect={() => onSelect(index)} isOwned={isOwned} newSynergies={newSynergies} />
-        <RerollButton />
+        <RerollButton index={index} canReroll={canReroll} onReroll={onReroll} />
       </div>
     )
   }
@@ -658,7 +605,7 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
     return (
       <div style={wrapperStyle}>
         <AllyCard ally={ally} onSelect={() => onSelect(index)} newSynergies={newSynergies} playerAtk={playerAtk} />
-        <RerollButton />
+        <RerollButton index={index} canReroll={canReroll} onReroll={onReroll} />
       </div>
     )
   }
@@ -668,8 +615,38 @@ function DraftCard({ option, index, onSelect, onReroll, rerollsRemaining, ownedS
   return (
     <div style={wrapperStyle}>
       <ItemCard item={item} onSelect={() => onSelect(index)} isOwned={isOwned} />
-      <RerollButton />
+      <RerollButton index={index} canReroll={canReroll} onReroll={onReroll} />
     </div>
+  )
+}
+
+function RerollButton({
+  index,
+  canReroll,
+  onReroll,
+}: {
+  index: number
+  canReroll: boolean
+  onReroll: (index: number) => void
+}) {
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onReroll(index) }}
+      disabled={!canReroll}
+      title={canReroll ? '이 카드를 리롤' : '리롤 횟수 없음'}
+      className="ui-button"
+      style={{
+        alignSelf: 'flex-end',
+        minHeight: '1.8rem',
+        padding: '3px 8px',
+        fontSize: '10px',
+        '--button-accent': canReroll ? 'var(--color-accent)' : 'var(--color-text-muted)',
+        opacity: canReroll ? 1 : 0.45,
+        letterSpacing: '0.04em',
+      } as React.CSSProperties}
+    >
+      🔄 리롤
+    </button>
   )
 }
 
@@ -694,9 +671,9 @@ function CardWrapper({ rarity, element, typeLabel, onSelect, children }: CardWra
       onClick={onSelect}
       className={`tarot-card${rarity !== 'common' ? ` tarot-card--${rarity}` : ''}`}
       style={{
-        width: '220px',
+        width: '100%',
         minHeight: '260px',
-        flex: 1,
+        '--card-accent': accentColor,
         border: `1px solid var(--color-border-subtle)`,
         borderTop: `3px solid ${rarityColor}`,
         borderRadius: 'var(--radius-lg)',
@@ -708,19 +685,7 @@ function CardWrapper({ rarity, element, typeLabel, onSelect, children }: CardWra
         gap: 'var(--space-3)',
         transition: 'border-color var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-fast)',
         position: 'relative',
-      }}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLButtonElement
-        el.style.borderColor = rarityColor
-        el.style.transform = 'translateY(-4px)'
-        el.style.boxShadow = `0 12px 32px ${accentColor}28`
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLButtonElement
-        el.style.borderColor = 'var(--color-border-subtle)'
-        el.style.transform = 'none'
-        el.style.boxShadow = 'none'
-      }}
+      } as React.CSSProperties}
     >
       {/* 타입 레이블 */}
       <div style={{
@@ -807,6 +772,8 @@ function SynergyBadge({ synergies }: { synergies: readonly Synergy[] }) {
 function SkillCard({ skill, onSelect, isOwned, newSynergies = [] }: { skill: SkillDef; onSelect: () => void; isOwned?: boolean; newSynergies?: readonly Synergy[] }) {
   const elColor = ELEMENT_COLORS[skill.element]
   const elLabel = ELEMENT_LABELS[skill.element]
+  const reason = newSynergies.length > 0 ? '시너지 활성' : skillReason(skill.effects)
+  const target = skillTargetLabel(skill.effects)
 
   return (
     <CardWrapper rarity={skill.rarity} element={skill.element} typeLabel="스킬" onSelect={onSelect}>
@@ -814,6 +781,7 @@ function SkillCard({ skill, onSelect, isOwned, newSynergies = [] }: { skill: Ski
       {newSynergies.length > 0 && (
         <SynergyBadge synergies={newSynergies} />
       )}
+      <DraftInsightChip label={reason} color={newSynergies.length > 0 ? 'var(--color-accent)' : elColor} />
       {/* 속성 + 이름 */}
       <div>
         <span style={{
@@ -849,6 +817,7 @@ function SkillCard({ skill, onSelect, isOwned, newSynergies = [] }: { skill: Ski
       {/* MP / 쿨다운 */}
       <div style={{
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 'var(--space-3)',
         fontSize: 'var(--text-xs)',
         color: 'var(--color-text-muted)',
@@ -856,6 +825,7 @@ function SkillCard({ skill, onSelect, isOwned, newSynergies = [] }: { skill: Ski
         paddingTop: 'var(--space-2)',
       }}>
         <span>MP <strong style={{ color: 'var(--color-mp)' }}>{skill.mpCost}</strong></span>
+        <span>{target}</span>
         {skill.cooldown > 0 && (
           <span>쿨다운 <strong style={{ color: 'var(--color-text-secondary)' }}>{skill.cooldown}턴</strong></span>
         )}
@@ -884,12 +854,14 @@ function allyActionLabel(action: AllyAction): string {
 function AllyCard({ ally, onSelect, newSynergies = [], playerAtk = 0 }: { ally: AllyDef; onSelect: () => void; newSynergies?: readonly Synergy[]; playerAtk?: number }) {
   const elColor = ELEMENT_COLORS[ally.element]
   const elLabel = ELEMENT_LABELS[ally.element]
+  const reason = newSynergies.length > 0 ? '시너지 활성' : allyReason(ally.action)
 
   return (
     <CardWrapper rarity={ally.rarity} element={ally.element} typeLabel="동료" onSelect={onSelect}>
       {newSynergies.length > 0 && (
         <SynergyBadge synergies={newSynergies} />
       )}
+      <DraftInsightChip label={reason} color={newSynergies.length > 0 ? 'var(--color-accent)' : elColor} />
       {/* 속성 + 이름 */}
       <div>
         <span style={{
@@ -960,9 +932,12 @@ function AllyCard({ ally, onSelect, newSynergies = [], playerAtk = 0 }: { ally: 
 // ---------------------------------------------------------------------------
 
 function ItemCard({ item, onSelect, isOwned }: { item: ItemDef; onSelect: () => void; isOwned?: boolean }) {
+  const reason = itemReason(item.effects)
+
   return (
     <CardWrapper rarity={item.rarity} typeLabel="아이템" onSelect={onSelect}>
       {isOwned && <span style={OWNED_BADGE}>보유중</span>}
+      <DraftInsightChip label={reason} color="var(--color-rarity-rare)" />
       {/* 이름 */}
       <div style={{
         fontSize: 'var(--text-md)',
@@ -988,6 +963,54 @@ function ItemCard({ item, onSelect, isOwned }: { item: ItemDef; onSelect: () => 
   )
 }
 
+function DraftInsightChip({ label, color }: { label: string; color: string }) {
+  return (
+    <span className="ui-chip draft-insight-chip" style={{ '--chip-accent': color } as React.CSSProperties}>
+      {label}
+    </span>
+  )
+}
+
+function skillReason(effects: readonly SkillEffect[]): string {
+  if (effects.some(e => e.type === 'damage_all')) return '전체 공격'
+  if (effects.some(e => e.type === 'heal' || e.type === 'shield' || e.type === 'remove_status')) return '생존 보강'
+  if (effects.some(e => e.type === 'heal_mp' || e.type === 'spend_hp_gain_mp')) return 'MP 순환'
+  if (effects.some(e => e.type === 'apply_status' || e.type === 'apply_status_party')) return '상태 전략'
+  if (effects.some(e => e.type === 'execute' || e.type === 'damage_hp_scale')) return '결정타'
+  if (effects.some(e => e.type === 'charge')) return '한방 준비'
+  return '화력 보강'
+}
+
+function skillTargetLabel(effects: readonly SkillEffect[]): string {
+  if (effects.some(e => e.type === 'damage_all')) return '전체'
+  if (effects.some(e => e.type === 'heal' || e.type === 'shield' || e.type === 'remove_status' || e.type === 'apply_status_party')) return '아군'
+  if (effects.some(e => e.type === 'apply_status')) return '상태'
+  return '단일'
+}
+
+function allyReason(action: AllyAction): string {
+  switch (action.type) {
+    case 'attack': return '자동 화력'
+    case 'heal_party':
+    case 'shield_party':
+    case 'revive_party': return '파티 생존'
+    case 'apply_status':
+    case 'apply_status_all':
+    case 'buff_party': return '상태 지원'
+    case 'mp_restore_party': return 'MP 지원'
+  }
+}
+
+function itemReason(effects: readonly ItemEffect[]): string {
+  if (effects.some(e => e.type === 'stat_boost' && e.stat === 'attack')) return '공격 강화'
+  if (effects.some(e => e.type === 'stat_boost' && (e.stat === 'maxHp' || e.stat === 'defense'))) return '생존 강화'
+  if (effects.some(e => e.type === 'mp_regen' || e.type === 'free_skill_chance' || e.type === 'skill_cooldown_reduce')) return '자원 순환'
+  if (effects.some(e => e.type === 'elemental_damage' || e.type === 'elemental_match_damage' || e.type === 'boss_damage_bonus')) return '피해 증폭'
+  if (effects.some(e => e.type === 'lifesteal' || e.type === 'heal_on_kill' || e.type === 'death_prevention')) return '위기 대응'
+  if (effects.some(e => e.type === 'crit_chance_bonus' || e.type === 'miss_immunity')) return '안정 화력'
+  return '특수 효과'
+}
+
 // ---------------------------------------------------------------------------
 // HealSkipCard — 드래프트 건너뛰고 HP 회복
 // ---------------------------------------------------------------------------
@@ -1009,7 +1032,9 @@ function HealSkipCard({ character, onSkip }: HealSkipCardProps) {
     <button
       onClick={onSkip}
       disabled={isFullHp}
+      className="ui-card"
       style={{
+        '--card-accent': isFullHp ? 'var(--color-text-muted)' : 'var(--color-hp-high)',
         display: 'flex',
         alignItems: 'center',
         gap: 'var(--space-4)',
@@ -1017,26 +1042,13 @@ function HealSkipCard({ character, onSkip }: HealSkipCardProps) {
         background: isFullHp
           ? 'color-mix(in oklch, var(--color-bg-surface) 80%, transparent)'
           : 'color-mix(in oklch, var(--color-hp-high) 8%, var(--color-bg-surface))',
-        border: `1px solid ${isFullHp ? 'var(--color-border-subtle)' : 'color-mix(in oklch, var(--color-hp-high) 30%, transparent)'}`,
-        borderRadius: 'var(--radius-lg)',
         cursor: isFullHp ? 'not-allowed' : 'pointer',
         color: isFullHp ? 'var(--color-text-muted)' : 'var(--color-text-secondary)',
         fontSize: 'var(--text-sm)',
         opacity: isFullHp ? 0.5 : 1,
-        transition: 'background var(--duration-fast), border-color var(--duration-fast)',
         maxWidth: '480px',
         width: '100%',
-      }}
-      onMouseEnter={e => {
-        if (isFullHp) return
-        ;(e.currentTarget as HTMLButtonElement).style.background =
-          'color-mix(in oklch, var(--color-hp-high) 15%, var(--color-bg-surface))'
-      }}
-      onMouseLeave={e => {
-        if (isFullHp) return
-        ;(e.currentTarget as HTMLButtonElement).style.background =
-          'color-mix(in oklch, var(--color-hp-high) 8%, var(--color-bg-surface))'
-      }}
+      } as React.CSSProperties}
     >
       <span style={{ fontSize: 'var(--text-xl)' }}>🩹</span>
       <div style={{ textAlign: 'left', flex: 1 }}>

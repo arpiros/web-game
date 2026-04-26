@@ -4,6 +4,7 @@
 
 @import './tokens.css';
 @import './typography.css';
+@import './components.css';
 @import './ornaments.css';  /* ★ 새 파일 — 장식 레이어 */
 
 *,
