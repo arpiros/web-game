@@ -166,6 +166,17 @@
   letter-spacing: 0.03em;
 }
 
+.draft-reward-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 760px) {
+  .draft-reward-grid {
+    grid-template-columns: 1fr !important;
+    width: min(100%, 360px) !important;
+  }
+}
+
 /* ==========================================================================
    Character select
    ========================================================================== */
@@ -237,8 +248,15 @@
   align-items: center !important;
 }
 
+.battle-enemy-placeholder {
+  width: 100%;
+  min-height: 1px;
+  pointer-events: none;
+}
+
 .battle-enemy-card {
   width: clamp(150px, 12vw, 188px) !important;
+  justify-self: center;
 }
 
 @media (min-width: 901px) {

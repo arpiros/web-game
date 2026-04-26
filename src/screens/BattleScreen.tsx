@@ -377,9 +377,12 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
           overflow: 'hidden', padding: 'var(--space-3)', gap: 'var(--space-3)',
         }}>
           {/* Enemy zone */}
-          <div className={`battle-enemy-zone ${aliveEnemies.length <= 1 ? 'battle-enemy-zone--single' : ''}`} style={{
+          <div className={`battle-enemy-zone ${bs.enemies.length <= 1 ? 'battle-enemy-zone--single' : ''}`} style={{
             flex: 1, position: 'relative', minHeight: 0,
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            display: 'grid',
+            gridTemplateColumns: `repeat(${Math.max(1, bs.enemies.length)}, minmax(0, 188px))`,
+            alignItems: 'end',
+            justifyContent: 'center',
             gap: 'var(--space-5)',
             padding: 'var(--space-6) var(--space-4) var(--space-4)',
             background: 'linear-gradient(to bottom, oklch(6% 0.025 268), transparent)',
@@ -445,18 +448,22 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
                 </span>
               </div>
             )}
-            {bs.enemies.filter(e => !removedIds.has(e.id)).map(enemy => (
-              <EnemyCard
-                key={enemy.id}
-                enemy={enemy}
-                isTargetable={isPlayerTurn && !!selectedSkillId && enemy.isAlive && !dyingIds.has(enemy.id)}
-                onClick={() => handleEnemyClick(enemy.id)}
-                party={[...bs.party, ...bs.allies]}
-                isShaking={shakingIds.has(enemy.id)}
-                isDying={dyingIds.has(enemy.id)}
-                isFlashing={flashingIds.has(enemy.id)}
-                battleSpeed={battleSpeed}
-              />
+            {bs.enemies.map(enemy => (
+              removedIds.has(enemy.id) ? (
+                <div key={enemy.id} className="battle-enemy-placeholder" aria-hidden="true" />
+              ) : (
+                <EnemyCard
+                  key={enemy.id}
+                  enemy={enemy}
+                  isTargetable={isPlayerTurn && !!selectedSkillId && enemy.isAlive && !dyingIds.has(enemy.id)}
+                  onClick={() => handleEnemyClick(enemy.id)}
+                  party={[...bs.party, ...bs.allies]}
+                  isShaking={shakingIds.has(enemy.id)}
+                  isDying={dyingIds.has(enemy.id)}
+                  isFlashing={flashingIds.has(enemy.id)}
+                  battleSpeed={battleSpeed}
+                />
+              )
             ))}
             {popups.map(p => <DamagePopup key={p.id} popup={p} battleSpeed={battleSpeed} />)}
           </div>

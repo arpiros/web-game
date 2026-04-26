@@ -205,9 +205,9 @@ export function DraftScreen() {
           alignItems: 'center',
           gap: 'var(--space-6)',
         }}>
-          <div style={{
+          <div className="draft-reward-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             gap: 'var(--space-6)',
             alignItems: 'stretch',
             width: 'min(100%, 820px)',
