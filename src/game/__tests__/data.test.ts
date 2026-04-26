@@ -63,23 +63,34 @@ describe('getEnemyPoolForRound', () => {
     expect(ids).not.toContain('lich')
   })
 
-  it('라운드 6 — 중반 + 후반 적이 포함된다', () => {
+  it('라운드 6 — 중반 적만 포함되고 후반 적은 제외된다 (C-4)', () => {
     const pool = getEnemyPoolForRound(6)
     const ids = pool.map(e => e.id)
     expect(ids).toContain('orc_warrior')
-    expect(ids).toContain('elder_troll')
-    expect(ids).toContain('lich')
+    expect(ids).not.toContain('elder_troll')
+    expect(ids).not.toContain('lich')
     expect(ids).not.toContain('goblin')
   })
 
-  it('라운드 7 — 중반 + 후반 적이 포함되고 보스티어는 제외된다', () => {
+  it('라운드 7 — 중반 적만 포함되고 후반·보스티어는 제외된다 (C-4)', () => {
     const pool = getEnemyPoolForRound(7)
     const ids = pool.map(e => e.id)
-    expect(ids).toContain('elder_troll')
+    expect(ids).toContain('orc_warrior')
+    expect(ids).not.toContain('elder_troll')
     expect(ids).not.toContain('dragon_lord')
     expect(ids).not.toContain('void_lord')
     expect(ids).not.toContain('goblin')
     expect(ids).not.toContain('fire_imp')
+  })
+
+  it('라운드 10 — 중반 + 후반 적이 포함되고 보스티어는 제외된다 (C-4)', () => {
+    const pool = getEnemyPoolForRound(10)
+    const ids = pool.map(e => e.id)
+    expect(ids).toContain('elder_troll')
+    expect(ids).toContain('lich')
+    expect(ids).not.toContain('dragon_lord')
+    expect(ids).not.toContain('void_lord')
+    expect(ids).not.toContain('goblin')
   })
 
   it('라운드 13 — 보스티어(void_lord, dragon_lord)가 포함된다', () => {

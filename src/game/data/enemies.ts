@@ -382,6 +382,36 @@ const ENEMIES_EXTRA: readonly EnemyDef[] = [
     ],
     lore: '전쟁터에 쌓인 영혼들이 하나의 거구를 이루었다.',
   },
+  {
+    id: 'tidal_serpent',
+    name: '조류 바다뱀',
+    description: '강력한 물의 기운을 두른 심해 뱀. 냉기와 방어력 감소로 파티를 잠식한다.',
+    element: 'water',
+    tier: 'normal',
+    baseStats: { maxHp: 1400, attack: 145, defense: 80, speed: 90 },
+    actions: [
+      { type: 'attack', element: 'water', multiplier: 1.3, targetMode: 'random' },
+      { type: 'apply_status', status: 'freeze', duration: 1, value: 0, targetMode: 'random' },
+      { type: 'attack_all', element: 'water', multiplier: 0.85 },
+      { type: 'apply_status', status: 'defdown', duration: 2, value: 20, targetMode: 'random' },
+    ],
+    lore: '해류를 타고 나타나는 심해의 뱀. 조류를 자유롭게 조종한다.',
+  },
+  {
+    id: 'radiant_guardian',
+    name: '빛의 수호자',
+    description: '신성한 빛으로 무장한 강력한 수호자. 스턴과 자기 강화를 구사한다.',
+    element: 'light',
+    tier: 'normal',
+    baseStats: { maxHp: 2200, attack: 170, defense: 100, speed: 50 },
+    actions: [
+      { type: 'attack', element: 'light', multiplier: 1.6, targetMode: 'highest_attack' },
+      { type: 'apply_status', status: 'stun', duration: 1, value: 0, targetMode: 'random' },
+      { type: 'buff_self', status: 'powerup', duration: 2, value: 60 },
+      { type: 'heal_self', multiplier: 0.35 },
+    ],
+    lore: '고대 신전의 영원한 수호자. 빛이 닿는 한 죽지 않는다.',
+  },
 ]
 
 // 모든 일반 적 = 기존 ENEMIES + 신규
@@ -390,8 +420,8 @@ const ALL_ENEMIES: readonly EnemyDef[] = [...ENEMIES, ...ENEMIES_EXTRA]
 // 라운드에 따른 적 선택 (낮은 라운드 = 약한 적)
 const EARLY_ENEMY_IDS = ['goblin', 'fire_imp', 'shadow_wolf', 'skeleton_archer']
 const MID_EASY_ENEMY_IDS = ['orc_warrior', 'ice_golem', 'flame_phoenix', 'thunder_drake', 'sea_serpent']
-const MID_HARD_ENEMY_IDS = ['cursed_knight', 'demon_mage', 'dark_vampire']
-const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'frost_giant', 'poison_hydra', 'abyssal_horror', 'celestial_sentinel', 'bone_colossus']
+const MID_HARD_ENEMY_IDS = ['cursed_knight', 'demon_mage', 'dark_vampire', 'tidal_serpent']
+const LATE_ENEMY_IDS = ['elder_troll', 'lich', 'frost_giant', 'poison_hydra', 'abyssal_horror', 'celestial_sentinel', 'bone_colossus', 'radiant_guardian']
 // void_lord·dragon_lord는 R13+ 전용 — 조기 스폰 시 R6 스케일(×1.15)에서 즉사 위험
 const LATE_BOSS_TIER_IDS = ['void_lord', 'dragon_lord']
 
@@ -405,10 +435,13 @@ export function getEnemyPoolForRound(round: number): readonly EnemyDef[] {
   if (round <= 5) {
     return ALL_ENEMIES.filter(e => [...EARLY_ENEMY_IDS, ...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS].includes(e.id))
   }
+  if (round <= 9) {
+    return ALL_ENEMIES.filter(e => [...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS].includes(e.id))
+  }
   if (round >= 13) {
     return ALL_ENEMIES.filter(e => [...MID_HARD_ENEMY_IDS, ...LATE_ENEMY_IDS, ...LATE_BOSS_TIER_IDS].includes(e.id))
   }
-  return ALL_ENEMIES.filter(e => [...MID_EASY_ENEMY_IDS, ...MID_HARD_ENEMY_IDS, ...LATE_ENEMY_IDS].includes(e.id))
+  return ALL_ENEMIES.filter(e => [...MID_HARD_ENEMY_IDS, ...LATE_ENEMY_IDS].includes(e.id))
 }
 
 export function getEliteEnemyPool(): readonly EnemyDef[] {

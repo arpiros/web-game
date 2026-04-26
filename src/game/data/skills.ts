@@ -19,7 +19,7 @@ export const SKILLS: readonly SkillDef[] = [
     name: '강타',
     description: '단일 적에게 공격력의 200% 물리 피해를 준다.',
     mpCost: 20,
-    cooldown: 1,
+    cooldown: 2,
     effects: [{ type: 'damage', element: 'physical', multiplier: 2.0 }],
     element: 'physical',
     rarity: 'rare',
