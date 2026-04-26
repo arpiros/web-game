@@ -240,6 +240,31 @@
    Battle layout
    ========================================================================== */
 
+.battle-shell {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+}
+
+.battle-main,
+.battle-center,
+.battle-party-panel {
+  min-height: 0;
+}
+
+.battle-main {
+  flex: 1 1 auto !important;
+}
+
+.battle-center {
+  flex: 1 1 auto !important;
+}
+
+.battle-party-panel {
+  align-self: stretch;
+  overscroll-behavior: contain;
+}
+
 .battle-enemy-zone {
   min-height: 22rem !important;
 }
@@ -280,7 +305,9 @@
 @media (max-width: 900px) {
   .battle-shell {
     width: 100% !important;
-    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
   }
 
   .battle-hud {
