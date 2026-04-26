@@ -147,9 +147,9 @@
 
   /* ---------- 레이아웃 ---------- */
   --battle-max-width: 1280px;
-  --panel-width-side: 320px;
-  --skill-bar-height: 140px;   /* 타로카드용 키움 */
-  --hud-height: 64px;          /* 챕터 표시용 키움 */
+  --panel-width-side: 260px;
+  --skill-bar-height: 116px;
+  --hud-height: 42px;
 }
 
 @media (prefers-reduced-motion: reduce) {

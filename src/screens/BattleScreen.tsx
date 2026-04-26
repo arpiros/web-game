@@ -280,6 +280,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   const battleSpeed    = useRunStore(s => s.battleSpeed)
   const setBattleSpeed = useRunStore(s => s.setBattleSpeed)
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
+  const [logOpen, setLogOpen] = useState(false)
 
   const bs           = run?.battleState
   const isPlayerTurn = bs?.phase === 'player_turn'
@@ -366,21 +367,6 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         <PhaseLabel phase={bs.phase} />
       </div>
 
-      {/* ── Skill bar ── */}
-      <SkillBar
-        character={character}
-        isPlayerTurn={isPlayerTurn}
-        selectedSkillId={selectedSkillId}
-        onSkillClick={handleSkillClick}
-        enemies={bs.enemies.filter(e => e.isAlive)}
-        items={bs.items}
-        onEndTurn={() => {
-          if (!isPlayerTurn) return
-          setSelectedSkillId(null)
-          dispatchBattle({ type: 'END_PLAYER_TURN' })
-        }}
-      />
-
       {/* ── Main ── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
@@ -391,11 +377,10 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         }}>
           {/* Enemy zone */}
           <div style={{
-            flex: '0 0 auto', position: 'relative',
+            flex: 1, position: 'relative', minHeight: 0,
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
             gap: 'var(--space-5)',
             padding: 'var(--space-6) var(--space-4) var(--space-4)',
-            minHeight: '210px',
             background: 'linear-gradient(to bottom, oklch(6% 0.025 268), transparent)',
             borderRadius: 'var(--radius-lg)',
           }}>
@@ -446,7 +431,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
           </div>
 
           {/* Battle log */}
-          <BattleLog entries={bs.log} />
+          <BattleLog entries={bs.log} isOpen={logOpen} onToggle={() => setLogOpen(p => !p)} />
         </div>
 
         {/* Right: party panel */}
@@ -517,6 +502,21 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
           })()}
         </div>
       </div>
+
+      {/* ── Skill bar ── */}
+      <SkillBar
+        character={character}
+        isPlayerTurn={isPlayerTurn}
+        selectedSkillId={selectedSkillId}
+        onSkillClick={handleSkillClick}
+        enemies={bs.enemies.filter(e => e.isAlive)}
+        items={bs.items}
+        onEndTurn={() => {
+          if (!isPlayerTurn) return
+          setSelectedSkillId(null)
+          dispatchBattle({ type: 'END_PLAYER_TURN' })
+        }}
+      />
     </div>
   )
 }
@@ -1187,14 +1187,18 @@ function SynergyPanelCard({ synergy }: { synergy: Synergy }) {
 // BattleLog
 // ---------------------------------------------------------------------------
 
-function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
+function BattleLog({ entries, isOpen, onToggle }: {
+  entries: readonly BattleLogEntry[]
+  isOpen: boolean
+  onToggle: () => void
+}) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (ref.current) {
       ref.current.scrollTop = ref.current.scrollHeight
     }
-  }, [entries.length])
+  }, [entries.length, isOpen])
 
   function entryClass(kind: string): string {
     switch (kind) {
@@ -1208,24 +1212,52 @@ function BattleLog({ entries }: { entries: readonly BattleLogEntry[] }) {
   }
 
   return (
-    <div
-      ref={ref}
-      style={{
-        flex: 1, overflow: 'auto',
-        fontSize: 'var(--text-xs)',
-        display: 'flex', flexDirection: 'column', gap: '1px',
-        padding: 'var(--space-2) var(--space-3)',
-        background: 'var(--color-bg-surface)',
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--color-border-subtle)',
-        scrollBehavior: 'smooth',
-      }}
-    >
-      {[...entries].slice(-30).map(entry => (
-        <div key={entry.id} className={entryClass(entry.kind)}>
-          {entry.text}
+    <div style={{ flexShrink: 0 }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%', height: '24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 var(--space-3)',
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border-subtle)',
+          borderBottom: isOpen ? 'none' : '1px solid var(--color-border-subtle)',
+          borderRadius: isOpen
+            ? 'var(--radius-md) var(--radius-md) 0 0'
+            : 'var(--radius-md)',
+          cursor: 'pointer',
+          fontSize: 'var(--text-xxs)',
+          color: 'var(--color-text-muted)',
+          letterSpacing: '0.1em',
+        }}
+      >
+        <span>BATTLE LOG</span>
+        <span>{isOpen ? '▼' : '▲'}</span>
+      </button>
+
+      {isOpen && (
+        <div
+          ref={ref}
+          style={{
+            height: '90px',
+            overflow: 'auto',
+            fontSize: 'var(--text-xs)',
+            display: 'flex', flexDirection: 'column', gap: '1px',
+            padding: 'var(--space-2) var(--space-3)',
+            background: 'var(--color-bg-surface)',
+            border: '1px solid var(--color-border-subtle)',
+            borderTop: 'none',
+            borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+            scrollBehavior: 'smooth',
+          }}
+        >
+          {[...entries].slice(-30).map(entry => (
+            <div key={entry.id} className={entryClass(entry.kind)}>
+              {entry.text}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
@@ -1295,6 +1327,7 @@ function SkillTooltip({ skill, character, enemies, items, x, y }: {
   return (
     <div style={{
       position: 'fixed', top: y, left: x,
+      transform: 'translateY(-100%)',
       width: '240px', padding: 'var(--space-3)',
       background: 'var(--color-bg-elevated)',
       border: '1px solid var(--color-border-default)',
@@ -1361,7 +1394,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
   return (
     <div style={{
       height: 'var(--skill-bar-height)', flexShrink: 0,
-      borderBottom: '1px solid var(--color-border-subtle)',
+      borderTop: '1px solid var(--color-border-subtle)',
       background: 'var(--color-bg-surface)',
       display: 'flex', alignItems: 'center',
       padding: '0 var(--space-4)', gap: 'var(--space-2)',
@@ -1400,7 +1433,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
             disabled={isDisabled}
             onMouseEnter={e => {
               const rect = e.currentTarget.getBoundingClientRect()
-              setTooltip({ skillId, x: rect.left, y: rect.bottom + 4 })
+              setTooltip({ skillId, x: rect.left, y: rect.top - 4 })
             }}
             onMouseLeave={() => setTooltip(null)}
             style={{
