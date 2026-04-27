@@ -3,6 +3,7 @@ import type { CharacterDef } from '../game/types'
 import { CHARACTERS } from '../game/data/characters'
 import { getSkillById } from '../game/data/skills'
 import { useRunStore } from '../state/runStore'
+import { GameIcon } from '../components/GameIcon'
 
 const ELEMENT_COLORS: Record<string, string> = {
   physical: 'var(--color-element-physical)',
@@ -90,7 +91,7 @@ function CharacterCard({ character, onSelect }: { character: CharacterDef; onSel
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         gap: 'var(--space-3)',
       }}>
         <span className="ui-chip" style={{ '--chip-accent': elColor } as CSSProperties}>
@@ -106,17 +107,28 @@ function CharacterCard({ character, onSelect }: { character: CharacterDef; onSel
         </span>
       </div>
 
-      <div>
-        <div style={{
-          fontSize: 'var(--text-md)',
-          fontWeight: 'var(--weight-bold)',
-          color: 'var(--color-text-primary)',
-          marginBottom: 'var(--space-1)',
-        }}>
-          {character.name}
-        </div>
-        <div style={{ fontSize: 'var(--text-sm)', color: elColor, opacity: 0.8 }}>
-          {character.title}
+      <div className="entity-heading" style={{ alignItems: 'center' }}>
+        <GameIcon
+          id={character.id}
+          kind="character"
+          element={character.element}
+          rarity="legendary"
+          size="portrait"
+          label={character.name}
+        />
+        <div className="entity-heading__text">
+          <div style={{
+            fontSize: 'var(--text-md)',
+            fontWeight: 'var(--weight-bold)',
+            color: 'var(--color-text-primary)',
+            marginBottom: 'var(--space-1)',
+            lineHeight: 1.15,
+          }}>
+            {character.name}
+          </div>
+          <div style={{ fontSize: 'var(--text-sm)', color: elColor, opacity: 0.8 }}>
+            {character.title}
+          </div>
         </div>
       </div>
 
