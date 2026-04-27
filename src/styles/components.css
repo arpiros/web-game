@@ -511,7 +511,7 @@
     overflow: visible !important;
   }
 
-  .battle-skill-bar > span {
+  .battle-skill-target-hint {
     grid-column: 1 / -1;
     margin: 0 !important;
     text-align: center;
@@ -523,6 +523,74 @@
     width: 100% !important;
     height: 5.25rem !important;
     margin-left: 0 !important;
+  }
+
+  .battle-skill-button {
+    display: grid !important;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-rows: 2px minmax(1.85rem, auto) auto;
+    align-items: center !important;
+    justify-items: stretch !important;
+    column-gap: var(--space-2) !important;
+    row-gap: 3px !important;
+    padding: var(--space-2) !important;
+    text-align: left !important;
+  }
+
+  .battle-skill-rarity-strip {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .battle-skill-button .game-icon--xs {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    justify-self: center;
+  }
+
+  .battle-skill-name {
+    grid-column: 2;
+    grid-row: 2;
+    max-width: 100% !important;
+    min-width: 0;
+    text-align: left !important;
+    line-height: 1.18 !important;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+  }
+
+  .battle-skill-meta {
+    grid-column: 2;
+    grid-row: 3;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .battle-skill-cost {
+    justify-self: start;
+    max-width: 56%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .battle-skill-kind {
+    justify-self: end;
+    max-width: 42%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+  }
+
+  .battle-skill-button[aria-pressed="true"] {
+    transform: none !important;
+  }
+
+  .battle-skill-target-hint {
+    display: none !important;
   }
 }
 

@@ -1455,6 +1455,11 @@ function SkillTooltip({ skill, character, enemies, items, x, y }: {
   )
 }
 
+function canShowHoverTooltip(): boolean {
+  return typeof window !== 'undefined'
+    && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+}
+
 function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enemies, items, onEndTurn }: {
   character: BattleCharacter
   isPlayerTurn: boolean
@@ -1465,6 +1470,18 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
   onEndTurn: () => void
 }) {
   const [tooltip, setTooltip] = useState<{ skillId: string; x: number; y: number } | null>(null)
+
+  function showSkillTooltip(skillId: string, rect: DOMRect) {
+    if (!canShowHoverTooltip()) return
+    const tooltipWidth = 240
+    const edgePadding = 12
+    const maxX = window.innerWidth - tooltipWidth - edgePadding
+    setTooltip({
+      skillId,
+      x: Math.max(edgePadding, Math.min(rect.left, maxX)),
+      y: rect.top - 4,
+    })
+  }
 
   return (
     <div className="battle-skill-bar" style={{
@@ -1505,15 +1522,21 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
           <button
             key={skillId}
             className="battle-skill-button"
-            onClick={() => onSkillClick(skillId)}
+            onClick={() => {
+              setTooltip(null)
+              onSkillClick(skillId)
+            }}
             disabled={isDisabled}
             aria-pressed={isSelected}
             aria-label={`${skill.name}. ${cannotAfford ? 'MP 부족. ' : ''}${isOnCooldown ? `쿨다운 ${cooldown}턴. ` : ''}${isSelected ? '대상 선택 중.' : ''}`}
             onMouseEnter={e => {
               const rect = e.currentTarget.getBoundingClientRect()
-              setTooltip({ skillId, x: rect.left, y: rect.top - 4 })
+              showSkillTooltip(skillId, rect)
             }}
             onMouseLeave={() => setTooltip(null)}
+            onPointerDown={() => {
+              if (!canShowHoverTooltip()) setTooltip(null)
+            }}
             style={{
               minWidth: '92px', height: '104px', flexShrink: 0,
               display: 'flex', flexDirection: 'column',
@@ -1539,7 +1562,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
             }}
           >
             {/* Rarity color strip */}
-            <div style={{
+            <div className="battle-skill-rarity-strip" style={{
               width: '24px', height: '2px',
               background: isOnCooldown ? 'var(--color-border-subtle)' : rarityColor,
               borderRadius: 'var(--radius-full)',
@@ -1556,7 +1579,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
             />
 
             {/* Name */}
-            <span style={{
+            <span className="battle-skill-name" style={{
               fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
               color: isOnCooldown ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
               textAlign: 'center', lineHeight: 1.2,
@@ -1571,7 +1594,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
 
             {/* MP cost */}
             {skill.mpCost > 0 && (
-              <span style={{
+              <span className="battle-skill-meta battle-skill-cost" style={{
                 fontSize: 'var(--text-xxs)',
                 color: cannotAfford ? 'var(--color-hp-low)' : 'var(--color-mp)',
               }}>
@@ -1581,11 +1604,11 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
 
             {/* Cooldown or element */}
             {isOnCooldown ? (
-              <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
+              <span className="battle-skill-meta battle-skill-kind" style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
                 CD {cooldown}
               </span>
             ) : (
-              <span style={{
+              <span className="battle-skill-meta battle-skill-kind" style={{
                 fontSize: 'var(--text-xxs)',
                 color: elColor, opacity: 0.8,
               }}>
@@ -1597,7 +1620,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
       })}
 
       {selectedSkillId && needsEnemyTarget(selectedSkillId) && (
-        <span style={{
+        <span className="battle-skill-target-hint" style={{
           marginLeft: 'auto', marginRight: 'var(--space-3)',
           color: 'var(--color-accent)', fontSize: 'var(--text-xs)',
           whiteSpace: 'nowrap', opacity: 0.85,
