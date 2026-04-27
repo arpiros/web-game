@@ -26,6 +26,8 @@ dist-ssr
 # Test artifacts
 *.png
 *.jpg
+!public/portraits/
+!public/portraits/*.png
 .playwright-mcp/
 
 # Dev/temp files

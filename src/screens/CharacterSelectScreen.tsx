@@ -3,7 +3,7 @@ import type { CharacterDef } from '../game/types'
 import { CHARACTERS } from '../game/data/characters'
 import { getSkillById } from '../game/data/skills'
 import { useRunStore } from '../state/runStore'
-import { GameIcon } from '../components/GameIcon'
+import { CharacterPortrait } from '../components/CharacterPortrait'
 
 const ELEMENT_COLORS: Record<string, string> = {
   physical: 'var(--color-element-physical)',
@@ -107,15 +107,14 @@ function CharacterCard({ character, onSelect }: { character: CharacterDef; onSel
         </span>
       </div>
 
+      <CharacterPortrait
+        id={character.id}
+        element={character.element}
+        label={character.name}
+        size="card"
+      />
+
       <div className="entity-heading" style={{ alignItems: 'center' }}>
-        <GameIcon
-          id={character.id}
-          kind="character"
-          element={character.element}
-          rarity="legendary"
-          size="portrait"
-          label={character.name}
-        />
         <div className="entity-heading__text">
           <div style={{
             fontSize: 'var(--text-md)',

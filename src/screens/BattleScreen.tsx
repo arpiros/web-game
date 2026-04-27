@@ -17,6 +17,7 @@ import { getActiveSynergies } from '../game/synergy'
 import type { Synergy } from '../game/synergy'
 import { useRunStore } from '../state/runStore'
 import { GameIcon } from '../components/GameIcon'
+import { CharacterPortrait } from '../components/CharacterPortrait'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -922,18 +923,29 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battl
       ...animStyle,
     }}>
       <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-2)',
+        marginBottom: 'var(--space-1)',
       }}>
-        <div className="entity-heading">
+        {isAlly ? (
           <GameIcon
             id={entity.defId}
-            kind={isAlly ? 'ally' : 'character'}
+            kind="ally"
             element={entity.element}
-            rarity={isAlly ? 'rare' : 'legendary'}
+            rarity="rare"
             size="xs"
             label={entity.name}
           />
+        ) : (
+          <CharacterPortrait
+            id={entity.defId}
+            element={entity.element}
+            label={entity.name}
+            size="panel"
+          />
+        )}
+        <div style={{ display: 'grid', gap: '2px', minWidth: 0, flex: 1 }}>
           <span style={{
             fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)',
             color: isAlly ? 'var(--color-text-secondary)' : 'var(--color-text-primary)',
@@ -941,10 +953,10 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battl
           }}>
             {entity.name}
           </span>
+          <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
+            ATK {entity.stats.attack} · DEF {entity.stats.defense}
+          </span>
         </div>
-        <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)', flexShrink: 0 }}>
-          ATK {entity.stats.attack} · DEF {entity.stats.defense}
-        </span>
       </div>
 
       <ResourceBar
