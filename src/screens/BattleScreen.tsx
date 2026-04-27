@@ -16,6 +16,7 @@ import { calcDamage, getItemElementMultiplier, getStatusBonus } from '../game/co
 import { getActiveSynergies } from '../game/synergy'
 import type { Synergy } from '../game/synergy'
 import { useRunStore } from '../state/runStore'
+import { GameIcon } from '../components/GameIcon'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -808,17 +809,27 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
       )}
 
       {/* Element + name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-        <span style={{ fontSize: 'var(--text-xxs)', color: elColor, fontWeight: 'var(--weight-bold)' }}>
-          [{elLabel}]
-        </span>
-        <span style={{
-          fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
-          color: 'var(--color-text-primary)', flex: 1, textAlign: 'center',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {enemy.name}
-        </span>
+      <div style={{ display: 'grid', justifyItems: 'center', gap: 'var(--space-1)' }}>
+        <GameIcon
+          id={enemy.defId}
+          kind="enemy"
+          element={enemy.element}
+          rarity={enemy.isBoss ? 'legendary' : enemy.isElite ? 'epic' : 'rare'}
+          size={enemy.isBoss ? 'lg' : 'md'}
+          label={enemy.name}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', minWidth: 0, width: '100%' }}>
+          <span style={{ fontSize: 'var(--text-xxs)', color: elColor, fontWeight: 'var(--weight-bold)' }}>
+            [{elLabel}]
+          </span>
+          <span style={{
+            fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
+            color: 'var(--color-text-primary)', flex: 1, textAlign: 'center',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {enemy.name}
+          </span>
+        </div>
       </div>
 
       {/* HP bar */}
@@ -912,15 +923,26 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battl
     }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between',
-        alignItems: 'baseline', marginBottom: 'var(--space-1)',
+        alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)',
       }}>
-        <span style={{
-          fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)',
-          color: isAlly ? 'var(--color-text-secondary)' : 'var(--color-text-primary)',
-        }}>
-          {entity.name}
-        </span>
-        <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
+        <div className="entity-heading">
+          <GameIcon
+            id={entity.defId}
+            kind={isAlly ? 'ally' : 'character'}
+            element={entity.element}
+            rarity={isAlly ? 'rare' : 'legendary'}
+            size="xs"
+            label={entity.name}
+          />
+          <span style={{
+            fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)',
+            color: isAlly ? 'var(--color-text-secondary)' : 'var(--color-text-primary)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {entity.name}
+          </span>
+        </div>
+        <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)', flexShrink: 0 }}>
           ATK {entity.stats.attack} · DEF {entity.stats.defense}
         </span>
       </div>
@@ -968,13 +990,15 @@ function ItemCard({ item }: { item: ItemDef }) {
       borderRadius: 'var(--radius-md)',
       padding: 'var(--space-2) var(--space-3)',
     }}>
-      <div style={{
-        fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
-        color: 'var(--color-text-primary)',
-        marginBottom: '2px',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {item.name}
+      <div className="entity-heading" style={{ marginBottom: '2px' }}>
+        <GameIcon id={item.id} kind="item" rarity={item.rarity} size="xs" label={item.name} />
+        <div style={{
+          fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
+          color: 'var(--color-text-primary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {item.name}
+        </div>
       </div>
       <div style={{
         fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)',
@@ -1479,10 +1503,10 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
             }}
             onMouseLeave={() => setTooltip(null)}
             style={{
-              minWidth: '88px', height: '88px', flexShrink: 0,
+              minWidth: '92px', height: '104px', flexShrink: 0,
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
-              gap: '3px', padding: 'var(--space-2)',
+              gap: '2px', padding: 'var(--space-2)',
               background: isSelected
                 ? `color-mix(in oklch, ${elColor} 28%, var(--color-bg-elevated))`
                 : cannotAfford && !isOnCooldown
@@ -1509,6 +1533,15 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
               borderRadius: 'var(--radius-full)',
               marginBottom: '2px',
             }} />
+
+            <GameIcon
+              id={skill.id}
+              kind="skill"
+              element={skill.element}
+              rarity={skill.rarity}
+              size="xs"
+              label={skill.name}
+            />
 
             {/* Name */}
             <span style={{

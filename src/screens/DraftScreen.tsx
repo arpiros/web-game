@@ -8,6 +8,7 @@ import { RECIPES } from '../game/data/recipes'
 import { SYNERGIES, type Synergy } from '../game/synergy'
 import { ELITE_ROUNDS, MINI_BOSS_ROUNDS, MAX_ROUNDS } from '../game/run'
 import { useRunStore } from '../state/runStore'
+import { GameIcon } from '../components/GameIcon'
 
 // ---------------------------------------------------------------------------
 // Token maps
@@ -781,7 +782,10 @@ function SkillCard({ skill, onSelect, isOwned, newSynergies = [] }: { skill: Ski
       {newSynergies.length > 0 && (
         <SynergyBadge synergies={newSynergies} />
       )}
-      <DraftInsightChip label={reason} color={newSynergies.length > 0 ? 'var(--color-accent)' : elColor} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+        <DraftInsightChip label={reason} color={newSynergies.length > 0 ? 'var(--color-accent)' : elColor} />
+        <GameIcon id={skill.id} kind="skill" element={skill.element} rarity={skill.rarity} size="md" label={skill.name} />
+      </div>
       {/* 속성 + 이름 */}
       <div>
         <span style={{
@@ -861,7 +865,10 @@ function AllyCard({ ally, onSelect, newSynergies = [], playerAtk = 0 }: { ally: 
       {newSynergies.length > 0 && (
         <SynergyBadge synergies={newSynergies} />
       )}
-      <DraftInsightChip label={reason} color={newSynergies.length > 0 ? 'var(--color-accent)' : elColor} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+        <DraftInsightChip label={reason} color={newSynergies.length > 0 ? 'var(--color-accent)' : elColor} />
+        <GameIcon id={ally.id} kind="ally" element={ally.element} rarity={ally.rarity} size="md" label={ally.name} />
+      </div>
       {/* 속성 + 이름 */}
       <div>
         <span style={{
@@ -937,7 +944,10 @@ function ItemCard({ item, onSelect, isOwned }: { item: ItemDef; onSelect: () => 
   return (
     <CardWrapper rarity={item.rarity} typeLabel="아이템" onSelect={onSelect}>
       {isOwned && <span style={OWNED_BADGE}>보유중</span>}
-      <DraftInsightChip label={reason} color="var(--color-rarity-rare)" />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+        <DraftInsightChip label={reason} color="var(--color-rarity-rare)" />
+        <GameIcon id={item.id} kind="item" rarity={item.rarity} size="md" label={item.name} />
+      </div>
       {/* 이름 */}
       <div style={{
         fontSize: 'var(--text-md)',
