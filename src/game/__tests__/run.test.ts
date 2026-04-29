@@ -46,7 +46,6 @@ function makeCompletedBattleState(overrides: Partial<BattleState> = {}): BattleS
     selectedTargetId: null,
     items: [],
     ...overrides,
-    party: overrides.party ?? defaultParty,
   }
 }
 

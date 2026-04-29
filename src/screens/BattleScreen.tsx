@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type {
   BattleCharacter,
   BattleAlly,
@@ -72,6 +73,10 @@ interface StatusDesc {
   detail: (value: number) => string | null
 }
 
+const STATUS_TOOLTIP_WIDTH = 220
+const STATUS_TOOLTIP_GAP = 6
+const TOOLTIP_EDGE_PADDING = 12
+
 const STATUS_DESCRIPTION: Record<string, StatusDesc> = {
   poison:     { summary: '매 턴 최대 HP의 일정 %만큼 피해를 받는다',      detail: v => `${v}% / 턴` },
   burn:       { summary: '매 턴 고정 피해를 받는다',                      detail: v => `${v} 피해 / 턴` },
@@ -86,6 +91,16 @@ const STATUS_DESCRIPTION: Record<string, StatusDesc> = {
   revive:     { summary: '사망 시 HP 30%로 1회 부활한다',                 detail: () => null },
   undying:    { summary: '사망 직전 HP 1로 1회 버틴다',                   detail: () => null },
   defend:     { summary: '받는 데미지가 30% 감소한다',                    detail: () => '-30% 피해' },
+}
+
+function getStatusTooltipPosition(rect: DOMRect): { x: number; y: number } {
+  const maxX = window.innerWidth - STATUS_TOOLTIP_WIDTH - TOOLTIP_EDGE_PADDING
+  const x = Math.max(TOOLTIP_EDGE_PADDING, Math.min(rect.left, maxX))
+  const yBelow = rect.bottom + STATUS_TOOLTIP_GAP
+  const y = yBelow < window.innerHeight - TOOLTIP_EDGE_PADDING
+    ? yBelow
+    : Math.max(TOOLTIP_EDGE_PADDING, rect.top - STATUS_TOOLTIP_GAP)
+  return { x, y }
 }
 
 function hpColor(ratio: number): string {
@@ -1116,10 +1131,10 @@ function StatusTooltip({ effect, x, y }: { effect: StatusEffect; x: number; y: n
   const desc  = STATUS_DESCRIPTION[effect.kind]
   const detail = desc ? desc.detail(effect.value) : null
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', top: y, left: x,
-      width: '220px', padding: 'var(--space-3)',
+      width: STATUS_TOOLTIP_WIDTH, padding: 'var(--space-3)',
       background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
       border: '1px solid color-mix(in oklch, var(--color-accent) 22%, transparent)',
       borderRadius: 'var(--radius-md)',
@@ -1153,7 +1168,8 @@ function StatusTooltip({ effect, x, y }: { effect: StatusEffect; x: number; y: n
           )}
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -1163,6 +1179,7 @@ function StatusTooltip({ effect, x, y }: { effect: StatusEffect; x: number; y: n
 
 function StatusBadge({ effect }: { effect: StatusEffect }) {
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
+  const lastPointerType = useRef<string>('mouse')
   const color = STATUS_COLOR[effect.kind] ?? 'var(--color-text-muted)'
   const label = STATUS_LABEL[effect.kind] ?? effect.kind
 
@@ -1172,10 +1189,13 @@ function StatusBadge({ effect }: { effect: StatusEffect }) {
       <span
         role="button"
         tabIndex={0}
+        onPointerDown={e => {
+          lastPointerType.current = e.pointerType
+        }}
         onPointerEnter={e => {
           if (e.pointerType === 'touch') return
           const rect = e.currentTarget.getBoundingClientRect()
-          setTooltipPos({ x: rect.left, y: rect.bottom + 4 })
+          setTooltipPos(getStatusTooltipPosition(rect))
         }}
         onPointerLeave={e => {
           if (e.pointerType === 'touch') return
@@ -1184,10 +1204,24 @@ function StatusBadge({ effect }: { effect: StatusEffect }) {
         onClick={e => {
           e.stopPropagation()
           const rect = e.currentTarget.getBoundingClientRect()
-          setTooltipPos(prev => prev ? null : { x: rect.left, y: rect.bottom + 4 })
+          const nextPos = getStatusTooltipPosition(rect)
+          setTooltipPos(prev => lastPointerType.current === 'touch' && prev ? null : nextPos)
         }}
+        onFocus={e => {
+          const rect = e.currentTarget.getBoundingClientRect()
+          setTooltipPos(getStatusTooltipPosition(rect))
+        }}
+        onBlur={() => setTooltipPos(null)}
         onKeyDown={e => {
-          if (e.key === 'Escape') setTooltipPos(null)
+          if (e.key === 'Escape') {
+            setTooltipPos(null)
+            return
+          }
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            const rect = e.currentTarget.getBoundingClientRect()
+            setTooltipPos(getStatusTooltipPosition(rect))
+          }
         }}
         style={{
           display: 'inline-block',
