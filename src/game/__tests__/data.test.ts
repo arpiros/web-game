@@ -3,6 +3,8 @@ import { ENEMIES, getEnemyById, getEnemyPoolForRound } from '../data/enemies'
 import { ITEMS, getItemById } from '../data/items'
 import { CHARACTERS, getCharacterById } from '../data/characters'
 import { ALLIES, getAllyById } from '../data/allies'
+import { getCharacterEvents, getEventById, getGenericEvents } from '../data/events'
+import { FLOOR_THEMES, getFloorThemeByRound } from '../data/floorThemes'
 
 // ---------------------------------------------------------------------------
 // enemies.ts
@@ -204,5 +206,41 @@ describe('getAllyById', () => {
 
   it('ALLIES 배열이 비어있지 않다', () => {
     expect(ALLIES.length).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// floorThemes.ts
+// ---------------------------------------------------------------------------
+
+describe('getFloorThemeByRound', () => {
+  it('라운드에 맞는 층 테마를 반환한다', () => {
+    expect(getFloorThemeByRound(1).id).toBe('lower_labyrinth')
+    expect(getFloorThemeByRound(6).id).toBe('academy_ruins')
+    expect(getFloorThemeByRound(30).id).toBe('void_heart')
+  })
+
+  it('층 테마가 전체 30라운드를 덮는다', () => {
+    for (let round = 1; round <= 30; round += 1) {
+      expect(getFloorThemeByRound(round)).toBeDefined()
+    }
+    expect(FLOOR_THEMES.length).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// events.ts
+// ---------------------------------------------------------------------------
+
+describe('character events', () => {
+  it('모든 플레이어 캐릭터가 전용 이벤트를 가진다', () => {
+    for (const character of CHARACTERS) {
+      expect(getCharacterEvents(character.id).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('전용 이벤트와 일반 이벤트를 구분한다', () => {
+    expect(getEventById('seria_broken_paladin_grave')?.characterId).toBe('dark_knight')
+    expect(getGenericEvents().every(event => !event.characterId)).toBe(true)
   })
 })

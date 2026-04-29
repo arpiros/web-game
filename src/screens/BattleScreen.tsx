@@ -11,6 +11,7 @@ import type {
   Element,
 } from '../game/types'
 import { getSkillById } from '../game/data/skills'
+import { getFloorThemeByRound } from '../game/data/floorThemes'
 import { MAX_ROUNDS } from '../game/run'
 import { calcDamage, getItemElementMultiplier, getStatusBonus } from '../game/combat'
 import { getActiveSynergies } from '../game/synergy'
@@ -313,6 +314,7 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
   const character    = bs.party[0]
   const aliveEnemies = bs.enemies.filter(e => e.isAlive)
   const selectedSkill = selectedSkillId ? getSkillById(selectedSkillId) : null
+  const floorTheme = getFloorThemeByRound(run.round)
 
   function handleSkillClick(skillId: string) {
     if (!isPlayerTurn) return
@@ -357,6 +359,16 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         }}>
           Round {run.round} / {MAX_ROUNDS}
         </span>
+        <span style={{
+          fontSize: 'var(--text-xs)',
+          color: floorTheme.accent,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: 'clamp(120px, 22vw, 260px)',
+        }}>
+          {floorTheme.name}
+        </span>
         <span style={{ color: 'var(--color-border-default)', fontSize: 'var(--text-xs)' }}>│</span>
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
           턴 {bs.turnCount + 1}
@@ -387,9 +399,38 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
             justifyContent: 'center',
             gap: 'var(--space-5)',
             padding: 'var(--space-6) var(--space-4) var(--space-4)',
-            background: 'linear-gradient(to bottom, oklch(6% 0.025 268), transparent)',
+            background: floorTheme.background,
             borderRadius: 'var(--radius-lg)',
           }}>
+            <div style={{
+              position: 'absolute',
+              top: 'var(--space-3)',
+              left: 'var(--space-4)',
+              zIndex: 3,
+              display: selectedSkill ? 'none' : 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+              pointerEvents: 'none',
+            }}>
+              <span style={{
+                fontSize: 'var(--text-xxs)',
+                color: floorTheme.accent,
+                fontWeight: 'var(--weight-bold)',
+                letterSpacing: '0.08em',
+              }}>
+                {floorTheme.subtitle}
+              </span>
+              <span style={{
+                fontSize: 'var(--text-xxs)',
+                color: 'var(--color-text-muted)',
+                maxWidth: 'min(48vw, 420px)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {floorTheme.summary}
+              </span>
+            </div>
             {selectedSkill && needsEnemyTarget(selectedSkill.id) && (
               <div style={{
                 position: 'absolute',
@@ -477,8 +518,8 @@ export function BattleScreen({ onBattleVictory, onBattleDefeat }: Props) {
         {/* Right: party panel */}
         <div className="battle-party-panel" style={{
           width: 'var(--panel-width-side)', flexShrink: 0,
-          borderLeft: '1px solid var(--color-border-subtle)',
-          background: 'var(--color-bg-surface)',
+          borderLeft: '1px solid color-mix(in oklch, var(--color-accent) 16%, transparent)',
+          background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden auto',
           padding: 'var(--space-3)', gap: 'var(--space-2)',
@@ -667,7 +708,7 @@ function EnemyIntentBadge({ action, enemy, party }: {
   switch (action.type) {
     case 'attack': {
       const dmg = estimateAttack(action.multiplier, action.element)
-      icon  = '⚔'
+      icon  = 'ATK'
       label = '공격'
       sublabel = dmg !== null ? `~${dmg.toLocaleString()}` : null
       color = ELEMENT_COLOR[action.element] ?? 'var(--color-hp-low)'
@@ -675,14 +716,14 @@ function EnemyIntentBadge({ action, enemy, party }: {
     }
     case 'attack_all': {
       const dmg = estimateAttack(action.multiplier, action.element)
-      icon  = '💥'
+      icon  = 'ALL'
       label = '전체 공격'
       sublabel = dmg !== null ? `~${dmg.toLocaleString()}/명` : null
       color = ELEMENT_COLOR[action.element] ?? 'var(--color-hp-low)'
       break
     }
     case 'apply_status': {
-      icon  = '✦'
+      icon  = 'STS'
       label = `${STATUS_LABEL[action.status] ?? action.status} 부여`
       sublabel = action.targetMode === 'all' ? `전체 ${action.duration}턴` : `${action.duration}턴`
       color = STATUS_COLOR[action.status] ?? 'var(--color-text-muted)'
@@ -690,14 +731,14 @@ function EnemyIntentBadge({ action, enemy, party }: {
     }
     case 'heal_self': {
       const healAmt = Math.round(enemy.stats.attack * action.multiplier)
-      icon  = '♥'
+      icon  = 'HP'
       label = '자가 치유'
       sublabel = `~${healAmt.toLocaleString()}`
       color = 'var(--color-hp-high)'
       break
     }
     case 'buff_self': {
-      icon  = '↑'
+      icon  = 'UP'
       label = `${STATUS_LABEL[action.status] ?? action.status} 강화`
       sublabel = `${action.duration}턴`
       color = 'var(--color-status-buff)'
@@ -711,7 +752,18 @@ function EnemyIntentBadge({ action, enemy, party }: {
       paddingTop: 'var(--space-1)',
       display: 'flex', alignItems: 'center', gap: '4px',
     }}>
-      <span style={{ fontSize: '0.65rem', flexShrink: 0 }}>{icon}</span>
+      <span style={{
+        minWidth: '1.55rem',
+        padding: '1px 4px',
+        borderRadius: 'var(--radius-full)',
+        background: 'color-mix(in oklch, currentColor 10%, white)',
+        color,
+        fontSize: 'var(--text-xxs)',
+        fontWeight: 'var(--weight-bold)',
+        lineHeight: 1.2,
+        textAlign: 'center',
+        flexShrink: 0,
+      }}>{icon}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
         <span style={{ fontSize: 'var(--text-xxs)', fontWeight: 'var(--weight-semibold)', color, lineHeight: 1 }}>
           {label}
@@ -762,15 +814,17 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
       style={{
         width: '140px',
         position: 'relative',
-        background: 'var(--color-bg-elevated)',
-        border: `1px solid ${isTargetable ? elColor : 'var(--color-border-subtle)'}`,
+        background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
+        border: `1px solid ${isTargetable ? elColor : 'color-mix(in oklch, var(--color-border-subtle) 78%, transparent)'}`,
         borderRadius: 'var(--radius-lg)',
         padding: 'var(--space-3)',
         cursor: isTargetable ? 'crosshair' : 'default',
         display: 'flex', flexDirection: 'column', gap: 'var(--space-2)',
         opacity: isDying ? undefined : (enemy.isAlive ? 1 : 0.25),
         transition: (isDying || isShaking) ? 'none' : 'all var(--duration-fast)',
-        boxShadow: isTargetable ? `0 0 16px ${elColor}50` : 'none',
+        boxShadow: isTargetable
+          ? `0 16px 34px color-mix(in oklch, ${elColor} 22%, transparent), var(--shadow-inset)`
+          : 'var(--shadow-sm), var(--shadow-inset)',
         transform: (isDying || isShaking) ? undefined : (isTargetable ? 'translateY(-4px) scale(1.02)' : 'none'),
         ...animStyle,
       }}
@@ -781,18 +835,18 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
           fontSize: 'var(--text-xxs)', fontWeight: 'var(--weight-bold)', textAlign: 'center',
           padding: '2px 6px', borderRadius: 'var(--radius-sm)',
           background: enemy.bossCurrentPhase === 3
-            ? 'oklch(40% 0.25 20)'
+            ? 'color-mix(in oklch, var(--color-hp-low) 16%, white)'
             : enemy.bossCurrentPhase === 2
-            ? 'oklch(35% 0.2 45)'
-            : 'oklch(20% 0.1 270)',
+            ? 'color-mix(in oklch, var(--color-gold) 16%, white)'
+            : 'color-mix(in oklch, var(--color-accent) 12%, white)',
           color: enemy.bossCurrentPhase === 3
-            ? 'oklch(90% 0.15 20)'
+            ? 'var(--color-hp-low)'
             : enemy.bossCurrentPhase === 2
-            ? 'oklch(90% 0.12 45)'
-            : 'var(--color-text-muted)',
+            ? 'var(--color-gold-dim)'
+            : 'var(--color-accent-dim)',
           letterSpacing: '0.05em',
         }}>
-          {enemy.bossCurrentPhase === 3 ? '★ 페이즈 3 — 최종 형태' : enemy.bossCurrentPhase === 2 ? '▲ 페이즈 2 — 분노' : '페이즈 1'}
+          {enemy.bossCurrentPhase === 3 ? '페이즈 3 · 최종 형태' : enemy.bossCurrentPhase === 2 ? '페이즈 2 · 분노' : '페이즈 1'}
         </div>
       )}
 
@@ -801,11 +855,11 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
         <div style={{
           fontSize: 'var(--text-xxs)', fontWeight: 'var(--weight-bold)', textAlign: 'center',
           padding: '2px 6px', borderRadius: 'var(--radius-sm)',
-          background: 'oklch(35% 0.18 60)',
-          color: 'oklch(90% 0.18 60)',
+          background: 'color-mix(in oklch, var(--color-gold) 16%, white)',
+          color: 'var(--color-gold-dim)',
           letterSpacing: '0.05em',
         }}>
-          ⚔ 엘리트
+          엘리트
         </div>
       )}
 
@@ -836,7 +890,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
       {/* HP bar */}
       <div>
         <div style={{
-          height: '8px', background: 'var(--color-border-subtle)',
+          height: '8px', background: 'oklch(100% 0 0 / 0.68)',
           borderRadius: 'var(--radius-full)', overflow: 'hidden',
         }}>
           <div style={{
@@ -879,7 +933,7 @@ function EnemyCard({ enemy, isTargetable, onClick, party, isShaking, isDying, is
             fontSize: 'var(--text-xxs)', color: elColor, textAlign: 'center',
             fontWeight: 'var(--weight-bold)', letterSpacing: '0.05em',
           }}>
-            ▼ 타겟
+            TARGET
           </div>
         </>
       )}
@@ -913,8 +967,8 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battl
 
   return (
     <div style={{
-      background: 'var(--color-bg-elevated)',
-      border: '1px solid var(--color-border-subtle)',
+      background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
+      border: '1px solid color-mix(in oklch, var(--color-border-subtle) 82%, transparent)',
       borderLeft: `3px solid ${entity.isAlive ? elColor : 'var(--color-border-subtle)'}`,
       borderRadius: 'var(--radius-md)',
       padding: 'var(--space-2) var(--space-3)',
@@ -954,7 +1008,7 @@ function PartyMemberCard({ entity, isAlly, isShaking, isDying, isFlashing, battl
             {entity.name}
           </span>
           <span style={{ fontSize: 'var(--text-xxs)', color: 'var(--color-text-muted)' }}>
-            ATK {entity.stats.attack} · DEF {entity.stats.defense}
+            {isAlly && 'title' in entity ? `${entity.title} · ` : ''}ATK {entity.stats.attack} · DEF {entity.stats.defense}
           </span>
         </div>
       </div>
@@ -996,8 +1050,8 @@ function ItemCard({ item }: { item: ItemDef }) {
   const rarityColor = RARITY_COLOR[item.rarity] ?? 'var(--color-text-muted)'
   return (
     <div style={{
-      background: 'var(--color-bg-elevated)',
-      border: '1px solid var(--color-border-subtle)',
+      background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
+      border: '1px solid color-mix(in oklch, var(--color-border-subtle) 82%, transparent)',
       borderLeft: `3px solid ${rarityColor}`,
       borderRadius: 'var(--radius-md)',
       padding: 'var(--space-2) var(--space-3)',
@@ -1039,7 +1093,7 @@ function ResourceBar({ current, max, color, label }: {
         </span>
       </div>
       <div style={{
-        height: '4px', background: 'var(--color-border-subtle)',
+        height: '5px', background: 'oklch(100% 0 0 / 0.68)',
         borderRadius: 'var(--radius-full)', overflow: 'hidden',
       }}>
         <div style={{
@@ -1066,10 +1120,10 @@ function StatusTooltip({ effect, x, y }: { effect: StatusEffect; x: number; y: n
     <div style={{
       position: 'fixed', top: y, left: x,
       width: '220px', padding: 'var(--space-3)',
-      background: 'var(--color-bg-elevated)',
-      border: '1px solid var(--color-border-default)',
+      background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
+      border: '1px solid color-mix(in oklch, var(--color-accent) 22%, transparent)',
       borderRadius: 'var(--radius-md)',
-      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.5)',
+      boxShadow: 'var(--shadow-lg), var(--shadow-inset)',
       zIndex: 200, pointerEvents: 'none',
       fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)',
     }}>
@@ -1161,10 +1215,10 @@ function SynergyTooltip({ synergy, x, y }: { synergy: Synergy; x: number; y: num
     <div style={{
       position: 'fixed', top: y, left: x,
       width: '220px', padding: 'var(--space-3)',
-      background: 'var(--color-bg-elevated)',
-      border: '1px solid var(--color-border-default)',
+      background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
+      border: '1px solid color-mix(in oklch, var(--color-accent) 22%, transparent)',
       borderRadius: 'var(--radius-md)',
-      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.5)',
+      boxShadow: 'var(--shadow-lg), var(--shadow-inset)',
       zIndex: 200, pointerEvents: 'none',
       fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)',
     }}>
@@ -1294,7 +1348,7 @@ function BattleLog({ entries, isOpen, onToggle }: {
           width: '100%', height: '24px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 var(--space-3)',
-          background: 'var(--color-bg-surface)',
+          background: 'var(--color-glass)',
           border: '1px solid var(--color-border-subtle)',
           borderBottom: isOpen ? 'none' : '1px solid var(--color-border-subtle)',
           borderRadius: isOpen
@@ -1307,7 +1361,7 @@ function BattleLog({ entries, isOpen, onToggle }: {
         }}
       >
         <span>BATTLE LOG</span>
-        <span>{isOpen ? '▼' : '▲'}</span>
+        <span>{isOpen ? '접기' : '열기'}</span>
       </button>
 
       {isOpen && (
@@ -1319,7 +1373,7 @@ function BattleLog({ entries, isOpen, onToggle }: {
             fontSize: 'var(--text-xs)',
             display: 'flex', flexDirection: 'column', gap: '1px',
             padding: 'var(--space-2) var(--space-3)',
-            background: 'var(--color-bg-surface)',
+            background: 'var(--color-glass)',
             border: '1px solid var(--color-border-subtle)',
             borderTop: 'none',
             borderRadius: '0 0 var(--radius-md) var(--radius-md)',
@@ -1404,10 +1458,10 @@ function SkillTooltip({ skill, character, enemies, items, x, y }: {
       position: 'fixed', top: y, left: x,
       transform: 'translateY(-100%)',
       width: '240px', padding: 'var(--space-3)',
-      background: 'var(--color-bg-elevated)',
-      border: '1px solid var(--color-border-default)',
+      background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
+      border: '1px solid color-mix(in oklch, var(--color-accent) 22%, transparent)',
       borderRadius: 'var(--radius-md)',
-      boxShadow: '0 4px 20px oklch(0% 0 0 / 0.5)',
+      boxShadow: 'var(--shadow-lg), var(--shadow-inset)',
       zIndex: 100, pointerEvents: 'none',
       fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)',
     }}>
@@ -1486,11 +1540,13 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
   return (
     <div className="battle-skill-bar" style={{
       height: 'var(--skill-bar-height)', flexShrink: 0,
-      borderTop: '1px solid var(--color-border-subtle)',
-      background: 'var(--color-bg-surface)',
+      borderTop: '1px solid color-mix(in oklch, var(--color-accent) 18%, transparent)',
+      background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
       display: 'flex', alignItems: 'center',
       padding: '0 var(--space-4)', gap: 'var(--space-2)',
       overflowX: 'auto', overflowY: 'hidden',
+      boxShadow: '0 -14px 34px oklch(45% 0.1 245 / 0.1), var(--shadow-inset)',
+      backdropFilter: 'blur(18px) saturate(1.16)',
     }}>
       {tooltip && (() => {
         const skill = getSkillById(tooltip.skillId)
@@ -1543,9 +1599,9 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
               alignItems: 'center', justifyContent: 'center',
               gap: '2px', padding: 'var(--space-2)',
               background: isSelected
-                ? `color-mix(in oklch, ${elColor} 28%, var(--color-bg-elevated))`
+                ? `color-mix(in oklch, ${elColor} 18%, white)`
                 : cannotAfford && !isOnCooldown
-                  ? 'color-mix(in oklch, var(--color-hp-low) 8%, var(--color-bg-elevated))'
+                  ? 'color-mix(in oklch, var(--color-hp-low) 8%, white)'
                   : 'var(--color-bg-elevated)',
               border: `1px solid ${
                 isSelected    ? elColor :
@@ -1557,7 +1613,9 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
               cursor: isDisabled ? 'not-allowed' : 'pointer',
               opacity: !isPlayerTurn ? 0.4 : isOnCooldown ? 0.35 : cannotAfford ? 0.6 : 1,
               transition: 'all var(--duration-fast)',
-              boxShadow: isSelected ? `0 0 14px ${elColor}50` : 'none',
+              boxShadow: isSelected
+                ? `0 14px 28px color-mix(in oklch, ${elColor} 24%, transparent), var(--shadow-inset)`
+                : 'var(--shadow-sm), var(--shadow-inset)',
               transform: isSelected ? 'translateY(-3px)' : 'none',
             }}
           >
@@ -1626,7 +1684,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
           whiteSpace: 'nowrap', opacity: 0.85,
           animation: 'pulse 1.2s ease-in-out infinite',
         }}>
-          ▲ 적을 선택하여 스킬을 사용하세요
+          적을 선택하여 스킬을 사용하세요
         </span>
       )}
 
@@ -1642,7 +1700,7 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           gap: '4px', padding: 'var(--space-2)',
-          background: 'var(--color-bg-elevated)',
+          background: 'linear-gradient(180deg, var(--color-glass-strong), var(--color-glass))',
           border: '1px solid var(--color-border-default)',
           borderRadius: 'var(--radius-md)',
           cursor: isPlayerTurn ? 'pointer' : 'not-allowed',
@@ -1651,7 +1709,6 @@ function SkillBar({ character, isPlayerTurn, selectedSkillId, onSkillClick, enem
           marginLeft: 'var(--space-2)',
         }}
       >
-        <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🛡</span>
         <span style={{
           fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)',
           color: 'var(--color-text-secondary)', textAlign: 'center',

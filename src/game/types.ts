@@ -124,6 +124,7 @@ export type AllyAction =
 export interface AllyDef {
   readonly id: EntityId
   readonly name: string
+  readonly title: string
   readonly description: string
   readonly baseStats: BaseStats
   readonly action: AllyAction      // 매 턴 자동 행동
@@ -220,6 +221,7 @@ export interface BattleAlly {
   readonly id: EntityId
   readonly defId: EntityId
   readonly name: string
+  readonly title: string
   readonly stats: Stats
   readonly action: AllyAction
   readonly element: Element
@@ -341,6 +343,7 @@ export interface EventChoice {
 export interface EventDef {
   readonly id: string
   readonly name: string
+  readonly characterId?: EntityId
   readonly flavor: string          // 분위기 문구
   readonly description: string
   readonly choices: readonly [EventChoice, EventChoice]

@@ -3,8 +3,8 @@ import type { CharacterDef } from '../types'
 export const CHARACTERS: readonly CharacterDef[] = [
   {
     id: 'dark_knight',
-    name: '칠흑의 기사',
-    title: '어둠 속의 검',
+    name: '세리아',
+    title: '칠흑의 기사',
     element: 'dark',
     baseStats: {
       maxHp: 1200,
@@ -15,7 +15,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
     },
     innateSkillId: 'shadow_strike',
     startingSkillIds: ['slash', 'poison_bite'],
-    lore: '빛을 잃은 성기사. 어둠의 힘을 받아들여 강대한 힘을 얻었지만, 그 대가로 삶의 기쁨을 잃었다.',
+    lore: '몰락한 성기사단 출신의 과묵한 기사. 누군가를 살리기 위해 어둠을 받아들였고, 잃어버린 감정을 되찾으려 회색 첨탑에 오른다.',
     draftWeights: {
       // 스킬
       void_blade: 5, blood_pact: 5, soul_drain: 4, dark_nova: 4,
@@ -30,8 +30,8 @@ export const CHARACTERS: readonly CharacterDef[] = [
   },
   {
     id: 'fire_mage',
-    name: '불꽃의 마법사',
-    title: '파멸의 불꽃',
+    name: '에밀리아',
+    title: '불꽃의 마법사',
     element: 'fire',
     baseStats: {
       maxHp: 950,
@@ -42,7 +42,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
     },
     innateSkillId: 'flame_strike',
     startingSkillIds: ['fireball', 'ignite', 'basic_ember'],
-    lore: '고대 화염 마법을 연구한 마법사. 폭발적인 마력을 지녔지만 방어는 취약하다.',
+    lore: '왕립 마법 학원에서 추방된 천재 마법사. 오만해 보이지만 인정받고 싶은 마음이 강하며, 자신의 불꽃이 저주가 아님을 증명하려 한다.',
     draftWeights: {
       // 스킬
       mana_burst: 5, phoenix_rebirth: 5, eruption: 4, inferno: 4,
@@ -56,8 +56,8 @@ export const CHARACTERS: readonly CharacterDef[] = [
   },
   {
     id: 'holy_paladin',
-    name: '빛의 성기사',
-    title: '신의 방패',
+    name: '리제롯테',
+    title: '빛의 성기사',
     element: 'light',
     baseStats: {
       maxHp: 1400,
@@ -68,7 +68,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
     },
     innateSkillId: 'holy_strike',
     startingSkillIds: ['divine_heal', 'basic_glimmer', 'smite'],
-    lore: '신의 가호를 받은 성기사. 굳건한 방어와 회복 능력으로 파티를 지킨다.',
+    lore: '교회의 선택을 받은 성실한 성기사. 예의 바르고 책임감이 강하지만, 숨겨진 신탁의 진실을 확인하기 위해 첨탑으로 향한다.',
     draftWeights: {
       // 스킬
       holy_aura: 5, divine_judgment: 5, radiance: 4, judgment: 4,
@@ -82,8 +82,8 @@ export const CHARACTERS: readonly CharacterDef[] = [
   },
   {
     id: 'tide_dancer',
-    name: '조류 무희',
-    title: '흐르는 물의 춤',
+    name: '미레유',
+    title: '조류 무희',
     element: 'water',
     baseStats: {
       maxHp: 950,
@@ -94,7 +94,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
     },
     innateSkillId: 'water_lance',
     startingSkillIds: ['heal_water', 'cleanse', 'basic_splash'],
-    lore: '바다의 정령과 계약한 무희. 빠른 속도와 유연한 기술로 전장을 누빈다.',
+    lore: '바다 정령과 계약한 항구 도시의 무희. 부드럽게 웃지만 집요한 면이 있으며, 고향 바다를 잠식한 저주의 근원을 찾고 있다.',
     draftWeights: {
       // 스킬
       tsunami_dance: 5, current_step: 5, riptide: 4, tidal_wave: 4,
@@ -108,8 +108,8 @@ export const CHARACTERS: readonly CharacterDef[] = [
   },
   {
     id: 'berserker',
-    name: '광전사',
-    title: '피의 분노',
+    name: '프레데리카',
+    title: '광전사',
     element: 'physical',
     baseStats: {
       maxHp: 1100,
@@ -120,7 +120,7 @@ export const CHARACTERS: readonly CharacterDef[] = [
     },
     innateSkillId: 'heavy_blow',
     startingSkillIds: ['slash', 'bloodlust', 'cleave'],
-    lore: '분노를 힘으로 바꾸는 광전사. 방어를 포기하고 오직 공격에만 집중한다.',
+    lore: '전쟁터에서 살아남은 호쾌한 전사. 웃으며 앞장서지만 분노를 멈추는 법을 몰라, 자신의 피에 새겨진 전장의 저주를 끊으려 한다.',
     draftWeights: {
       // 스킬
       death_charge: 5, war_cry: 4, heavy_blow: 4,

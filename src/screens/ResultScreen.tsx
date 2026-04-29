@@ -41,7 +41,7 @@ export function ResultScreen() {
     .filter(Boolean) as NonNullable<ReturnType<typeof getSkillById>>[]
 
   // 동료 목록
-  const acquiredAllies = run.allies.map(a => a.name)
+  const acquiredAllies = run.allies.map(a => `${a.name} (${a.title})`)
 
   // 클리어 라운드 텍스트
   const roundText = isVictory

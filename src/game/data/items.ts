@@ -3,91 +3,91 @@ import type { ItemDef } from '../types'
 export const ITEMS: readonly ItemDef[] = [
   {
     id: 'iron_ring',
-    name: '철의 반지',
+    name: '길드의 철반지',
     description: '공격력이 30 증가한다.',
     rarity: 'common',
     effects: [{ type: 'stat_boost', stat: 'attack', amount: 30 }],
   },
   {
     id: 'mana_crystal',
-    name: '마나 수정',
+    name: '청마나 결정',
     description: '매 턴 MP를 5 회복한다.',
     rarity: 'common',
     effects: [{ type: 'mp_regen', amount: 5 }],
   },
   {
     id: 'tough_armor',
-    name: '강철 갑옷',
+    name: '하층 수호갑',
     description: '방어력이 40 증가한다.',
     rarity: 'common',
     effects: [{ type: 'stat_boost', stat: 'defense', amount: 40 }],
   },
   {
     id: 'vitality_gem',
-    name: '생명력 보석',
+    name: '생명의 홍옥',
     description: '최대 HP가 200 증가한다.',
     rarity: 'common',
     effects: [{ type: 'stat_boost', stat: 'maxHp', amount: 200 }],
   },
   {
     id: 'swift_boots',
-    name: '질풍의 장화',
+    name: '바람깃 장화',
     description: '속도가 20 증가한다.',
     rarity: 'common',
     effects: [{ type: 'stat_boost', stat: 'speed', amount: 20 }],
   },
   {
     id: 'whetstone',
-    name: '숫돌',
+    name: '기사단 숫돌',
     description: '물리 속성 공격의 피해가 15% 증가한다.',
     rarity: 'common',
     effects: [{ type: 'elemental_damage', element: 'physical', multiplier: 1.15 }],
   },
   {
     id: 'executioner_axe',
-    name: '처형자의 도끼',
+    name: '전장 처형도끼',
     description: '적을 처치할 때 HP를 50 회복한다.',
     rarity: 'rare',
     effects: [{ type: 'heal_on_kill', amount: 50 }],
   },
   {
     id: 'flame_shard',
-    name: '화염 파편',
+    name: '적련 파편',
     description: '화염 속성 공격의 피해가 25% 증가한다.',
     rarity: 'rare',
     effects: [{ type: 'elemental_damage', element: 'fire', multiplier: 1.25 }],
   },
   {
     id: 'shadow_gem',
-    name: '어둠의 보석',
+    name: '흑백합 보석',
     description: '어둠 속성 공격의 피해가 25% 증가한다.',
     rarity: 'rare',
     effects: [{ type: 'elemental_damage', element: 'dark', multiplier: 1.25 }],
   },
   {
     id: 'holy_symbol',
-    name: '성스러운 문장',
+    name: '성백 문장',
     description: '빛 속성 공격의 피해가 25% 증가한다.',
     rarity: 'rare',
     effects: [{ type: 'elemental_damage', element: 'light', multiplier: 1.25 }],
   },
   {
     id: 'tide_pendant',
-    name: '조류의 목걸이',
+    name: '해류 목걸이',
     description: '수계 속성 공격의 피해가 20% 증가한다.',
     rarity: 'rare',
     effects: [{ type: 'elemental_damage', element: 'water', multiplier: 1.20 }],
   },
   {
     id: 'cooldown_watch',
-    name: '마법의 회중시계',
+    name: '학원 회중시계',
     description: '모든 스킬의 쿨다운이 1 감소한다.',
     rarity: 'rare',
     effects: [{ type: 'skill_cooldown_reduce', amount: 1 }],
   },
   {
     id: 'berserker_heart',
-    name: '광전사의 심장',
+    name: '붉은 전장의 심장',
     description: 'HP가 30% 미만일 때 공격력이 100% 증가한다.',
     rarity: 'epic',
     effects: [
@@ -100,14 +100,14 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'arcane_tome',
-    name: '비전의 마법서',
+    name: '금서 사본',
     description: '매 턴 MP를 10 회복한다.',
     rarity: 'rare',
     effects: [{ type: 'mp_regen', amount: 10 }],
   },
   {
     id: 'dragonscale',
-    name: '용의 비늘',
+    name: '용혈 비늘',
     description: '공격력과 방어력이 각각 50 증가한다.',
     rarity: 'epic',
     effects: [
@@ -117,7 +117,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'titan_heart',
-    name: '타이탄의 심장',
+    name: '거신 심핵',
     description: '최대 HP가 500 증가하고 방어력이 30 증가한다.',
     rarity: 'epic',
     effects: [
@@ -127,7 +127,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'death_mask',
-    name: '죽음의 가면',
+    name: '망자의 무도 가면',
     description: '공격력이 100 증가한다. 전설급 아이템.',
     rarity: 'legendary',
     effects: [{ type: 'stat_boost', stat: 'attack', amount: 100 }],
@@ -135,28 +135,28 @@ export const ITEMS: readonly ItemDef[] = [
   // ── 신규 아이템 (Phase 2-2) ──────────────────────────────────────────────
   {
     id: 'vampire_ring',
-    name: '흡혈 반지',
+    name: '밤피의 반지',
     description: '물리 공격으로 가한 피해의 10%를 HP로 흡수한다.',
     rarity: 'rare',
     effects: [{ type: 'lifesteal', element: 'physical', percent: 0.10 }],
   },
   {
     id: 'ancient_scroll',
-    name: '고대의 두루마리',
+    name: '첨탑 고문서',
     description: '스킬 사용 시 5% 확률로 MP 소비가 무료가 된다.',
     rarity: 'rare',
     effects: [{ type: 'free_skill_chance', chance: 0.05 }],
   },
   {
     id: 'elemental_core',
-    name: '원소의 핵',
+    name: '오원소 심핵',
     description: '캐릭터 고유 원소와 같은 속성 스킬의 피해가 20% 증가한다.',
     rarity: 'rare',
     effects: [{ type: 'elemental_match_damage', multiplier: 1.20 }],
   },
   {
     id: 'storm_cloak',
-    name: '폭풍의 망토',
+    name: '창뢰 망토',
     description: '속도가 40 증가하고 치명타 확률이 5% 증가한다.',
     rarity: 'rare',
     effects: [
@@ -166,7 +166,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'cursed_necklace',
-    name: '저주의 목걸이',
+    name: '저주 사슬목걸이',
     description: '공격력이 80 증가하지만 매 턴 HP가 15 감소한다.',
     rarity: 'epic',
     effects: [
@@ -176,35 +176,35 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'revival_potion',
-    name: '불사의 묘약',
+    name: '불사조 묘약',
     description: '전투 중 처음 사망 시 HP 1로 버티고 살아남는다.',
     rarity: 'epic',
     effects: [{ type: 'death_prevention' }],
   },
   {
     id: 'magic_antidote',
-    name: '마법 해독제',
+    name: '성수 해독약',
     description: '독, 화상, 빙결 상태이상에 면역이 된다.',
     rarity: 'rare',
     effects: [{ type: 'status_immunity', statuses: ['poison', 'burn', 'freeze'] }],
   },
   {
     id: 'time_sand',
-    name: '시간의 모래',
+    name: '시계탑의 모래',
     description: '모든 스킬의 쿨다운이 2턴 감소한다.',
     rarity: 'epic',
     effects: [{ type: 'skill_cooldown_reduce', amount: 2 }],
   },
   {
     id: 'heroes_crest',
-    name: '용사의 문장',
+    name: '등반자의 문장',
     description: '보스에게 가하는 피해가 25% 증가한다.',
     rarity: 'epic',
     effects: [{ type: 'boss_damage_bonus', multiplier: 1.25 }],
   },
   {
     id: 'twin_wings',
-    name: '쌍둥이 날개',
+    name: '쌍익 부적',
     description: '치명타 확률이 10% 증가하고 미스가 발생하지 않는다.',
     rarity: 'legendary',
     effects: [
@@ -214,7 +214,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'frost_gem',
-    name: '서리 보석',
+    name: '빙성 보석',
     description: '수계 속성 공격의 피해가 25% 증가한다.',
     rarity: 'rare',
     effects: [{ type: 'elemental_damage', element: 'water', multiplier: 1.25 }],
@@ -222,7 +222,7 @@ export const ITEMS: readonly ItemDef[] = [
   // ── 조합 전용 (Craft-only) 아이템 ────────────────────────────────────────
   {
     id: 'dragon_blade',
-    name: '용의 검',
+    name: '용혈검 아르데라',
     description: '공격력이 60 증가하고 화염 속성 공격의 피해가 30% 증가한다.',
     rarity: 'legendary',
     effects: [
@@ -232,7 +232,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'immortal_armor',
-    name: '불사의 갑옷',
+    name: '불사 성갑',
     description: '방어력이 60 증가하고 전투 중 첫 사망 시 HP 1로 살아남는다.',
     rarity: 'legendary',
     effects: [
@@ -242,14 +242,14 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'archmage_tome',
-    name: '대마법사의 마법서',
+    name: '대마도 금서',
     description: '매 턴 MP를 20 회복한다.',
     rarity: 'legendary',
     effects: [{ type: 'mp_regen', amount: 20 }],
   },
   {
     id: 'night_blade',
-    name: '야밤의 검',
+    name: '야영검 녹스',
     description: '공격력이 70 증가하고 어둠 속성 공격의 피해가 30% 증가한다.',
     rarity: 'legendary',
     effects: [
@@ -259,7 +259,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'life_crystal',
-    name: '생명의 수정',
+    name: '생명의 청홍정',
     description: '최대 HP가 350 증가하고 매 턴 MP를 8 회복한다.',
     rarity: 'epic',
     effects: [
@@ -269,7 +269,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'pyroclast_orb',
-    name: '화산탄의 구슬',
+    name: '화산탄 성구',
     description: '화염 속성 공격의 피해가 40% 증가하고 물리 속성 공격의 피해가 25% 증가한다.',
     rarity: 'legendary',
     effects: [
@@ -281,7 +281,7 @@ export const ITEMS: readonly ItemDef[] = [
   // ── 신규 아이템 ────────────────────────────────────────────────
   {
     id: 'sacred_lance',
-    name: '신성한 창',
+    name: '성백창 리제아',
     description: '빛 속성 공격의 피해가 30% 증가하고 공격력이 60 증가한다.',
     rarity: 'legendary',
     effects: [
@@ -291,7 +291,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'glacial_crown',
-    name: '빙하의 왕관',
+    name: '빙하성 왕관',
     description: '수계 속성 공격의 피해가 40% 증가하고 물리 속성 공격의 피해가 20% 증가한다.',
     rarity: 'legendary',
     effects: [
@@ -301,7 +301,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'bloodstone_ring',
-    name: '혈석 반지',
+    name: '혈석 계약반지',
     description: '공격력이 40 증가하고 어둠 속성 공격 시 피해의 15%를 HP로 흡수한다.',
     rarity: 'epic',
     effects: [
@@ -311,7 +311,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'speed_talisman',
-    name: '속도의 부적',
+    name: '순풍 부적',
     description: '속도가 30 증가하고 치명타 확률이 7% 증가한다.',
     rarity: 'rare',
     effects: [
@@ -321,7 +321,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'champion_belt',
-    name: '챔피언의 허리띠',
+    name: '투기장 허리띠',
     description: '최대 HP가 250 증가하고 공격력이 30 증가한다.',
     rarity: 'rare',
     effects: [
@@ -331,7 +331,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'grand_tome',
-    name: '대마법서',
+    name: '마도원전',
     description: '매 턴 MP가 12 회복되고 스킬 쿨다운이 1 감소한다.',
     rarity: 'epic',
     effects: [
@@ -341,7 +341,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'stun_ward',
-    name: '기절 방어부',
+    name: '정신 방호부',
     description: '방어력이 30 증가하고 기절 및 방어력 감소 상태이상에 면역이 된다.',
     rarity: 'rare',
     effects: [
@@ -351,7 +351,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'warrior_seal',
-    name: '전사의 인장',
+    name: '용병대 인장',
     description: '공격력이 60 증가하지만 매 턴 HP가 10 감소한다.',
     rarity: 'epic',
     effects: [
@@ -361,7 +361,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'ancient_seal',
-    name: '고대의 봉인',
+    name: '첨탑 봉인석',
     description: '모든 속성 공격의 피해가 20% 증가한다.',
     rarity: 'legendary',
     effects: [
@@ -374,7 +374,7 @@ export const ITEMS: readonly ItemDef[] = [
   },
   {
     id: 'void_crystal',
-    name: '공허의 수정',
+    name: '공허 결정',
     description: '어둠 속성 공격의 피해가 30% 증가하고 스킬 사용 시 8% 확률로 MP를 소모하지 않는다.',
     rarity: 'epic',
     effects: [

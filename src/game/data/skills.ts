@@ -6,7 +6,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'slash',
-    name: '참격',
+    name: '검로 베기',
     description: '단일 적에게 공격력의 120% 물리 피해를 준다.',
     mpCost: 0,
     cooldown: 0,
@@ -16,7 +16,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'heavy_blow',
-    name: '강타',
+    name: '파쇄 일격',
     description: '단일 적에게 공격력의 200% 물리 피해를 준다.',
     mpCost: 20,
     cooldown: 2,
@@ -26,7 +26,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'cleave',
-    name: '휩쓸기',
+    name: '전열 가르기',
     description: '전체 적에게 공격력의 100% 물리 피해를 준다.',
     mpCost: 20,
     cooldown: 3,
@@ -36,7 +36,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'charge_strike',
-    name: '차지 스트라이크',
+    name: '맹진 검격',
     description: '2턴 후 공격력의 350% 물리 피해를 준다. 이번 턴 공격력 충전.',
     mpCost: 15,
     cooldown: 4,
@@ -48,7 +48,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'thousand_blades',
-    name: '천도참격',
+    name: '천검난무',
     description: '단일 적에게 공격력의 450% 물리 피해. 적에게 방어력 감소를 부여.',
     mpCost: 40,
     cooldown: 5,
@@ -65,7 +65,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'basic_ember',
-    name: '기본 불꽃',
+    name: '잔불탄',
     description: '단일 적에게 공격력의 80% 화염 피해를 준다. MP 없이 사용 가능.',
     mpCost: 0,
     cooldown: 0,
@@ -75,7 +75,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'flame_strike',
-    name: '화염 타격',
+    name: '홍련 타격',
     description: '단일 적에게 공격력의 130% 화염 피해를 준다.',
     mpCost: 10,
     cooldown: 0,
@@ -85,7 +85,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'fireball',
-    name: '파이어볼',
+    name: '적련구',
     description: '전체 적에게 공격력의 100% 화염 피해를 주고 화상을 부여.',
     mpCost: 30,
     cooldown: 3,
@@ -98,7 +98,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'ignite',
-    name: '점화',
+    name: '발화각인',
     description: '단일 적에게 강한 화상을 부여한다. (3턴, 20 고정 피해)',
     mpCost: 15,
     cooldown: 2,
@@ -110,7 +110,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'eruption',
-    name: '화산 폭발',
+    name: '화산 개문',
     description: '전체 적에게 공격력의 180% 화염 피해. 자신에게도 공격력 버프.',
     mpCost: 45,
     cooldown: 5,
@@ -123,7 +123,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'inferno',
-    name: '인페르노',
+    name: '겁화 낙일',
     description: '전체 적에게 공격력의 400% 화염 피해. 화상 3턴 부여.',
     mpCost: 60,
     cooldown: 6,
@@ -140,7 +140,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'basic_splash',
-    name: '기본 물방울',
+    name: '물결탄',
     description: '단일 적에게 공격력의 80% 수속 피해를 주고, 다음 스킬 위력이 40% 증가한다. MP 없이 사용 가능.',
     mpCost: 0,
     cooldown: 0,
@@ -153,7 +153,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'water_lance',
-    name: '수류창',
+    name: '청류창',
     description: '단일 적에게 공격력의 130% 수속 피해.',
     mpCost: 10,
     cooldown: 0,
@@ -163,7 +163,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'tidal_wave',
-    name: '해일',
+    name: '해일장막',
     description: '전체 적에게 공격력의 120% 수속 피해. 냉기 부여.',
     mpCost: 35,
     cooldown: 4,
@@ -176,7 +176,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'heal_water',
-    name: '물의 치유',
+    name: '치유의 물결',
     description: '자신의 공격력 기반으로 HP를 회복한다.',
     mpCost: 20,
     cooldown: 2,
@@ -186,7 +186,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'cleanse',
-    name: '정화',
+    name: '정화의 비',
     description: '독/화상 상태이상을 제거하고 HP를 소량 회복.',
     mpCost: 15,
     cooldown: 2,
@@ -200,7 +200,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'barrier',
-    name: '방어막',
+    name: '성역 방벽',
     description: '공격력의 150%에 해당하는 피해를 흡수하는 방어막을 생성한다.',
     mpCost: 25,
     cooldown: 3,
@@ -214,7 +214,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'shadow_strike',
-    name: '그림자 타격',
+    name: '암영참',
     description: '단일 적에게 공격력의 140% 어둠 피해.',
     mpCost: 15,
     cooldown: 1,
@@ -224,7 +224,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'poison_bite',
-    name: '독 이빨',
+    name: '독아각인',
     description: '단일 적에게 독을 부여한다. (3턴, HP 6% 피해)',
     mpCost: 10,
     cooldown: 2,
@@ -236,7 +236,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'soul_drain',
-    name: '영혼 흡수',
+    name: '영혼갈증',
     description: '단일 적에게 공격력의 160% 어둠 피해. 피해의 30%를 HP로 흡수.',
     mpCost: 25,
     cooldown: 3,
@@ -249,7 +249,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'dark_nova',
-    name: '다크 노바',
+    name: '암흑신성',
     description: '전체 적에게 공격력의 200% 어둠 피해. 전체에 기절 부여.',
     mpCost: 45,
     cooldown: 5,
@@ -262,7 +262,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'annihilation',
-    name: '전멸',
+    name: '종언의 별',
     description: '전체 적에게 공격력의 550% 어둠 피해.',
     mpCost: 70,
     cooldown: 7,
@@ -278,7 +278,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'basic_glimmer',
-    name: '기본 성광',
+    name: '성광탄',
     description: '단일 적에게 공격력의 80% 빛 피해를 준다. MP 없이 사용 가능.',
     mpCost: 0,
     cooldown: 0,
@@ -288,7 +288,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'holy_strike',
-    name: '성광 타격',
+    name: '성광검',
     description: '단일 적에게 공격력의 130% 빛 피해.',
     mpCost: 10,
     cooldown: 0,
@@ -298,7 +298,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'smite',
-    name: '신벌',
+    name: '징벌의 낙인',
     description: '단일 적에게 공격력의 150% 빛 피해를 준다.',
     mpCost: 15,
     cooldown: 1,
@@ -308,7 +308,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'divine_heal',
-    name: '신성 치유',
+    name: '성백 치유',
     description: '공격력의 180%만큼 HP를 회복하고 독/화상을 제거.',
     mpCost: 35,
     cooldown: 3,
@@ -322,7 +322,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'radiance',
-    name: '광휘',
+    name: '창성광휘',
     description: '전체 적에게 공격력의 150% 빛 피해. 자신의 방어막 생성.',
     mpCost: 40,
     cooldown: 4,
@@ -335,7 +335,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'judgment',
-    name: '최후의 심판',
+    name: '최후심판',
     description: '단일 적에게 공격력의 550% 빛 피해.',
     mpCost: 80,
     cooldown: 8,
@@ -351,7 +351,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'meditate',
-    name: '명상',
+    name: '침잠명상',
     description: 'MP를 25 회복한다. 쿨다운 3턴.',
     mpCost: 0,
     cooldown: 3,
@@ -361,7 +361,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'arcane_focus',
-    name: '마나 집중',
+    name: '마나 조율',
     description: '3턴간 매 턴 8 MP를 회복하는 마나 재생 상태가 된다.',
     mpCost: 0,
     cooldown: 4,
@@ -371,7 +371,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'mp_restore',
-    name: 'MP 회복',
+    name: '마나 회수',
     description: 'MP를 30 회복한다.',
     mpCost: 0,
     cooldown: 3,
@@ -381,7 +381,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'power_surge',
-    name: '파워 서지',
+    name: '투지 개방',
     description: '2턴간 공격력이 80% 증가한다.',
     mpCost: 20,
     cooldown: 4,
@@ -395,7 +395,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'void_blade',
-    name: '공허 검격',
+    name: '공허검 세례',
     description: '어둠과 물리 속성으로 2연격. 각 타격이 속성 저항에 개별 계산된다. 합산 공격력의 150%.',
     mpCost: 20,
     cooldown: 2,
@@ -408,7 +408,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'blood_pact',
-    name: '피의 계약',
+    name: '흑혈 계약',
     description: '최대 HP의 10%를 소모해 MP 40을 즉시 획득한다. 자신을 사망시키지 않는다.',
     mpCost: 0,
     cooldown: 3,
@@ -422,7 +422,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'mana_burst',
-    name: '마나 폭발',
+    name: '금서 해방',
     description: '막대한 MP를 소진해 전체 적에게 공격력의 250% 화염 피해를 가한다.',
     mpCost: 60,
     cooldown: 4,
@@ -432,7 +432,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'phoenix_rebirth',
-    name: '불사조의 부활',
+    name: '불사조 서약',
     description: '자신에게 부활 효과를 부여한다. 다음 사망 시 HP 30%로 1회 부활한다.',
     mpCost: 30,
     cooldown: 6,
@@ -446,7 +446,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'holy_aura',
-    name: '성스러운 오라',
+    name: '성백의 가호',
     description: '파티 전원에게 3턴간 매 턴 HP를 회복하는 재생 효과를 부여한다.',
     mpCost: 25,
     cooldown: 3,
@@ -456,7 +456,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'divine_judgment',
-    name: '신성한 심판',
+    name: '무음신판',
     description: '적 HP가 25% 이하이면 즉사시킨다. 조건 미달 시 공격력의 80% 피해.',
     mpCost: 35,
     cooldown: 4,
@@ -470,7 +470,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'tsunami_dance',
-    name: '해일 춤',
+    name: '조류무곡',
     description: '전체 적에게 공격력의 140% 수계 피해를 주고 모든 적을 1턴 빙결시킨다.',
     mpCost: 35,
     cooldown: 4,
@@ -483,7 +483,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'current_step',
-    name: '조류 발걸음',
+    name: '해류 스텝',
     description: '파티 전원의 공격력을 2턴간 60% 증폭시킨다. (재사용 대기: 5턴)',
     mpCost: 30,
     cooldown: 5,
@@ -493,7 +493,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'riptide',
-    name: '격류',
+    name: '역조연격',
     description: '단일 적에게 물리 100% + 수계 100%의 연속 타격. 빙결 부여.',
     mpCost: 30,
     cooldown: 3,
@@ -511,7 +511,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'bloodlust',
-    name: '피의 광기',
+    name: '전귀의 웃음',
     description: '적에게 공격력의 150% 물리 피해를 주고 자신의 공격력이 3턴간 60% 증가한다.',
     mpCost: 20,
     cooldown: 3,
@@ -524,7 +524,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'death_charge',
-    name: '절사 돌격',
+    name: '사선 돌파',
     description: 'HP가 낮을수록 강해지는 물리 돌격. HP가 1%면 공격력의 최대 500% 피해.',
     mpCost: 20,
     cooldown: 2,
@@ -534,7 +534,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'war_cry',
-    name: '전투 함성',
+    name: '전장의 호령',
     description: '파티 전원의 공격력을 3턴간 40% 증폭시키고 자신의 방어력을 일시적으로 강화한다.',
     mpCost: 25,
     cooldown: 4,
@@ -550,7 +550,7 @@ export const SKILLS: readonly SkillDef[] = [
   // -------------------------------------------------------------------------
   {
     id: 'void_annihilation',
-    name: '허공 전멸',
+    name: '흑백합 종언',
     description: '전체 적에게 공격력의 550% 어둠 피해. 그림자 타격과 전멸의 정수를 합쳤다.',
     mpCost: 60,
     cooldown: 6,
@@ -560,7 +560,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'holy_inferno',
-    name: '성화 지옥불',
+    name: '성염 심판',
     description: '전체 적에게 공격력의 300% 화염+빛 피해. 화상 2턴 부여 및 방어막 생성.',
     mpCost: 65,
     cooldown: 6,
@@ -575,7 +575,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'storm_blade',
-    name: '폭풍 검기',
+    name: '창뢰검무',
     description: '단일 적에게 물리+수계 350% 2연격. 빙결 부여.',
     mpCost: 45,
     cooldown: 4,
@@ -589,7 +589,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'dark_heal',
-    name: '암흑 치유',
+    name: '흑성 흡수',
     description: '단일 적에게 공격력의 200% 어둠 피해를 주고 가한 피해만큼 자신의 HP를 회복한다.',
     mpCost: 50,
     cooldown: 4,
@@ -602,7 +602,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'berserker_rage',
-    name: '광전사의 분노',
+    name: '붉은 전장 광휘',
     description: 'HP가 낮을수록 강해지는 최대 공격력의 500% 물리 공격. 3턴간 공격력 100% 증가.',
     mpCost: 40,
     cooldown: 5,
@@ -615,7 +615,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'steam_surge',
-    name: '증기 폭풍',
+    name: '증기대폭주',
     description: '전체 적에게 화염+수계 각 200% 피해를 주고 화상과 빙결을 동시에 부여한다.',
     mpCost: 65,
     cooldown: 6,
@@ -630,7 +630,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'phantom_strike',
-    name: '환영 타격',
+    name: '환영독참',
     description: '단일 적에게 공격력의 320% 어둠 피해를 주고 독 상태 4턴을 부여한다.',
     mpCost: 50,
     cooldown: 4,
@@ -643,7 +643,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'titan_smash',
-    name: '타이탄 분쇄',
+    name: '거신 분쇄',
     description: '전체 적에게 공격력의 320% 물리 피해를 주고 전체 적의 방어력을 2턴간 감소시킨다.',
     mpCost: 55,
     cooldown: 5,
@@ -656,7 +656,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'holy_tide',
-    name: '성스러운 조류',
+    name: '성조의 기도',
     description: '파티 전원의 HP를 공격력의 180%로 치유하고 3턴간 재생 효과를 부여한다.',
     mpCost: 50,
     cooldown: 5,
@@ -669,7 +669,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'void_lance',
-    name: '공허의 창',
+    name: '공허관통창',
     description: '단일 적에게 공격력의 400% 어둠 피해를 주고 가한 피해의 50%를 HP로 흡수한다.',
     mpCost: 60,
     cooldown: 5,
@@ -684,7 +684,7 @@ export const SKILLS: readonly SkillDef[] = [
   // ── 신규 스킬 ──────────────────────────────────────────────────
   {
     id: 'shield_bash',
-    name: '방패 강타',
+    name: '방패단죄',
     description: '단일 적에게 공격력의 110% 물리 피해를 주고 1턴간 기절시킨다.',
     mpCost: 20,
     cooldown: 2,
@@ -697,7 +697,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'blade_storm',
-    name: '칼날 폭풍',
+    name: '검우폭풍',
     description: '전체 적에게 공격력의 200% 물리 피해를 주고 2턴간 방어력을 25% 감소시킨다.',
     mpCost: 40,
     cooldown: 5,
@@ -710,7 +710,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'fire_spear',
-    name: '화염 창',
+    name: '홍련창',
     description: '단일 적에게 공격력의 220% 화염 피해를 주고 2턴간 화상 상태를 부여한다.',
     mpCost: 25,
     cooldown: 2,
@@ -723,7 +723,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'blaze_form',
-    name: '화염 형태',
+    name: '화염현현',
     description: '3턴간 공격력을 90% 증가시키고 자신에게 1턴 화상을 부여한다.',
     mpCost: 35,
     cooldown: 5,
@@ -736,7 +736,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'frost_bolt',
-    name: '냉기 화살',
+    name: '서리화살',
     description: '단일 적에게 공격력의 170% 수계 피해를 주고 1턴간 빙결시킨다.',
     mpCost: 20,
     cooldown: 2,
@@ -749,7 +749,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'mending_rain',
-    name: '치유의 비',
+    name: '은비 치유',
     description: '파티 전원에게 3턴간 재생 효과를 부여한다.',
     mpCost: 25,
     cooldown: 3,
@@ -761,7 +761,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'deep_strike',
-    name: '심층 타격',
+    name: '심층참격',
     description: 'HP가 낮을수록 강해지는 최대 200% 어둠 피해를 주고 2턴간 방어력을 감소시킨다.',
     mpCost: 30,
     cooldown: 3,
@@ -774,7 +774,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'nightmare',
-    name: '악몽',
+    name: '악몽개문',
     description: '전체 적에게 공격력의 250% 어둠 피해를 주고 1턴간 기절시킨다.',
     mpCost: 45,
     cooldown: 5,
@@ -787,7 +787,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'divine_chain',
-    name: '신성 사슬',
+    name: '성쇄결박',
     description: '단일 적에게 공격력의 200% 빛 피해를 주고 공격력의 100%만큼 치유하며 방어막을 생성한다.',
     mpCost: 40,
     cooldown: 4,
@@ -801,7 +801,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'blessing',
-    name: '축복',
+    name: '축복기도',
     description: '파티 전원에게 2턴간 공격력 30% 증가와 재생 효과를 부여한다.',
     mpCost: 25,
     cooldown: 4,
@@ -814,7 +814,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'venom_cloud',
-    name: '독기 구름',
+    name: '독무장막',
     description: '전체 적에게 공격력의 150% 어둠 피해를 주고 4턴간 독 상태를 부여한다.',
     mpCost: 40,
     cooldown: 5,
@@ -827,7 +827,7 @@ export const SKILLS: readonly SkillDef[] = [
   },
   {
     id: 'inner_peace',
-    name: '내면의 평화',
+    name: '고요한 호흡',
     description: '공격력의 100%만큼 HP를 회복하고 MP를 20 회복한다. MP 소모 없음.',
     mpCost: 0,
     cooldown: 4,

@@ -516,21 +516,25 @@ describe('startBattle — death_prevention 아이템', () => {
 describe('completeBattle — 이벤트 라운드', () => {
   it('EVENT_ROUNDS(3,7,12,18,24)에 해당하는 라운드 승리 후 phase=event로 전환된다', () => {
     const run = { ...makeRun(), round: 3 }
-    const battleState: BattleState = {
-      phase: 'victory',
+    const battleState = makeCompletedBattleState({
       party: [createBattleCharacter('dark_knight', ['slash'], [])],
-      allies: [],
-      enemies: [],
-      log: [],
-      turn: 1,
-      rng: makeRng(),
-      items: [],
       totalDamageDealt: 0,
-    }
+    })
     const [result] = completeBattle(run, battleState, makeRng())
 
     expect(result.phase).toBe('event')
     expect(result.currentEventId).toBeDefined()
+  })
+
+  it('라운드 12 승리 후 선택 캐릭터의 전용 이벤트가 등장한다', () => {
+    const run = { ...makeRun('fire_mage'), round: 12 }
+    const battleState = makeCompletedBattleState({
+      party: [createBattleCharacter('fire_mage', ['fireball'], [])],
+    })
+    const [result] = completeBattle(run, battleState, makeRng())
+
+    expect(result.phase).toBe('event')
+    expect(result.currentEventId).toBe('emilia_unburning_grimoire')
   })
 })
 
