@@ -1,116 +1,107 @@
 /* ==========================================================================
-   Dark Fantasy Roguelike — Design Tokens (SINoALICE 감성 리스킨)
-   기존 변수 이름은 그대로 유지. 값만 교체 + 새 토큰 추가.
+   Gray Spire Expedition - Subculture Fantasy UI Tokens
    ========================================================================== */
 
 :root {
-  /* ---------- 색상 팔레트 ---------- */
-  /* 배경 — 잉크 블랙 (기존보다 약간 따뜻한 쪽으로) */
-  --color-bg-base: oklch(8% 0.015 25);
-  --color-bg-surface: oklch(14% 0.018 25);
-  --color-bg-elevated: oklch(18% 0.022 25);
-  --color-bg-card: oklch(16% 0.02 25);
-  --color-bg-overlay: oklch(6% 0.01 20 / 0.88);
+  /* Colors */
+  --color-bg-base: oklch(96% 0.025 245);
+  --color-bg-surface: oklch(99% 0.01 245 / 0.82);
+  --color-bg-elevated: oklch(100% 0.006 245 / 0.94);
+  --color-bg-card: oklch(100% 0.006 245 / 0.88);
+  --color-bg-overlay: oklch(20% 0.055 250 / 0.72);
 
-  /* 테두리 — 재·그림자 */
-  --color-border-subtle: oklch(22% 0.025 25);
-  --color-border-default: oklch(32% 0.035 25);
-  --color-border-strong: oklch(50% 0.06 25);
+  --color-border-subtle: oklch(86% 0.035 245 / 0.72);
+  --color-border-default: oklch(74% 0.07 245 / 0.7);
+  --color-border-strong: oklch(60% 0.12 245);
 
-  /* 텍스트 — 양피지·상아 */
-  --color-text-primary: oklch(86% 0.038 80);   /* 양피지 */
-  --color-text-secondary: oklch(72% 0.035 75); /* 상아 */
-  --color-text-muted: oklch(55% 0.04 60);      /* 바랜 양피지 */
+  --color-text-primary: oklch(27% 0.05 255);
+  --color-text-secondary: oklch(43% 0.045 250);
+  --color-text-muted: oklch(58% 0.035 245);
 
-  /* 포인트 — 황금 */
-  --color-accent: oklch(72% 0.13 78);
-  --color-accent-dim: oklch(48% 0.09 75);
-  --color-accent-glow: oklch(80% 0.18 78 / 0.35);
+  --color-accent: oklch(63% 0.17 245);
+  --color-accent-dim: oklch(52% 0.12 245);
+  --color-accent-glow: oklch(72% 0.15 235 / 0.32);
 
-  /* HP — 피와 재생 */
-  --color-hp-high: oklch(58% 0.18 140);
-  --color-hp-mid: oklch(68% 0.20 45);
-  --color-hp-low: oklch(56% 0.24 25);
+  --color-hp-high: oklch(70% 0.18 155);
+  --color-hp-mid: oklch(75% 0.17 80);
+  --color-hp-low: oklch(63% 0.21 25);
 
-  /* MP — 혼 (보라빛 아님, 진한 청자) */
-  --color-mp: oklch(58% 0.14 260);
-  --color-mp-dim: oklch(38% 0.10 260);
+  --color-mp: oklch(66% 0.16 260);
+  --color-mp-dim: oklch(56% 0.12 260);
 
-  /* 속성 — 어둠 중심으로 재조정 */
-  --color-element-fire: oklch(62% 0.22 30);
-  --color-element-water: oklch(58% 0.16 235);
-  --color-element-dark: oklch(45% 0.15 295);
-  --color-element-light: oklch(82% 0.12 92);
-  --color-element-physical: oklch(60% 0.08 65);
+  --color-element-fire: oklch(67% 0.2 30);
+  --color-element-water: oklch(68% 0.15 218);
+  --color-element-dark: oklch(56% 0.16 295);
+  --color-element-light: oklch(78% 0.13 92);
+  --color-element-physical: oklch(62% 0.1 58);
 
-  /* 레어리티 */
-  --color-rarity-common: oklch(65% 0.03 65);
-  --color-rarity-rare: oklch(62% 0.18 255);
-  --color-rarity-epic: oklch(65% 0.22 295);
-  --color-rarity-legendary: oklch(72% 0.13 78); /* 황금 = accent */
+  --color-rarity-common: oklch(62% 0.035 245);
+  --color-rarity-rare: oklch(65% 0.15 240);
+  --color-rarity-epic: oklch(66% 0.18 305);
+  --color-rarity-legendary: oklch(76% 0.15 82);
 
-  /* 상태이상 */
-  --color-status-poison: oklch(58% 0.20 145);
-  --color-status-burn: oklch(62% 0.22 30);
-  --color-status-freeze: oklch(70% 0.15 220);
-  --color-status-stun: oklch(72% 0.19 82);
-  --color-status-buff: oklch(68% 0.18 145);
-  --color-status-debuff: oklch(56% 0.24 25);
+  --color-status-poison: oklch(64% 0.18 145);
+  --color-status-burn: oklch(67% 0.2 30);
+  --color-status-freeze: oklch(72% 0.14 220);
+  --color-status-stun: oklch(76% 0.16 86);
+  --color-status-buff: oklch(68% 0.17 155);
+  --color-status-debuff: oklch(63% 0.2 25);
 
-  /* ---------- ★ 새 토큰 — SINoALICE 감성 전용 ---------- */
-  --color-ink: oklch(8% 0.015 25);           /* 잉크 */
-  --color-ink-soft: oklch(14% 0.018 25);     /* 연한 잉크 */
-  --color-paper: oklch(86% 0.038 80);        /* 양피지 */
-  --color-paper-dim: oklch(72% 0.035 75);    /* 바랜 양피지 */
-  --color-bone: oklch(78% 0.025 70);         /* 상아 */
-  --color-blood: oklch(42% 0.22 25);         /* 핏빛 */
-  --color-blood-deep: oklch(28% 0.18 25);    /* 짙은 피 */
-  --color-blood-bright: oklch(56% 0.24 25);  /* 선혈 */
-  --color-gold: oklch(72% 0.13 78);          /* 황금 */
-  --color-gold-dim: oklch(48% 0.09 75);      /* 어두운 황금 */
-  --color-ember: oklch(68% 0.20 45);         /* 불씨 */
-  --color-ash: oklch(32% 0.012 30);          /* 재 */
-  --color-ash-dark: oklch(18% 0.01 25);      /* 짙은 재 */
-  --color-effect-positive: oklch(68% 0.18 145);
-  --color-effect-negative: oklch(58% 0.22 25);
-  --color-effect-neutral: oklch(68% 0.12 240);
-  --color-effect-warning: oklch(72% 0.18 70);
+  --color-sky: oklch(91% 0.055 232);
+  --color-sky-soft: oklch(96% 0.025 235);
+  --color-cloud: oklch(100% 0.004 245 / 0.76);
+  --color-glass: oklch(100% 0.008 245 / 0.72);
+  --color-glass-strong: oklch(100% 0.006 245 / 0.9);
+  --color-panel-blue: oklch(90% 0.045 235 / 0.58);
+  --color-spire: oklch(50% 0.07 250);
+  --color-gold: oklch(76% 0.15 82);
+  --color-gold-dim: oklch(60% 0.11 82);
+  --color-danger: var(--color-hp-low);
+  --color-effect-positive: var(--color-hp-high);
+  --color-effect-negative: var(--color-hp-low);
+  --color-effect-neutral: var(--color-element-water);
+  --color-effect-warning: var(--color-gold);
 
-  /* ---------- 타이포그래피 ---------- */
-  /* 영문 장식체 (배너·챕터·버튼) */
-  --font-display: 'UnifrakturCook', 'Cinzel Decorative', 'Cinzel', serif;
-  /* 영문 세리프 (라틴어 부제·레이블) */
-  --font-heading: 'Cinzel Decorative', 'Cinzel', 'Georgia', serif;
-  /* 한글 제목 */
-  --font-korean: 'Nanum Myeongjo', 'Noto Serif KR', serif;
-  /* 본문·대사 (한/영 혼용) */
-  --font-body: 'Cormorant Garamond', 'Nanum Myeongjo', 'Noto Serif KR', 'Georgia', serif;
-  /* 수치 */
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  /* Backward-compatible aliases used by existing screens */
+  --color-ink: oklch(23% 0.055 255);
+  --color-ink-soft: oklch(36% 0.055 252);
+  --color-paper: var(--color-bg-elevated);
+  --color-paper-dim: var(--color-text-secondary);
+  --color-bone: oklch(93% 0.025 82);
+  --color-blood: var(--color-hp-low);
+  --color-blood-deep: oklch(45% 0.16 25);
+  --color-blood-bright: oklch(68% 0.22 25);
+  --color-ember: var(--color-element-fire);
+  --color-ash: oklch(74% 0.028 245);
+  --color-ash-dark: oklch(36% 0.035 255);
 
-  /* ★ 세리프 보정된 스케일 — 모두 한 단계 키움.
-     세리프 폰트는 산세리프 대비 같은 px에서 ~15% 작아 보이므로
-     최소값을 0.85rem(13.6px)로 끌어올려 수치 가독성 확보 */
-  --text-xxs: clamp(0.6rem, 0.55rem + 0.2vw, 0.7rem);     /* 극소 레이블 (뱃지·HUD 수치 등) */
-  --text-xs: clamp(0.82rem, 0.72rem + 0.25vw, 0.92rem);   /* 기존 0.625~0.75 → 상향 */
-  --text-sm: clamp(0.92rem, 0.82rem + 0.3vw, 1.05rem);
-  --text-base: clamp(1.02rem, 0.92rem + 0.3vw, 1.15rem);
-  --text-md: clamp(1.12rem, 1rem + 0.4vw, 1.28rem);
-  --text-lg: clamp(1.28rem, 1.12rem + 0.5vw, 1.55rem);
-  --text-xl: clamp(1.55rem, 1.35rem + 0.8vw, 2.1rem);
-  --text-2xl: clamp(2.1rem, 1.7rem + 1.5vw, 2.8rem);
-  --text-hero: clamp(2.9rem, 2.3rem + 3vw, 4.5rem);
+  /* Typography */
+  --font-display: 'Outfit', 'Nunito', 'Noto Sans KR', system-ui, sans-serif;
+  --font-heading: 'Outfit', 'Noto Sans KR', system-ui, sans-serif;
+  --font-korean: 'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  --font-body: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
+
+  --text-xxs: 0.68rem;
+  --text-xs: 0.78rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-md: 1.08rem;
+  --text-lg: 1.24rem;
+  --text-xl: 1.52rem;
+  --text-2xl: 2rem;
+  --text-hero: 3.4rem;
 
   --weight-normal: 500;
   --weight-medium: 600;
   --weight-semibold: 700;
   --weight-bold: 800;
 
-  --leading-tight: 1.2;
-  --leading-normal: 1.55;   /* 세리프는 좀 더 여유 있게 */
-  --leading-relaxed: 1.75;
+  --leading-tight: 1.12;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
 
-  /* ---------- 간격 ---------- */
+  /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -122,23 +113,22 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* ---------- 반지름 (날카롭게) ---------- */
-  /* SINoALICE 감성은 각진 프레임. 거의 0에 가깝게 */
-  --radius-sm: 1px;
-  --radius-md: 2px;
-  --radius-lg: 3px;
-  --radius-xl: 4px;
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
   --radius-full: 9999px;
 
-  /* ---------- 그림자 ---------- */
-  --shadow-sm: 0 1px 3px oklch(0% 0 0 / 0.6);
-  --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.7);
-  --shadow-lg: 0 8px 28px oklch(0% 0 0 / 0.8);
-  --shadow-accent: 0 0 20px var(--color-accent-glow);
-  --shadow-blood: 0 0 18px oklch(42% 0.22 25 / 0.5);
-  --shadow-inset: inset 0 1px 0 oklch(100% 0 0 / 0.08);
+  /* Shadows */
+  --shadow-sm: 0 8px 22px oklch(46% 0.09 245 / 0.1);
+  --shadow-md: 0 14px 34px oklch(44% 0.095 245 / 0.14);
+  --shadow-lg: 0 24px 60px oklch(39% 0.1 245 / 0.2);
+  --shadow-accent: 0 0 28px var(--color-accent-glow);
+  --shadow-blood: 0 0 20px oklch(63% 0.21 25 / 0.26);
+  --shadow-inset: inset 0 1px 0 oklch(100% 0 0 / 0.86);
 
-  /* ---------- 애니메이션 (그대로) ---------- */
+  /* Motion */
   --duration-instant: 80ms;
   --duration-fast: 150ms;
   --duration-normal: 250ms;
@@ -150,10 +140,20 @@
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ---------- 레이아웃 ---------- */
-  --panel-width-side: 260px;
-  --skill-bar-height: 132px;
-  --hud-height: 42px;
+  /* Layout */
+  --panel-width-side: 276px;
+  --skill-bar-height: 124px;
+  --hud-height: 46px;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --text-hero: 2.6rem;
+    --text-2xl: 1.68rem;
+    --text-xl: 1.34rem;
+    --panel-width-side: 250px;
+    --skill-bar-height: 132px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -120,31 +120,31 @@ export function DraftScreen() {
           {run.round === MAX_ROUNDS && (
             <span style={{
               fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
-              color: 'var(--color-blood)', background: 'color-mix(in oklch, var(--color-blood) 15%, var(--color-bg-elevated))',
-              border: '1px solid var(--color-blood)', borderRadius: 'var(--radius-sm)',
-              padding: '2px 8px', letterSpacing: '0.15em', textTransform: 'uppercase',
+              color: 'var(--color-blood)', background: 'color-mix(in oklch, var(--color-blood) 12%, white)',
+              border: '1px solid color-mix(in oklch, var(--color-blood) 36%, transparent)', borderRadius: 'var(--radius-full)',
+              padding: '2px 10px', letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
-              ⚔ 보스전
+              보스전
             </span>
           )}
           {ELITE_ROUNDS.has(run.round) && (
             <span style={{
               fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
-              color: 'var(--color-gold)', background: 'color-mix(in oklch, var(--color-gold) 12%, var(--color-bg-elevated))',
-              border: '1px solid var(--color-gold)', borderRadius: 'var(--radius-sm)',
-              padding: '2px 8px', letterSpacing: '0.15em', textTransform: 'uppercase',
+              color: 'var(--color-gold-dim)', background: 'color-mix(in oklch, var(--color-gold) 12%, white)',
+              border: '1px solid color-mix(in oklch, var(--color-gold) 36%, transparent)', borderRadius: 'var(--radius-full)',
+              padding: '2px 10px', letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
-              ⚠ 엘리트
+              엘리트
             </span>
           )}
           {MINI_BOSS_ROUNDS.has(run.round) && (
             <span style={{
               fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)',
               color: 'var(--color-element-dark)', background: 'color-mix(in oklch, var(--color-element-dark) 12%, var(--color-bg-elevated))',
-              border: '1px solid var(--color-element-dark)', borderRadius: 'var(--radius-sm)',
-              padding: '2px 8px', letterSpacing: '0.15em', textTransform: 'uppercase',
+              border: '1px solid color-mix(in oklch, var(--color-element-dark) 34%, transparent)', borderRadius: 'var(--radius-full)',
+              padding: '2px 10px', letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
-              💀 미니보스
+              미니보스
             </span>
           )}
         </div>
@@ -185,7 +185,7 @@ export function DraftScreen() {
           {recipes.length > 0 && (
             <span style={{
               marginLeft: 'var(--space-2)',
-              fontSize: '10px',
+              fontSize: 'var(--text-xxs)',
               padding: '1px 5px',
               background: 'var(--color-accent)',
               color: 'oklch(15% 0 0)',
@@ -346,7 +346,6 @@ function CraftTab({ allRecipes, availableRecipes, ownedSkillIds, ownedItemIds, o
           fontSize: 'var(--text-sm)',
           padding: 'var(--space-8)',
         }}>
-          <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-3)' }}>⚗️</div>
           <div>레시피가 없습니다.</div>
         </div>
       )}
@@ -640,13 +639,13 @@ function RerollButton({
         alignSelf: 'flex-end',
         minHeight: '1.8rem',
         padding: '3px 8px',
-        fontSize: '10px',
+        fontSize: 'var(--text-xs)',
         '--button-accent': canReroll ? 'var(--color-accent)' : 'var(--color-text-muted)',
         opacity: canReroll ? 1 : 0.45,
         letterSpacing: '0.04em',
       } as React.CSSProperties}
     >
-      🔄 리롤
+      리롤
     </button>
   )
 }
@@ -752,7 +751,7 @@ function SynergyBadge({ synergies }: { synergies: readonly Synergy[] }) {
           key={s.id}
           title={s.description}
           style={{
-            fontSize: '10px',
+            fontSize: 'var(--text-xxs)',
             padding: '2px 5px',
             background: 'color-mix(in oklch, var(--color-accent) 20%, transparent)',
             color: 'var(--color-accent)',
@@ -887,6 +886,15 @@ function AllyCard({ ally, onSelect, newSynergies = [], playerAtk = 0 }: { ally: 
         }}>
           {ally.name}
         </div>
+        <span style={{
+          display: 'block',
+          marginTop: '2px',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--color-text-muted)',
+          lineHeight: 1.2,
+        }}>
+          {ally.title}
+        </span>
       </div>
 
       {/* 설명 */}

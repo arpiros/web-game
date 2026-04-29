@@ -1,6 +1,6 @@
 /* ==========================================================================
    Dark Fantasy Roguelike — EventScreen
-   전투 사이 이벤트 화면 (라운드 2·4)
+   전투 사이 이벤트 화면
    ========================================================================== */
 
 import type { CSSProperties } from 'react'
@@ -95,7 +95,7 @@ export function EventScreen() {
       {/* 이벤트 헤더 */}
       <div className="screen-header" style={{ textAlign: 'center', maxWidth: '560px', marginBottom: 0 }}>
         <div className="screen-eyebrow">
-          이벤트 — 라운드 {run.round - 1} 클리어
+          {event.characterId ? '캐릭터 기억' : '이벤트'} — 라운드 {run.round - 1} 클리어
         </div>
         <h2 className="screen-title">{event.name}</h2>
         <div className="ui-progress" aria-label={`진행도 ${progress}%`}>

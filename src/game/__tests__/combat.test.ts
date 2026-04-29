@@ -81,6 +81,7 @@ function makeAlly(overrides: Partial<BattleAlly> = {}): BattleAlly {
     id: 'ally-1',
     defId: 'forest_archer',
     name: '궁수',
+    title: '숲의 궁수',
     stats: {
       maxHp: 600,
       hp: 600,

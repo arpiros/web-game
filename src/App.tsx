@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import type { CSSProperties } from 'react'
 import { useRunStore } from './state/runStore'
 import { CharacterSelectScreen } from './screens/CharacterSelectScreen'
 import { BattleScreen } from './screens/BattleScreen'
@@ -79,7 +80,7 @@ function App() {
 
 function TitleScreen({ onStart }: { onStart: () => void }) {
   return (
-    <div style={{
+    <div className="title-screen" style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -87,50 +88,36 @@ function TitleScreen({ onStart }: { onStart: () => void }) {
       flex: 1,
       gap: 'var(--space-8)',
       position: 'relative',
+      padding: 'var(--space-8)',
     }}>
-      <div style={{ textAlign: 'center' }}>
+      <div className="title-screen__copy" style={{ textAlign: 'center' }}>
         <h1 style={{
           fontFamily: 'var(--font-heading)',
           fontSize: 'var(--text-hero)',
-          letterSpacing: '0.05em',
+          letterSpacing: 0,
           color: 'var(--color-accent)',
           margin: 0,
         }}>
-          Dark Roguelike
+          회색 첨탑
         </h1>
         <p style={{
           color: 'var(--color-text-secondary)',
           marginTop: 'var(--space-3)',
           marginBottom: 0,
           fontSize: 'var(--text-sm)',
-          letterSpacing: '0.04em',
+          fontWeight: 'var(--weight-semibold)',
         }}>
-          캐릭터와 스킬을 조합하여 최고의 누적 데미지를 노려라
+          소원을 품은 소녀들이 탑의 끝을 향해 오르는 서브컬처 판타지 로그라이트
         </p>
       </div>
       <button
         onClick={onStart}
+        className="ui-button title-screen__start"
         style={{
+          '--button-accent': 'var(--color-accent)',
           padding: 'var(--space-3) var(--space-10)',
-          border: '1px solid var(--color-accent)',
-          color: 'var(--color-accent)',
-          background: 'color-mix(in oklch, var(--color-accent) 8%, transparent)',
           fontSize: 'var(--text-md)',
-          letterSpacing: '0.1em',
-          borderRadius: 'var(--radius-md)',
-          cursor: 'pointer',
-          transition: 'background var(--duration-fast), box-shadow var(--duration-fast)',
-        }}
-        onMouseEnter={e => {
-          const el = e.currentTarget as HTMLButtonElement
-          el.style.background = 'color-mix(in oklch, var(--color-accent) 18%, transparent)'
-          el.style.boxShadow = '0 0 24px color-mix(in oklch, var(--color-accent) 40%, transparent)'
-        }}
-        onMouseLeave={e => {
-          const el = e.currentTarget as HTMLButtonElement
-          el.style.background = 'color-mix(in oklch, var(--color-accent) 8%, transparent)'
-          el.style.boxShadow = 'none'
-        }}
+        } as CSSProperties}
       >
         시작하기
       </button>

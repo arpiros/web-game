@@ -24,7 +24,7 @@ import { getItemById, ITEMS } from './data/items'
 import { SKILLS } from './data/skills'
 import { CRAFT_RESULT_IDS, RECIPES } from './data/recipes'
 import { applyCraft } from './craft'
-import { EVENTS, getEventById } from './data/events'
+import { getCharacterEvents, getEventById, getGenericEvents } from './data/events'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -158,6 +158,7 @@ export function createBattleAlly(allyDefId: string, index: number): BattleAlly {
     id: `ally-${index}`,
     defId: def.id,
     name: def.name,
+    title: def.title,
     stats: {
       maxHp: def.baseStats.maxHp,
       hp: def.baseStats.maxHp,
@@ -471,7 +472,11 @@ export function completeBattle(
 
   // 이벤트 라운드 전환: 드래프트 전에 이벤트 화면 삽입
   if (EVENT_ROUNDS.has(runState.round)) {
-    const [pickedEvents, eventRng] = pickN(nextRng, EVENTS, 1)
+    const characterEvents = getCharacterEvents(runState.character.defId)
+    const eventPool = runState.round === 12 && characterEvents.length > 0
+      ? characterEvents
+      : getGenericEvents()
+    const [pickedEvents, eventRng] = pickN(nextRng, eventPool, 1)
     const eventId = pickedEvents[0].id
     return [
       {

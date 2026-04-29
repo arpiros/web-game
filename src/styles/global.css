@@ -1,11 +1,11 @@
 /* ==========================================================================
-   Global Reset & Base Styles — Dark Fantasy Roguelike (SINoALICE 리스킨)
+   Global Reset & Base Styles - Gray Spire Expedition
    ========================================================================== */
 
 @import './tokens.css';
 @import './typography.css';
 @import './components.css';
-@import './ornaments.css';  /* ★ 새 파일 — 장식 레이어 */
+@import './ornaments.css';
 
 *,
 *::before,
@@ -26,56 +26,31 @@ html {
 }
 
 body {
+  min-height: 100dvh;
+  color: var(--color-text-primary);
   font-family: var(--font-body);
   font-size: var(--text-base);
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-base);
-  min-height: 100dvh;
   line-height: var(--leading-normal);
+  background-color: var(--color-bg-base);
+  background-image:
+    linear-gradient(180deg, oklch(92% 0.06 232) 0%, oklch(98% 0.018 236) 42%, oklch(94% 0.026 86) 100%),
+    repeating-linear-gradient(90deg, oklch(60% 0.06 235 / 0.05) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(0deg, oklch(60% 0.06 235 / 0.04) 0 1px, transparent 1px 72px);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* SINoALICE 감성 — 잉크 블러 + 양피지 그레인 + 비네트 */
-  background-image:
-    /* 상단 제단 빛 */
-    radial-gradient(
-      ellipse 80% 50% at 50% 0%,
-      oklch(18% 0.06 25 / 0.5) 0%,
-      transparent 70%
-    ),
-    /* 하단 혈흔 */
-    radial-gradient(
-      ellipse 90% 40% at 50% 100%,
-      oklch(14% 0.08 20 / 0.4) 0%,
-      transparent 65%
-    ),
-    /* 종이 그레인 (대각선 해칭) */
-    repeating-linear-gradient(
-      23deg,
-      oklch(100% 0 0 / 0.012) 0 1px,
-      transparent 1px 3px
-    ),
-    repeating-linear-gradient(
-      103deg,
-      oklch(100% 0 0 / 0.010) 0 1px,
-      transparent 1px 5px
-    );
-  background-attachment: fixed;
   position: relative;
 }
 
-/* 비네트 오버레이 — 전체 화면 */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 40%,
-    oklch(0% 0 0 / 0.55) 100%
-  );
   pointer-events: none;
-  z-index: 1000;
+  z-index: 0;
+  background:
+    linear-gradient(120deg, transparent 0 16%, oklch(100% 0 0 / 0.24) 16% 17%, transparent 17% 42%, oklch(100% 0 0 / 0.18) 42% 43%, transparent 43%),
+    linear-gradient(180deg, transparent 0 72%, oklch(72% 0.05 82 / 0.18) 100%);
 }
 
 #root {
@@ -86,357 +61,113 @@ body::before {
   z-index: 1;
 }
 
-/* 링크 */
 a {
   color: var(--color-accent);
   text-decoration: none;
-  border-bottom: 1px dotted var(--color-accent-dim);
+  border-bottom: 1px solid color-mix(in oklch, var(--color-accent) 36%, transparent);
 }
-a:hover { border-bottom-style: solid; }
 
-/* 포커스 링 */
+a:hover {
+  border-bottom-color: var(--color-accent);
+}
+
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-/* 버튼 리셋 */
 button {
-  font-family: var(--font-body);
-  cursor: pointer;
   border: none;
   background: none;
   color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
 }
+
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.52;
 }
 
-img, svg { display: block; max-width: 100%; }
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
 
-/* 스크롤바 — 핏빛 */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--color-bg-surface); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: color-mix(in oklch, var(--color-bg-surface) 72%, transparent);
+}
+
 ::-webkit-scrollbar-thumb {
-  background: var(--color-blood-deep);
-  border-radius: 0;
+  background: color-mix(in oklch, var(--color-accent) 42%, white 24%);
+  border: 2px solid color-mix(in oklch, var(--color-bg-surface) 80%, transparent);
+  border-radius: var(--radius-full);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--color-blood); }
 
-/* 데미지 팝업 — 더 드라마틱하게 */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
 @keyframes popup-float {
-  0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) rotate(-4deg); }
-  15%  { opacity: 1; transform: translateX(-50%) translateY(-14px) scale(1.15) rotate(-4deg); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-80px) scale(0.8) rotate(-4deg); }
+  0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  18% { opacity: 1; transform: translateX(-50%) translateY(-14px) scale(1.12); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-78px) scale(0.86); }
+}
+
+@keyframes popup-float-crit {
+  0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) rotate(-2deg); }
+  16% { opacity: 1; transform: translateX(-50%) translateY(-18px) scale(1.22) rotate(2deg); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-92px) scale(0.9) rotate(0); }
 }
 
 @keyframes entity-shake {
-  0%   { transform: translateX(0); }
-  15%  { transform: translateX(-5px); }
-  30%  { transform: translateX(5px); }
-  45%  { transform: translateX(-4px); }
-  60%  { transform: translateX(4px); }
-  75%  { transform: translateX(-1px); }
+  0% { transform: translateX(0); }
+  16% { transform: translateX(-5px); }
+  32% { transform: translateX(5px); }
+  48% { transform: translateX(-3px); }
+  64% { transform: translateX(3px); }
   100% { transform: translateX(0); }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.85; }
-  50%       { opacity: 0.45; }
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.48; }
 }
 
 @keyframes boss-phase-in {
-  0%   { opacity: 0; transform: scale(1.08); }
-  20%  { opacity: 1; transform: scale(1); }
-  70%  { opacity: 1; }
+  0% { opacity: 0; transform: scale(1.06); }
+  20% { opacity: 1; transform: scale(1); }
+  72% { opacity: 1; }
   100% { opacity: 0; }
 }
 
 @keyframes entity-death-fadeout {
-  0%   { opacity: 1;    transform: scale(1);    filter: brightness(1) saturate(1); }
-  30%  { opacity: 0.85; transform: scale(1.03); filter: brightness(1.8) saturate(1.4); }
-  100% { opacity: 0.1;  transform: scale(0.92); filter: brightness(0.4) saturate(0.3); }
+  0% { opacity: 1; transform: scale(1); filter: brightness(1) saturate(1); }
+  30% { opacity: 0.86; transform: scale(1.03); filter: brightness(1.8) saturate(1.35); }
+  100% { opacity: 0.12; transform: scale(0.92); filter: brightness(0.72) saturate(0.55); }
 }
 
-/* 유틸리티 */
 .sr-only {
-  position: absolute; width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* ==========================================================================
-   ★ 가독성 패치 — 세리프 폰트 기준 최소 폰트 크기 강제 상향
-   BattleScreen.tsx가 0.55~0.65rem 같은 값을 인라인으로 하드코딩 중.
-   세리프체는 x-height이 낮아 같은 px에서도 작아 보이므로 전역으로 bump.
-   ========================================================================== */
-
-/* 전역 최소 크기 — 어떤 요소든 0.72rem 이하면 11.5px로 승격.
-   (React 인라인 style의 `fontSize: '0.55rem'` 등을 덮어씀)      */
-#root [style*="font-size: 0.55rem"],
-#root [style*="fontSize:0.55rem"],
-#root [style*="font-size: 0.6rem"],
-#root [style*="fontSize:0.6rem"],
-#root [style*="font-size: 0.65rem"],
-#root [style*="fontSize:0.65rem"],
-#root [style*="font-size: 0.7rem"],
-#root [style*="fontSize:0.7rem"] {
-  font-size: 0.85rem !important;
-  letter-spacing: 0.02em;
-}
-
-/* --text-xs 사용처도 한 단계 키움 (세리프 보정) */
-#root [style*="var(--text-xs)"] {
-  font-size: 0.88rem !important;
-}
-
-/* 수치(HP/MP/공격력 등)는 mono 폰트로 — 세리프보다 훨씬 읽기 쉬움 */
-#root [style*="JetBrains Mono"],
-#root [style*="font-mono"],
-.stat-value {
-  font-family: var(--font-mono) !important;
-  font-feature-settings: 'tnum' 1, 'zero' 1;
-  letter-spacing: 0;
-}
-
-/* HP/MP 숫자 — 리소스 바 아래 표기 */
-button > div > div:last-child,
-button > div:has(+ div[style*="height: 5px"]) ~ div,
-[style*="textAlign: right"][style*="font-size: 0.6rem"],
-[style*="text-align: right"][style*="font-size: 0.6rem"] {
-  font-family: var(--font-mono) !important;
-  font-size: 0.82rem !important;
-  color: var(--color-paper) !important;
-  letter-spacing: 0.02em;
-}
-
-/* 적 HP 수치 — 14px로 */
-button[disabled] > div:last-child,
-button:not([disabled]) > div > div[style*="text-align: right"],
-button:not([disabled]) > div > div[style*="textAlign: right"] {
-  font-size: 0.82rem !important;
-}
-
-/* 스킬 카드 MP 코스트 / CD / 원소 라벨 — 13px로 */
-[style*="0.6rem"][style*="MP"],
-[style*="0.55rem"][style*="CD"] {
-  font-size: 0.82rem !important;
-}
-
-/* 상태이상 배지 — 12px로 (기존 0.55rem=8.8px는 읽을 수 없음) */
-span[role="button"][tabindex="0"] {
-  font-size: 0.75rem !important;
-  padding: 2px 6px !important;
-  letter-spacing: 0.02em;
-  font-family: var(--font-body);
-  font-variant: small-caps;
-}
-
-/* 적 의도 배지 — 아이콘/텍스트 확대 */
-[style*="border-top: 1px solid"][style*="paddingTop"] span {
-  font-size: 0.78rem !important;
-  line-height: 1.25 !important;
-}
-
-/* 상단 HUD의 라운드·턴 표시 */
-[style*="var(--hud-height)"] span {
-  font-size: 0.88rem !important;
-  letter-spacing: 0.08em;
-}
-
-/* 전투 로그 — 본문 키움 */
-[style*="var(--color-bg-surface)"][style*="var(--text-xs)"] > div {
-  font-size: 0.92rem !important;
-  line-height: 1.55 !important;
-}
-
-/* 스킬 이름 — 14.5px로 */
-button[style*="minWidth: 88px"] span[style*="var(--text-xs)"] {
-  font-size: 0.92rem !important;
-  max-width: 100% !important;
-}
-
-/* 숫자 강조 — 더 굵고 크게 (데미지 팝업) */
-[style*="popup-float"] {
-  font-size: 1.2rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.02em;
-}
-
-/* 크리티컬 팝업은 더 크게 */
-[style*="popup-float"][style*="var(--text-lg)"] {
-  font-size: 1.6rem !important;
-}
-
-/* 파티 카드 — 이름/공격력 */
-[style*="justifyContent: space-between"][style*="baseline"] > span:last-child,
-[style*="justify-content: space-between"][style*="baseline"] > span:last-child {
-  font-size: 0.82rem !important;
-  font-family: var(--font-mono) !important;
-}
-
-/* 적 이름 대비 키우기 */
-button > div > span[style*="flex: 1"][style*="text-align: center"],
-button > div > span[style*="flex:1"][style*="textAlign:center"] {
-  font-size: 0.95rem !important;
-  letter-spacing: 0.04em;
-}
-
-/* 리소스 바 라벨 HP/MP */
-[style*="var(--color-text-muted)"][style*="0.6rem"] {
-  font-size: 0.78rem !important;
-  font-family: var(--font-heading);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-/* 한글 텍스트 — lang 관계없이 CJK 검출되면 한글 폰트 */
-:lang(ko), body {
-  font-feature-settings: 'kern' 1;
-}
-
-/* 숫자 전용 규칙 — tabular figures */
-[style*="toLocaleString"],
-[style*="MP"],
-[style*="HP"] {
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   ★ DraftScreen 가독성 패치 — 보상 선택 화면
-   ========================================================================== */
-
-/* 드래프트 카드 — 배경 강화로 body 대비 향상 */
-button[style*="width: 220px"],
-button[style*="width:220px"] {
-  background: linear-gradient(180deg,
-    oklch(20% 0.025 25) 0%,
-    oklch(14% 0.02 25) 100%) !important;
-  box-shadow:
-    inset 0 1px 0 oklch(100% 0 0 / 0.06),
-    0 4px 16px oklch(0% 0 0 / 0.5) !important;
-  min-height: 280px !important;
-  padding: 18px !important;
-}
-
-/* 드래프트 카드 설명문 — 본문 가독성 강화 */
-button[style*="width: 220px"] p,
-button[style*="width:220px"] p {
-  font-size: 0.95rem !important;
-  color: var(--color-paper-dim) !important;
-  line-height: 1.6 !important;
-  letter-spacing: 0.01em;
-}
-
-/* 드래프트 카드 이름 — 한글 세리프 강화 */
-button[style*="width: 220px"] div[style*="var(--text-md)"],
-button[style*="width:220px"] div[style*="var(--text-md)"] {
-  font-size: 1.3rem !important;
-  font-family: var(--font-korean), var(--font-heading) !important;
-  color: var(--color-paper) !important;
-  letter-spacing: 0.03em;
-  line-height: 1.25 !important;
-  margin-bottom: 4px;
-}
-
-/* 스킬/동료/아이템 타입 레이블 */
-button[style*="width: 220px"] > div[style*="var(--text-xs)"]:first-child,
-button[style*="width:220px"] > div[style*="var(--text-xs)"]:first-child {
-  font-size: 0.8rem !important;
-  font-family: var(--font-heading) !important;
-  color: var(--color-gold-dim) !important;
-  letter-spacing: 0.2em !important;
-}
-
-/* 속성 라벨 (화염·수·물리 등) */
-button[style*="width: 220px"] span[style*="var(--text-xs)"][style*="display: block"],
-button[style*="width:220px"] span[style*="var(--text-xs)"][style*="display:block"] {
-  font-size: 0.85rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em;
-  margin-bottom: 6px !important;
-}
-
-/* 숫자 강조 — MP / 쿨다운 값 */
-button[style*="width: 220px"] strong,
-button[style*="width:220px"] strong {
-  font-family: var(--font-mono) !important;
-  font-size: 1rem !important;
-  font-weight: 700 !important;
-  font-variant-numeric: tabular-nums;
-}
-
-/* MP / 쿨다운 라벨 줄 */
-button[style*="width: 220px"] > div[style*="border-top"],
-button[style*="width:220px"] > div[style*="border-top"] {
-  font-size: 0.85rem !important;
-  gap: 14px !important;
-  padding-top: 10px !important;
-}
-
-/* 레어리티 배지 — 크게 + 대문자 라틴어 느낌 */
-button[style*="width: 220px"] > span[style*="marginTop: auto"],
-button[style*="width:220px"] > span[style*="marginTop:auto"],
-button[style*="width: 220px"] > span[style*="margin-top: auto"] {
-  font-size: 0.78rem !important;
-  padding: 4px 12px !important;
-  letter-spacing: 0.25em !important;
-  font-family: var(--font-heading) !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-}
-
-/* 헤더 "보상을 선택하세요" */
-h2[style*="var(--text-2xl)"] {
-  font-family: var(--font-korean), var(--font-heading) !important;
-  font-size: 2.4rem !important;
-  letter-spacing: 0.12em !important;
-  text-shadow: 0 0 24px oklch(72% 0.13 78 / 0.3);
-}
-
-/* "라운드 N 클리어" 부제 */
-div[style*="var(--text-sm)"][style*="letter-spacing: 0.1em"],
-div[style*="var(--text-sm)"][style*="letterSpacing:0.1em"] {
-  font-size: 0.92rem !important;
-  color: var(--color-gold-dim) !important;
-  letter-spacing: 0.3em !important;
-}
-
-/* "누적 피해 / 리롤 N회 남음" */
-p[style*="var(--text-sm)"][style*="var(--color-text-muted)"] {
-  font-size: 1rem !important;
-  color: var(--color-paper-dim) !important;
-}
-p[style*="var(--text-sm)"][style*="var(--color-text-muted)"] span {
-  font-size: 1rem !important;
-}
-
-/* 탭 버튼 */
-button[style*="var(--text-sm)"][style*="var(--space-5)"] {
-  font-size: 0.95rem !important;
-  padding: 10px 24px !important;
-  letter-spacing: 0.08em;
-}
-
-/* 리롤 버튼 — 더 크게 */
-button[title*="리롤"] {
-  font-size: 0.78rem !important;
-  padding: 5px 12px !important;
-  letter-spacing: 0.06em !important;
-}
-
-/* 보유중 배지 — 카드 우상단 */
-span[style*="var(--text-xs)"][style*="color: var(--color-text-muted)"][style*="position: absolute"] {
-  font-size: 0.72rem !important;
-  padding: 3px 8px !important;
-  background: oklch(30% 0.02 25 / 0.9) !important;
-  border: 1px solid var(--color-text-muted);
 }

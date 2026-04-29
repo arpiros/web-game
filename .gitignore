@@ -28,7 +28,11 @@ dist-ssr
 *.jpg
 !public/portraits/
 !public/portraits/*.png
+!public/icons/
+!public/icons/subculture/
+!public/icons/subculture/*.png
 .playwright-mcp/
+.superpowers/
 
 # Dev/temp files
 coverage/
